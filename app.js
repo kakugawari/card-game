@@ -22,7 +22,9 @@
     btnBuy: $('btnBuy'), btnBuyLabel: $('btnBuyLabel'), btnBox: $('btnBox'), btnBoxLabel: $('btnBoxLabel'),
     boxArt: $('boxArt'), btnOpenAll: $('btnOpenAll'), btnOpenAllLabel: $('btnOpenAllLabel'), myBox: $('myBox'), myBoxLeft: $('myBoxLeft'), myBoxSr: $('myBoxSr'), btnOpenBox: $('btnOpenBox'), boxLeft: $('boxLeft'), rates: $('rates'), packDot: $('packDot'),
     zkCount: $('zkCount'), zkSub: $('zkSub'), zkGrid: $('zkGrid'),
-    detail: $('detail'), dtBox: $('dtBox'), btnMute: $('btnMute'), muteIco: $('muteIco')
+    detail: $('detail'), dtBox: $('dtBox'),
+    petSheet: $('petSheet'), psClose: $('psClose'), psAnimal: $('psAnimal'), psFx: $('psFx'), psName: $('psName'), psLv: $('psLv'),
+    psBar: $('psBar'), psNext: $('psNext'), psTummy: $('psTummy'), psSnacks: $('psSnacks'), psTip: $('psTip'), psLevelUp: $('psLevelUp'), btnMute: $('btnMute'), muteIco: $('muteIco')
   };
 
   // ---------------------------------------------------------------- 保存
@@ -146,6 +148,12 @@
   });
 
   // ---------------------------------------------------------------- ひろば (歩くどうぶつ)
+  const TRICK = { 2: 'うれしいと ハートが でるように なった！', 3: 'ぴょんと はねるように なった！', 4: 'くるっと まわるように なった！', 5: 'かんむりを もらった！' };
+
+  /**
+   * ひろばの草原: 手前に なかよしの子 (3 人まで・タップで おやつ)、奥を ほかの子が歩く。
+   * なかよしの子は動き回らず、木の下で待っている (押しやすいように)
+   */
   function renderWalkers() {
     const charas = [];
     const best = {};
@@ -155,20 +163,180 @@
       best[c.chara] = Math.max(best[c.chara] || 0, C.rank(c.rarity));
     });
     charas.sort(function (a, b) { return best[b] - best[a]; });
-    const shown = charas.slice(0, 6);
+    const shown = charas.filter(function (ch) { return state.favs.indexOf(ch) < 0; }).slice(0, state.favs.length ? 4 : 6);
     const width = els.ground.clientWidth || 430;
-    // ひろい草原を、それぞれ自分の道すじで行ったり来たりする。奥 (上) の子から先に描き、手前の子が前に出る
+    const back = state.favs.length > 0;
+    // 奥の子: ひろい草原を、それぞれ自分の道すじで行ったり来たりする。奥 (上) の子から先に描き、手前の子が前に出る
     const walkers = shown.map(function (id, i) {
       const dist = 130 + Math.random() * 110;
       const dur = dist / (14 + Math.random() * 6);
-      return { id: id, dist: dist, dur: dur, left: Math.random() * Math.max(0, width - 80 - dist), bottom: 6 + (i % 3) * 14 };
+      return { id: id, dist: dist, dur: dur, left: Math.random() * Math.max(0, width - 80 - dist), bottom: (back ? 126 : 6) + (i % 2) * (back ? 6 : 14) };
     }).sort(function (x, y) { return y.bottom - x.bottom; });
-    els.ground.innerHTML = walkers.map(function (w) {
-      return '<div class="walker" style="left:' + w.left.toFixed(0) + 'px;bottom:' + w.bottom + 'px;--dist:' + w.dist.toFixed(0) +
+    let html = walkers.map(function (w) {
+      return '<div class="walker' + (back ? ' far' : '') + '" style="left:' + w.left.toFixed(0) + 'px;bottom:' + w.bottom + 'px;--dist:' + w.dist.toFixed(0) +
         'px;--dur:' + w.dur.toFixed(1) + 's;--del:-' + (Math.random() * w.dur).toFixed(1) + 's">' +
         A.svg(w.id, { delay: randomDelay() }).replace('<svg ', '<svg width="100%" height="100%" ') + '</div>';
     }).join('');
+    // 手前: なかよしの子
+    const n = state.favs.length;
+    html += state.favs.map(function (ch, i) {
+      const info = C.petInfo(state, ch, Date.now());
+      const x = (width * (i + 1)) / (n + 1) - 52;
+      return '<button type="button" class="fav lv' + info.level + '" data-ch="' + ch + '" style="left:' + x.toFixed(0) + 'px" aria-label="おやつ">' +
+        '<span class="fav-lv">♥' + info.level + '</span>' + (info.level >= 5 ? '<span class="fav-crown">👑</span>' : '') +
+        '<span class="fav-body">' + A.svg(ch, { delay: randomDelay() }).replace('<svg ', '<svg width="100%" height="100%" ') + '</span>' +
+        (info.snacksLeft > 0 ? '<span class="fav-want">' + C.CHARAS[ch].food + '</span>' : '') + '</button>';
+    }).join('');
+    if (!n && charas.length) html += '<p class="fav-hint">ずかんで「なかよし」の子を えらぶと、ここで おやつを あげられるよ</p>';
+    els.ground.innerHTML = html;
   }
+
+  els.ground.addEventListener('click', function (e) {
+    const f = e.target.closest('.fav');
+    if (f) openPet(f.dataset.ch);
+  });
+
+  // ---------------------------------------------------------------- おやつ (なかよしの子)
+  let petCh = null;
+
+  function snackView(id) {
+    const sn = C.SNACKS[id];
+    if (id === 'fav') return { icon: C.CHARAS[petCh].food, name: C.CHARAS[petCh].foodName, price: sn.price, aff: sn.aff };
+    return { icon: sn.icon, name: sn.name, price: sn.price, aff: sn.aff };
+  }
+
+  function renderPet() {
+    const info = C.petInfo(state, petCh, Date.now());
+    const card = C.CARDS.find(function (c) { return c.chara === petCh; });
+    els.psName.textContent = card.name;
+    els.psLv.textContent = 'なかよし Lv.' + info.level + (info.level >= info.maxLevel ? ' (MAX)' : '');
+    els.psBar.style.width = (info.progress * 100).toFixed(0) + '%';
+    els.psNext.textContent = info.level >= info.maxLevel ? 'いちばん なかよし！' : 'つぎの レベルまで ♥' + info.toNext;
+    let tummy = '';
+    for (let i = 0; i < C.DAILY_SNACKS; i++) tummy += '<i class="' + (i < info.fedToday ? 'on' : '') + '"></i>';
+    els.psTummy.innerHTML = '<span>きょうの おやつ</span>' + tummy + (info.snacksLeft ? '' : '<b>おなか いっぱい！</b>');
+    els.psSnacks.querySelectorAll('button').forEach(function (b) {
+      const v = snackView(b.dataset.snack);
+      b.querySelector('.sn-ico').textContent = v.icon;
+      b.querySelector('.sn-name').textContent = v.name;
+      b.querySelector('.sn-price').textContent = C.formatMoney(v.price);
+      b.querySelector('.sn-aff').textContent = '♥+' + v.aff;
+      b.disabled = info.snacksLeft <= 0 || state.money < v.price;
+    });
+    els.psTip.textContent = info.canPet ? 'さわって なでてね (1にち1かい ♥+1)' : 'きょうは もう なでたよ';
+  }
+
+  function openPet(ch) {
+    Sfx.unlock();
+    petCh = ch;
+    els.psAnimal.innerHTML = A.svg(ch, { delay: randomDelay() });
+    els.psFx.innerHTML = '';
+    els.psLevelUp.hidden = true;
+    renderPet();
+    els.petSheet.hidden = false;
+    els.petSheet.querySelector('.ps-panel').animate([{ transform: 'translateY(100%)' }, { transform: 'none' }],
+      { duration: 320, easing: 'cubic-bezier(.3,1.2,.5,1)' });
+  }
+
+  function closePet() {
+    els.petSheet.hidden = true;
+    petCh = null;
+    renderWalkers();
+  }
+
+  function hearts(n, big) {
+    const box = els.psFx.getBoundingClientRect();
+    for (let i = 0; i < n; i++) {
+      const h = document.createElement('span');
+      h.className = 'ps-heart';
+      h.textContent = '♥';
+      h.style.left = (box.width / 2 + (Math.random() * 2 - 1) * 70) + 'px';
+      h.style.top = (box.height * 0.45) + 'px';
+      h.style.fontSize = (big ? 26 : 18) + Math.random() * 12 + 'px';
+      els.psFx.appendChild(h);
+      h.animate([{ transform: 'translateY(0) scale(.4)', opacity: 0 }, { transform: 'translateY(-30px) scale(1.1)', opacity: 1, offset: 0.25 },
+        { transform: 'translateY(-' + (110 + Math.random() * 60) + 'px) scale(1)', opacity: 0 }],
+      { duration: 1100 + Math.random() * 400, delay: i * 70, easing: 'ease-out', fill: 'backwards' }).onfinish = function () { h.remove(); };
+    }
+  }
+
+  function happy(kind) {
+    const a = els.psAnimal;
+    if (kind === 'munch') {
+      a.animate([{ transform: 'none' }, { transform: 'scale(1.08, .92)' }, { transform: 'scale(.96, 1.05)' }, { transform: 'scale(1.06, .94)' }, { transform: 'none' }], { duration: 600 });
+    } else if (kind === 'no') {
+      a.animate([{ transform: 'none' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'none' }], { duration: 300 });
+    } else {
+      a.animate([{ transform: 'none' }, { transform: 'translateY(-26px)' }, { transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.3,1.5,.5,1)' });
+    }
+  }
+
+  function levelUp(lv) {
+    els.psLevelUp.innerHTML = '<b>なかよし Lv.' + lv + ' に なった！</b><span>' + (TRICK[lv] || '') + '</span>';
+    els.psLevelUp.hidden = false;
+    els.psLevelUp.animate([{ transform: 'scale(.4)', opacity: 0 }, { transform: 'scale(1.1)', opacity: 1, offset: 0.6 }, { transform: 'none', opacity: 1 }],
+      { duration: 500, easing: 'cubic-bezier(.3,1.5,.5,1)' });
+    Sfx.play('fanfareRR');
+    hearts(14, true);
+    clearTimeout(levelUpTimer);
+    levelUpTimer = setTimeout(function () { els.psLevelUp.hidden = true; }, 3500);
+  }
+  let levelUpTimer = 0;
+
+  els.psAnimal.addEventListener('click', function () {
+    const r = C.pet(state, petCh, Date.now());
+    if (!r.ok) { happy('no'); return; }
+    saveNow();
+    Sfx.play('shine');
+    happy('jump');
+    hearts(4, false);
+    renderPet();
+    if (r.levelUp) levelUp(r.level);
+  });
+
+  els.psSnacks.addEventListener('click', function (e) {
+    const b = e.target.closest('button[data-snack]');
+    if (!b || b.disabled) return;
+    const id = b.dataset.snack;
+    const r = C.feed(state, petCh, id, Date.now());
+    if (!r.ok) return;
+    saveNow();
+    renderMoney();
+    // おやつが口へ飛んでいく → もぐもぐ → ハート
+    const from = b.querySelector('.sn-ico').getBoundingClientRect();
+    const to = els.psAnimal.getBoundingClientRect();
+    const host = els.petSheet.querySelector('.ps-panel').getBoundingClientRect();
+    const fly = document.createElement('span');
+    fly.className = 'ps-fly';
+    fly.textContent = snackView(id).icon;
+    els.petSheet.querySelector('.ps-panel').appendChild(fly);
+    const x0 = from.left - host.left, y0 = from.top - host.top;
+    const x1 = to.left - host.left + to.width / 2 - 16, y1 = to.top - host.top + to.height * 0.5;
+    Sfx.play('pop');
+    fly.animate([{ transform: 'translate(' + x0 + 'px,' + y0 + 'px) scale(1)' },
+      { transform: 'translate(' + ((x0 + x1) / 2) + 'px,' + (Math.min(y0, y1) - 60) + 'px) scale(1.3)', offset: 0.5 },
+      { transform: 'translate(' + x1 + 'px,' + y1 + 'px) scale(.3)', opacity: 0.6 }],
+    { duration: 520, easing: 'ease-in' }).onfinish = function () {
+      fly.remove();
+      happy('munch');
+      Sfx.play('shine');
+      hearts(r.gain * 2, id === 'fav');
+      if (id === 'fav') {
+        const say = document.createElement('span');
+        say.className = 'ps-say';
+        say.textContent = 'だいすき！';
+        els.psFx.appendChild(say);
+        say.animate([{ transform: 'scale(.4)', opacity: 0 }, { transform: 'scale(1.1)', opacity: 1, offset: 0.3 }, { opacity: 1, offset: 0.8 }, { opacity: 0 }],
+          { duration: 1400 }).onfinish = function () { say.remove(); };
+      }
+      renderPet();
+      if (r.levelUp) levelUp(r.level);
+    };
+    renderPet();
+  });
+
+  els.psClose.addEventListener('click', closePet);
+  els.petSheet.addEventListener('click', function (e) { if (e.target === els.petSheet) closePet(); });
 
   // ---------------------------------------------------------------- パック画面
   function renderBuy() {
@@ -359,11 +527,38 @@
     const card = C.cardByNo(cell.dataset.no);
     els.dtBox.innerHTML = '<div class="dt-card">' + V.html(card) + '</div>' +
       '<div class="dt-meta">' + card.rarity + ' ' + C.RARITIES[card.rarity].label +
-      '<small>もっている かず: ' + state.owned[card.no] + 'まい</small></div>';
+      '<small>もっている かず: ' + state.owned[card.no] + 'まい</small></div>' +
+      '<button type="button" class="btn btn-mid dt-fav" data-ch="' + card.chara + '"><span class="btn-label"></span></button>' +
+      '<p class="dt-favmsg"></p>';
+    renderFavButton();
     els.detail.hidden = false;
     detailTilt = V.tilt(els.dtBox.querySelector('.dt-card'), { idle: true });
   });
+  function renderFavButton() {
+    const b = els.dtBox.querySelector('.dt-fav');
+    if (!b) return;
+    const on = state.favs.indexOf(b.dataset.ch) >= 0;
+    b.classList.toggle('on', on);
+    b.firstChild.textContent = on ? '♥ なかよし (タップで やめる)' : '♡ なかよしに する';
+    els.dtBox.querySelector('.dt-favmsg').textContent = on ? 'コインの木の下で まっているよ' :
+      state.favs.length >= C.MAX_FAVS ? 'なかよしは ' + C.MAX_FAVS + 'にん まで。だれかを やめると えらべるよ' : '';
+  }
+
   els.detail.addEventListener('click', function (e) {
+    const fb = e.target.closest('.dt-fav');
+    if (fb) {
+      const r = C.toggleFav(state, fb.dataset.ch);
+      if (r.ok) {
+        saveNow();
+        Sfx.unlock();
+        if (r.on) { Sfx.play('shine'); fb.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 300 }); }
+        renderWalkers();
+      } else {
+        fb.animate([{ transform: 'none' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'none' }], { duration: 300 });
+      }
+      renderFavButton();
+      return;
+    }
     if (e.target.closest('.dt-card')) return;   // カードをさわっている間は閉じない (かたむけて遊ぶ)
     els.detail.hidden = true;
     if (detailTilt) { detailTilt.stop(); detailTilt = null; }

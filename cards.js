@@ -112,5 +112,29 @@
     if (c.illus === undefined) c.illus = '';
   });
 
-  return { SET: SET, CARDS: CARDS };
+  // キャラごとの だいこうぶつ (おやつをあげるときに使う)
+  const CHARAS = {
+    neko: { food: '🐟', foodName: 'おさかな' },
+    inu: { food: '🦴', foodName: 'ほね' },
+    usagi: { food: '🥕', foodName: 'にんじん' },
+    kuma: { food: '🍯', foodName: 'はちみつ' },
+    hiyoko: { food: '🌽', foodName: 'とうもろこし' },
+    buta: { food: '🍠', foodName: 'おいも' },
+    nezumi: { food: '🧀', foodName: 'チーズ' },
+    kaeru: { food: '🍬', foodName: 'あめだま' },
+    kitsune: { food: '🍙', foodName: 'おいなりさん' },
+    tanuki: { food: '🍡', foodName: 'おだんご' },
+    panda: { food: '🎋', foodName: 'ささ' },
+    hitsuji: { food: '🍀', foodName: 'クローバー' },
+    shirokuma: { food: '🍨', foodName: 'アイス' },
+    risu: { food: '🌰', foodName: 'どんぐり' },
+    lion: { food: '🍖', foodName: 'おにく' },
+    tora: { food: '🍗', foodName: 'からあげ' },
+    zou: { food: '🍌', foodName: 'バナナ' },
+    penguin: { food: '🦐', foodName: 'えび' },
+    unicorn: { food: '🍭', foodName: 'にじいろキャンディ' },
+    dragon: { food: '🌟', foodName: 'ほしのこんぺいとう' }
+  };
+
+  return { SET: SET, CARDS: CARDS, CHARAS: CHARAS };
 });

@@ -583,6 +583,96 @@ async function run() {
       await context.close();
     }
 
+    // ------------------------------------------------ なかよし (お気に入り・おやつ)
+    if (want('なかよし')) {
+      section('なかよし: ずかんで えらぶ → 木の下に並ぶ → おやつ・なでる');
+      ({ context, page } = await newGame(browser, errors));
+      await page.evaluate(() => {
+        document.documentElement.style.setProperty('--safe-top', '59px');
+        document.documentElement.style.setProperty('--safe-bottom', '34px');
+        const s = window.__app.state();
+        ['001', '003', '020', '011'].forEach((n) => { s.owned[n] = 1; });
+        window.__app.setMoney(1000);
+      });
+      await goTab(page, 'Home');
+      ok(await page.locator('.fav-hint').isVisible(), 'なかよしがいないときは、えらび方の案内が出る');
+      await goTab(page, 'Zukan');
+      const pick = async (no) => {
+        await page.tap(`.zk-cell[data-no="${no}"]`);
+        await page.waitForTimeout(150);
+        await page.tap('.dt-fav');
+        await page.waitForTimeout(150);
+        const t = await page.textContent('.dt-fav');
+        await page.mouse.click(20, 900);
+        return t;
+      };
+      ok((await pick('001')).includes('なかよし'), 'ずかんの「なかよしに する」で えらべる');
+      await pick('003');
+      await pick('020');
+      await page.tap('.zk-cell[data-no="011"]');
+      await page.tap('.dt-fav');
+      const full = await page.evaluate(() => ({ favs: window.__app.state().favs.length, msg: document.querySelector('.dt-favmsg').textContent }));
+      ok(full.favs === 3 && full.msg.includes('3にん'), `4 人目は えらべず、わけが出る (${full.msg})`);
+      ok(await page.locator('#detail').isVisible(), 'ボタンを押しても、大きいカードは閉じない');
+      await page.mouse.click(20, 900);
+
+      await goTab(page, 'Home');
+      await page.waitForTimeout(300);
+      const row = await page.evaluate(() => {
+        const favs = [...document.querySelectorAll('.fav')];
+        const bar = document.getElementById('tabbar').getBoundingClientRect();
+        const up = document.getElementById('upgrade').getBoundingClientRect();
+        const rs = favs.map((f) => f.getBoundingClientRect());
+        let overlap = false;
+        for (let i = 1; i < rs.length; i++) if (rs[i].left < rs[i - 1].right - 1) overlap = true;
+        return { n: favs.length, chars: favs.map((f) => f.dataset.ch), overlap,
+          inside: rs.every((r) => r.left >= 0 && r.right <= 430 && r.bottom <= up.top + 0.5 && r.bottom <= bar.top) };
+      });
+      ok(row.n === 3 && JSON.stringify(row.chars) === '["neko","usagi","dragon"]', `木の下に 3 人並ぶ (${row.chars})`);
+      ok(!row.overlap && row.inside, 'なかよしの子どうし重ならず、画面とボタンの内側に収まる');
+
+      await page.tap('.fav[data-ch="neko"]');
+      ok(await page.locator('#petSheet').isVisible(), 'なかよしの子をタップすると、おやつの画面が出る');
+      const snackNames = await page.evaluate(() => [...document.querySelectorAll('#psSnacks .sn-name')].map((e) => e.textContent));
+      ok(snackNames[2] === 'おさかな', `3 つめは その子の だいこうぶつ (${snackNames.join('・')})`);
+      await page.tap('[data-snack="cookie"]');
+      await page.waitForTimeout(900);
+      let st = await page.evaluate(() => ({ money: window.__app.state().money, aff: window.__app.state().pets.neko.aff, coin: document.getElementById('moneyNum').textContent }));
+      ok(st.money === 920 && st.aff === 3 && st.coin === '920', `クッキーで 80 コイン減り、なかよし度 +3 (${st.money} / ♥${st.aff})`);
+      ok((await page.locator('.ps-heart').count()) > 0, 'ハートが出る');
+      await page.tap('#psAnimal');
+      await page.waitForTimeout(300);
+      await page.tap('#psAnimal');
+      await page.waitForTimeout(300);
+      st = await page.evaluate(() => ({ aff: window.__app.state().pets.neko.aff, tip: document.getElementById('psTip').textContent }));
+      ok(st.aff === 4 && st.tip.includes('もう'), `なでるのは 1 日 1 回だけ ♥+1 (${st.aff} / ${st.tip})`);
+      await page.tap('[data-snack="fav"]');
+      await page.waitForTimeout(900);
+      const lv = await page.evaluate(() => ({ shown: !document.getElementById('psLevelUp').hidden, text: document.getElementById('psLevelUp').textContent, lv: document.getElementById('psLv').textContent }));
+      ok(lv.shown && lv.text.includes('Lv.2') && lv.lv.includes('Lv.2'), `レベルが上がると知らせが出る (${lv.text})`);
+      await page.tap('[data-snack="apple"]');
+      await page.waitForTimeout(700);
+      const fullTummy = await page.evaluate(() => ({
+        dis: [...document.querySelectorAll('#psSnacks button')].every((b) => b.disabled),
+        txt: document.getElementById('psTummy').textContent, money: window.__app.state().money
+      }));
+      ok(fullTummy.dis && fullTummy.txt.includes('いっぱい'), '3 こ食べると「おなか いっぱい」で、おやつボタンが押せない');
+      await page.tap('#psClose');
+      ok(await page.locator('#petSheet').isHidden(), '× で閉じる');
+      const badge = await page.textContent('.fav[data-ch="neko"] .fav-lv');
+      ok(badge.includes('2'), `木の下の子の ♥ がレベルに合わせて変わる (${badge})`);
+      await page.waitForTimeout(1100);
+      await page.reload();
+      await page.waitForFunction(() => window.__app);
+      const kept = await page.evaluate(() => ({ favs: window.__app.state().favs, aff: window.__app.state().pets.neko.aff }));
+      ok(kept.favs.length === 3 && kept.aff === 11, `開き直しても、なかよしと なかよし度が残る (♥${kept.aff})`);
+      const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(9, 0, 0, 0);
+      await page.clock.setFixedTime(tomorrow);
+      await page.tap('.fav[data-ch="neko"]');
+      ok(await page.locator('[data-snack="apple"]').isEnabled(), '次の日になると、また おやつを あげられる');
+      await context.close();
+    }
+
     // ------------------------------------------------ ずかん
     if (want('ずかん')) {
       section('ずかん');

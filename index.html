@@ -146,6 +146,27 @@
     <div class="op-flash" id="opFlash"></div>
   </div>
 
+  <!-- なかよしの子に おやつ -->
+  <div id="petSheet" hidden>
+    <div class="ps-panel">
+      <button type="button" class="ps-close" id="psClose" aria-label="とじる">×</button>
+      <div class="ps-stage">
+        <button type="button" class="ps-animal" id="psAnimal" aria-label="なでる"></button>
+        <div class="ps-fx" id="psFx"></div>
+        <div class="ps-levelup" id="psLevelUp" hidden></div>
+      </div>
+      <div class="ps-name" id="psName"></div>
+      <div class="ps-lv"><b id="psLv">なかよし Lv.1</b><div class="ps-bar"><i id="psBar"></i></div><small id="psNext"></small></div>
+      <div class="ps-tummy" id="psTummy"></div>
+      <div class="ps-snacks" id="psSnacks">
+        <button type="button" data-snack="apple"><span class="sn-ico"></span><span class="sn-name"></span><span class="sn-aff"></span><span class="sn-price"></span></button>
+        <button type="button" data-snack="cookie"><span class="sn-ico"></span><span class="sn-name"></span><span class="sn-aff"></span><span class="sn-price"></span></button>
+        <button type="button" data-snack="fav" class="sn-fav"><span class="sn-ico"></span><span class="sn-name"></span><span class="sn-aff"></span><span class="sn-price"></span></button>
+      </div>
+      <p class="ps-tip" id="psTip"></p>
+    </div>
+  </div>
+
   <!-- カードを大きく見る -->
   <div id="detail" hidden>
     <div class="dt-box" id="dtBox"></div>

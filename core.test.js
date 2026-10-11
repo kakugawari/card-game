@@ -407,6 +407,96 @@ test('バランス: 毎日 20 秒でも むりょう + 少し買える / 3 分�
   assert.ok(heavy <= 20, `3分: ${heavy.toFixed(1)}`);
 });
 
+// ------------------------------------------------------------ なかよし (お気に入り・おやつ)
+function withCharas(money, charas) {
+  const s = richState(money);
+  charas.forEach((ch) => { s.owned[Core.CARDS.find((c) => c.chara === ch).no] = 1; });
+  return s;
+}
+
+test('なかよし: どのキャラにも、だいこうぶつ (絵と名前) がある', () => {
+  new Set(Core.CARDS.map((c) => c.chara)).forEach((ch) => {
+    assert.ok(Core.CHARAS[ch] && Core.CHARAS[ch].food && Core.CHARAS[ch].foodName, ch);
+  });
+});
+
+test('なかよし: 持っている子だけ、3 人まで。もう一度押すと やめる', () => {
+  const s = withCharas(0, ['neko', 'inu', 'usagi', 'kuma']);
+  assert.deepStrictEqual(Core.toggleFav(s, 'panda'), { ok: false, reason: 'notOwned' });
+  ['neko', 'inu', 'usagi'].forEach((ch) => assert.ok(Core.toggleFav(s, ch).on));
+  assert.deepStrictEqual(Core.toggleFav(s, 'kuma'), { ok: false, reason: 'full' });
+  assert.deepStrictEqual(Core.toggleFav(s, 'inu'), { ok: true, on: false });
+  assert.ok(Core.toggleFav(s, 'kuma').on);
+  assert.deepStrictEqual(s.favs, ['neko', 'usagi', 'kuma']);
+});
+
+test('おやつ: 値段ぶんコインが減り、なかよし度が上がる (りんご 1・クッキー 3・だいこうぶつ 6)', () => {
+  const s = withCharas(1000, ['neko']);
+  Core.toggleFav(s, 'neko');
+  assert.strictEqual(Core.feed(s, 'neko', 'apple', NOON).gain, 1);
+  assert.strictEqual(Core.feed(s, 'neko', 'cookie', NOON).gain, 3);
+  assert.strictEqual(Core.feed(s, 'neko', 'fav', NOON).gain, 6);
+  assert.strictEqual(s.money, 1000 - 30 - 80 - 150);
+  assert.strictEqual(Core.petInfo(s, 'neko', NOON).aff, 10);
+});
+
+test('おやつ: 1 人 1 日 3 こまで。次の日にはまた食べられる', () => {
+  const s = withCharas(1e6, ['neko']);
+  Core.toggleFav(s, 'neko');
+  for (let i = 0; i < 3; i++) assert.ok(Core.feed(s, 'neko', 'apple', NOON).ok);
+  const before = JSON.stringify(s);
+  assert.deepStrictEqual(Core.feed(s, 'neko', 'apple', NOON + 3600e3), { ok: false, reason: 'full' });
+  assert.strictEqual(JSON.stringify(s), before, 'おなか いっぱいのときは何も変わらない');
+  assert.strictEqual(Core.petInfo(s, 'neko', NOON).snacksLeft, 0);
+  assert.strictEqual(Core.petInfo(s, 'neko', NOON + DAY).snacksLeft, 3);
+  assert.ok(Core.feed(s, 'neko', 'apple', NOON + DAY).ok);
+});
+
+test('おやつ: お金が足りない・なかよしでない子には あげられず、何も変わらない', () => {
+  const s = withCharas(29, ['neko', 'inu']);
+  Core.toggleFav(s, 'neko');
+  const before = JSON.stringify(s);
+  assert.deepStrictEqual(Core.feed(s, 'neko', 'apple', NOON), { ok: false, reason: 'money' });
+  assert.deepStrictEqual(Core.feed(s, 'inu', 'apple', NOON), { ok: false, reason: 'notFav' });
+  assert.strictEqual(JSON.stringify(s), before);
+});
+
+test('なでる: 1 日 1 回 +1 (ただ)。次の日にまた なでられる', () => {
+  const s = withCharas(0, ['neko']);
+  Core.toggleFav(s, 'neko');
+  assert.strictEqual(Core.pet(s, 'neko', NOON).gain, 1);
+  assert.deepStrictEqual(Core.pet(s, 'neko', NOON + 1000), { ok: false, reason: 'already' });
+  assert.ok(Core.pet(s, 'neko', NOON + DAY).ok);
+  assert.strictEqual(s.money, 0);
+});
+
+test('なかよしレベル: 5 段。上がった瞬間だけ levelUp。やめても なかよし度は残る', () => {
+  assert.deepStrictEqual([0, 4, 5, 14, 15, 29, 30, 54, 55, 999].map(Core.petLevel), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]);
+  const s = withCharas(1e6, ['neko']);
+  Core.toggleFav(s, 'neko');
+  const ups = [];
+  for (let d = 0; d < 10; d++) {
+    for (let i = 0; i < 3; i++) { const r = Core.feed(s, 'neko', 'fav', NOON + d * DAY); if (r.levelUp) ups.push(r.level); }
+  }
+  assert.deepStrictEqual(ups, [2, 3, 4, 5]);
+  assert.strictEqual(Core.petInfo(s, 'neko', NOON).progress, 1);
+  Core.toggleFav(s, 'neko');
+  Core.toggleFav(s, 'neko');
+  assert.strictEqual(Core.petInfo(s, 'neko', NOON).level, 5);
+});
+
+test('なかよし: 毎日 クッキー 3 こ + なでる で、いちばん上まで 1 週間くらい', () => {
+  const s = withCharas(1e6, ['neko']);
+  Core.toggleFav(s, 'neko');
+  let d = 0;
+  while (Core.petInfo(s, 'neko', NOON + d * DAY).level < 5 && d < 100) {
+    for (let i = 0; i < 3; i++) Core.feed(s, 'neko', 'cookie', NOON + d * DAY);
+    Core.pet(s, 'neko', NOON + d * DAY);
+    d++;
+  }
+  assert.ok(d >= 4 && d <= 8, `${d} 日`);
+});
+
 // ------------------------------------------------------------ 保存データ
 test('保存: こわれたデータでも落ちず、まともな値に直る', () => {
   [null, undefined, 5, 'x', [], { money: -5 }, { money: 'abc' }, { v: 2, owned: { '001': -1, '999': 3, '002': 2.9 } },
@@ -418,6 +508,11 @@ test('保存: こわれたデータでも落ちず、まともな値に直る', 
     assert.ok(s.box === null || s.box.packs.length === 30);
     assert.ok(Array.isArray(s.boxes));
   });
+  // なかよしは、持っている子だけ・3 人まで・重ならない。なかよし度はこわれていても数に直る
+  const f = Core.normalize({ v: 2, owned: { '001': 1, '002': 1, '003': 1, '004': 1 }, favs: ['neko', 'neko', 'panda', 'inu', 'usagi', 'kuma'],
+    pets: { neko: { aff: 'x', fed: 99, fedDay: 'きのう' }, nope: { aff: 3 } } });
+  assert.deepStrictEqual(f.favs, ['neko', 'inu', 'usagi']);
+  assert.deepStrictEqual(f.pets, { neko: { aff: 0, fedDay: '', fed: 3, pettedDay: '' } });
   assert.deepStrictEqual(Core.normalize({ v: 2, boxes: [null, 3, { packs: [] }] }).boxes, []);
   assert.deepStrictEqual(Core.normalize({ v: 2, owned: { '001': -1, '999': 3, '002': 2.9 } }).owned, { '002': 2 });
 });
@@ -437,6 +532,10 @@ test('保存: 書き出して読み直しても同じ (BOX の残りも、手も
   Core.buyBox(s, rng);
   Core.buyBox(s, rng);
   for (let i = 0; i < 4; i++) Core.openPack(s, 'box', NOON, rng);
+  const ch = Core.cardByNo(Object.keys(s.owned)[0]).chara;
+  Core.toggleFav(s, ch);
+  Core.feed(s, ch, 'cookie', NOON);
+  Core.pet(s, ch, NOON);
   s.tapLevel = 3;
   assert.deepStrictEqual(Core.normalize(JSON.parse(JSON.stringify(s))), s);
 });

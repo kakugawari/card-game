@@ -175,7 +175,7 @@
   function newState() {
     return {
       v: SAVE_VERSION, money: 0, tapLevel: 0, totalTaps: 0, owned: {}, lastFreeDay: '',
-      packsOpened: 0, box: null, boxes: [], muted: false
+      packsOpened: 0, box: null, boxes: [], muted: false, favs: [], pets: {}
     };
   }
 
@@ -219,6 +219,14 @@
     s.lastFreeDay = typeof raw.lastFreeDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.lastFreeDay)
       ? raw.lastFreeDay : '';
     s.muted = raw.muted === true;
+    if (raw.pets && typeof raw.pets === 'object') {
+      Object.keys(CHARAS).forEach(function (ch) {
+        const p = raw.pets[ch];
+        if (!p || typeof p !== 'object') return;
+        const day = function (d) { return typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : ''; };
+        s.pets[ch] = { aff: toCount(p.aff, 1e6), fedDay: day(p.fedDay), fed: Math.min(toCount(p.fed, 99), DAILY_SNACKS), pettedDay: day(p.pettedDay) };
+      });
+    }
     let owned = raw.owned && typeof raw.owned === 'object' ? raw.owned : {};
     if (!(raw.v >= 2)) owned = migrateOwnedV1(owned);
     CARDS.forEach(function (c) {
@@ -226,6 +234,12 @@
       if (n > 0) s.owned[c.no] = n;
     });
     s.box = validBox(raw.box);
+    if (Array.isArray(raw.favs)) {
+      const have = ownedCharas(s);
+      raw.favs.forEach(function (ch) {
+        if (have[ch] && s.favs.indexOf(ch) < 0 && s.favs.length < MAX_FAVS) s.favs.push(ch);
+      });
+    }
     if (Array.isArray(raw.boxes)) {
       raw.boxes.forEach(function (b) {
         const v = validBox(b);
@@ -376,6 +390,97 @@
     return CARDS.filter(function (c) { return (!filter || filter(c)) && state.owned[c.no] > 0; }).length;
   }
 
+  // ---------------------------------------------------------------- なかよし (お気に入り・おやつ)
+  /*
+   * お気に入りの子 (なかよし) を 3 人まで決めて、コインの木の下に並べる。
+   * おやつ (コイン) と なでる (1 日 1 回・ただ) で なかよし度が上がる。おやつは 1 人 1 日 3 こまで (おなか いっぱい)。
+   * なかよし度はお金に戻らない (おやつで得をする道を作らない)。レベルが上がると、できることが増える (はねる・まわる・かんむり)
+   */
+  const CHARAS = Cards.CHARAS;
+  const MAX_FAVS = 3;
+  const DAILY_SNACKS = 3;
+  const SNACKS = {
+    apple: { name: 'りんご', icon: '🍎', price: 30, aff: 1 },
+    cookie: { name: 'クッキー', icon: '🍪', price: 80, aff: 3 },
+    fav: { name: 'だいこうぶつ', icon: '', price: 150, aff: 6 }   // 名前と絵はキャラごと (CHARAS)
+  };
+  const PET_LEVELS = [0, 5, 15, 30, 55];   // なかよしレベル 1〜5 になる なかよし度
+
+  function ownedCharas(state) {
+    const out = {};
+    CARDS.forEach(function (c) { if (state.owned[c.no] > 0) out[c.chara] = true; });
+    return out;
+  }
+
+  function petLevel(aff) {
+    let lv = 1;
+    for (let i = 1; i < PET_LEVELS.length; i++) if (aff >= PET_LEVELS[i]) lv = i + 1;
+    return lv;
+  }
+
+  function petOf(state, chara) {
+    if (!state.pets[chara]) state.pets[chara] = { aff: 0, fedDay: '', fed: 0, pettedDay: '' };
+    return state.pets[chara];
+  }
+
+  /** なかよしの様子 (画面用)。状態は変えない */
+  function petInfo(state, chara, now) {
+    const p = state.pets[chara] || { aff: 0, fedDay: '', fed: 0, pettedDay: '' };
+    const lv = petLevel(p.aff);
+    const today = dayKey(now);
+    const from = PET_LEVELS[lv - 1];
+    const to = lv < PET_LEVELS.length ? PET_LEVELS[lv] : null;
+    return {
+      aff: p.aff, level: lv, maxLevel: PET_LEVELS.length,
+      progress: to === null ? 1 : (p.aff - from) / (to - from), toNext: to === null ? 0 : to - p.aff,
+      fedToday: p.fedDay === today ? p.fed : 0, snacksLeft: DAILY_SNACKS - (p.fedDay === today ? p.fed : 0),
+      canPet: p.pettedDay !== today
+    };
+  }
+
+  /** なかよしにする / やめる。持っている子だけ、3 人まで */
+  function toggleFav(state, chara) {
+    const i = state.favs.indexOf(chara);
+    if (i >= 0) { state.favs.splice(i, 1); return { ok: true, on: false }; }
+    if (!ownedCharas(state)[chara]) return { ok: false, reason: 'notOwned' };
+    if (state.favs.length >= MAX_FAVS) return { ok: false, reason: 'full' };
+    state.favs.push(chara);
+    return { ok: true, on: true };
+  }
+
+  function addAff(state, chara, gain) {
+    const p = petOf(state, chara);
+    const before = petLevel(p.aff);
+    p.aff += gain;
+    const after = petLevel(p.aff);
+    return { gain: gain, level: after, levelUp: after > before };
+  }
+
+  /** おやつをあげる。なかよしの子だけ・お金が足りるときだけ・1 日 3 こまで。失敗は何も変えない */
+  function feed(state, chara, snackId, now) {
+    const sn = SNACKS[snackId];
+    if (!sn) return { ok: false, reason: 'unknown' };
+    if (state.favs.indexOf(chara) < 0) return { ok: false, reason: 'notFav' };
+    if (petInfo(state, chara, now).snacksLeft <= 0) return { ok: false, reason: 'full' };
+    if (state.money < sn.price) return { ok: false, reason: 'money' };
+    state.money -= sn.price;
+    const p = petOf(state, chara);
+    const today = dayKey(now);
+    if (p.fedDay !== today) { p.fedDay = today; p.fed = 0; }
+    p.fed++;
+    return Object.assign({ ok: true, snack: snackId }, addAff(state, chara, sn.aff));
+  }
+
+  /** なでる。1 日 1 回、なかよし度 +1 (ただ) */
+  function pet(state, chara, now) {
+    if (state.favs.indexOf(chara) < 0) return { ok: false, reason: 'notFav' };
+    const p = petOf(state, chara);
+    const today = dayKey(now);
+    if (p.pettedDay === today) return { ok: false, reason: 'already' };
+    p.pettedDay = today;
+    return Object.assign({ ok: true }, addAff(state, chara, 1));
+  }
+
   // ---------------------------------------------------------------- 表示用
   function formatMoney(n) {
     return String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -428,6 +533,17 @@
     collectedCount: collectedCount,
     formatMoney: formatMoney,
     formatWait: formatWait,
-    numberLabel: numberLabel
+    numberLabel: numberLabel,
+    CHARAS: CHARAS,
+    MAX_FAVS: MAX_FAVS,
+    DAILY_SNACKS: DAILY_SNACKS,
+    SNACKS: SNACKS,
+    PET_LEVELS: PET_LEVELS,
+    ownedCharas: ownedCharas,
+    petLevel: petLevel,
+    petInfo: petInfo,
+    toggleFav: toggleFav,
+    feed: feed,
+    pet: pet
   };
 });

@@ -136,7 +136,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   left: -16px;
   right: -16px;
   bottom: 0;
-  height: 120px;
+  height: 190px;
   background: linear-gradient(#bfe99a, #9ad676);
   border-top: 4px solid #86c764;
   border-radius: 50% 50% 0 0 / 22px 22px 0 0;
@@ -152,6 +152,78 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   animation-delay: var(--del, 0s);
   pointer-events: none;
 }
+/* 奥の子 (なかよしの子がいるとき) は小さく */
+.walker.far { width: 54px; height: 54px; opacity: .9; }
+
+/* ------------------------------------------------ なかよしの子 (木の下) */
+.fav {
+  position: absolute;
+  bottom: 8px;
+  width: 104px;
+  height: 118px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  z-index: 2;
+}
+.fav-body { position: absolute; left: 0; right: 0; bottom: 0; height: 104px; display: block; }
+.fav-lv {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  top: -2px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fff;
+  color: #ff5d73;
+  font-size: 13px;
+  box-shadow: 0 2px 0 rgba(0,0,0,.12);
+  z-index: 1;
+  white-space: nowrap;
+}
+.fav-crown { position: absolute; left: 50%; translate: -50% 0; top: -22px; font-size: 20px; z-index: 1; }
+.fav-want {
+  position: absolute;
+  right: -2px;
+  top: 18px;
+  font-size: 18px;
+  padding: 2px 4px;
+  border-radius: 12px 12px 12px 2px;
+  background: rgba(255,255,255,.9);
+  animation: hint 1.6s ease-in-out infinite;
+}
+.fav.lv3 .fav-body { animation: fav-hop 3.2s ease-in-out infinite; }
+.fav.lv4 .fav-body, .fav.lv5 .fav-body { animation: fav-hop 3.2s ease-in-out infinite, fav-spin 6.4s ease-in-out infinite; }
+@keyframes fav-hop { 0%, 78%, 100% { translate: 0 0; } 86% { translate: 0 -18px; } 92% { translate: 0 0; } }
+@keyframes fav-spin { 0%, 80%, 100% { rotate: 0deg; } 92% { rotate: 360deg; } }
+.fav.lv2::after, .fav.lv3::after, .fav.lv4::after, .fav.lv5::after {
+  content: "♥";
+  position: absolute;
+  left: 18px;
+  top: 30px;
+  color: #ff7f9d;
+  font-size: 16px;
+  animation: fav-heart 2.4s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes fav-heart { 0% { translate: 0 0; opacity: 0; } 20% { opacity: 1; } 100% { translate: -6px -40px; opacity: 0; } }
+.fav-hint {
+  position: absolute;
+  left: 30px;
+  right: 30px;
+  bottom: 12px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.75);
+  font-size: 13px;
+  text-align: center;
+  color: #5c7a3a;
+  pointer-events: none;
+  z-index: 2;
+}
+
 @keyframes stroll {
   from { transform: translateX(0); }
   to   { transform: translateX(var(--dist, 200px)); }
@@ -473,6 +545,113 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   border: 2px solid #fff;
   border-radius: 999px;
 }
+
+/* ------------------------------------------------ おやつ (なかよしの子) */
+#petSheet {
+  position: absolute;
+  inset: 0;
+  z-index: 26;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(60, 40, 50, .45);
+}
+.ps-panel {
+  position: relative;
+  width: 100%;
+  padding: 16px 18px calc(18px + var(--safe-bottom));
+  background: var(--bg-2);
+  border-radius: 28px 28px 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+.ps-close {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: #f3e6cc;
+  font-size: 24px;
+  line-height: 1;
+  z-index: 3;
+}
+.ps-stage { position: relative; width: 100%; height: 190px; display: flex; justify-content: center; }
+.ps-animal { width: 190px; height: 190px; padding: 0; border: 0; background: radial-gradient(circle at 50% 70%, #e6f6d8 0 45%, rgba(230,246,216,0) 70%); cursor: pointer; }
+.ps-animal .animal { width: 100%; height: 100%; }
+.ps-fx { position: absolute; inset: 0; pointer-events: none; }
+.ps-heart { position: absolute; color: #ff6f91; text-shadow: 0 2px 0 #fff; }
+.ps-say {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  translate: -50% 0;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: #ff6f91;
+  color: #fff;
+  font-size: 18px;
+  white-space: nowrap;
+}
+.ps-fly { position: absolute; left: 0; top: 0; font-size: 32px; pointer-events: none; z-index: 4; }
+.ps-levelup {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #ff9fc6, #ffd36b);
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(180, 60, 90, .5);
+  pointer-events: none;
+}
+.ps-levelup b { font-size: 18px; }
+.ps-levelup span { font-size: 13px; }
+.ps-name { font-size: 22px; }
+.ps-lv { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 80%; }
+.ps-lv b { color: #ff5d73; }
+.ps-bar { width: 100%; height: 12px; border-radius: 999px; background: #f6dfe5; overflow: hidden; }
+.ps-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #ff9fb8, #ff5d73); transition: width .4s ease; }
+.ps-lv small { color: var(--muted); font-size: 12px; }
+.ps-tummy { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.ps-tummy i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #f0c27a; }
+.ps-tummy i.on { background: #ffc933; border-color: #e9a512; }
+.ps-tummy b { color: #e07a1f; }
+.ps-snacks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; margin-top: 4px; }
+.ps-snacks button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 8px 4px 9px;
+  border: 3px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 4px 0 var(--line);
+  cursor: pointer;
+}
+.ps-snacks button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--line); }
+.ps-snacks button.sn-fav { border-color: #ffb3c8; box-shadow: 0 4px 0 #ffb3c8; background: #fff5f8; }
+.ps-snacks button:disabled { opacity: .45; }
+.sn-ico { font-size: 30px; line-height: 1.1; }
+.sn-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.sn-aff { font-size: 12px; color: #ff5d73; }
+.sn-price { font-size: 13px; color: #8a5a00; display: flex; align-items: center; gap: 3px; }
+.sn-price::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: #ffc933; border: 2px solid #c98a0b; }
+.ps-tip { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+
+.dt-fav { margin-top: 12px; background: #fff; color: #ff5d73; box-shadow: 0 5px 0 #f3c5d1; }
+.dt-fav.on { background: #ff8fa8; color: #fff; box-shadow: 0 5px 0 #d9647f; }
+.dt-favmsg { margin: 8px 0 0; font-size: 12px; min-height: 1em; }
 
 /* ------------------------------------------------ カードを大きく見る */
 #detail {
