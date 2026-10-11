@@ -64,10 +64,26 @@
       <h2 class="h2">パックをあける</h2>
       <div class="shop">
         <div class="shop-pack" id="shopPack"></div>
-        <div class="shop-name" id="shopName">どうぶつパック</div>
-        <button type="button" class="btn btn-big" id="btnFree"><span class="btn-label" id="btnFreeLabel">きょうの むりょうパック！</span></button>
-        <button type="button" class="btn btn-big btn-coin" id="btnBuy"><span class="btn-label" id="btnBuyLabel">500</span></button>
-        <div class="box-left" id="boxLeft"></div>
+        <div class="shop-side">
+          <div class="shop-name" id="shopName">どうぶつパック</div>
+          <button type="button" class="btn btn-mid" id="btnFree"><span class="btn-label" id="btnFreeLabel">きょうの むりょうパック！</span></button>
+          <button type="button" class="btn btn-mid btn-coin" id="btnBuy"><span class="btn-label" id="btnBuyLabel">500</span></button>
+          <div class="box-left" id="boxLeft"></div>
+        </div>
+      </div>
+      <div class="boxshop">
+        <div class="boxshop-row">
+          <div class="boxart" id="boxArt" aria-hidden="true"></div>
+          <div class="boxshop-info">
+            <div class="boxshop-title">BOX で かう</div>
+            <div class="boxshop-sub">30パック入り<br><b>SR いじょう 1まい かくてい！</b></div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-big btn-coin" id="btnBox"><span class="btn-label" id="btnBoxLabel">15,000</span></button>
+        <div class="mybox" id="myBox" hidden>
+          <div class="mybox-text"><b id="myBoxLeft">のこり 30パック</b><span id="myBoxSr"></span></div>
+          <button type="button" class="btn btn-big btn-box" id="btnOpenBox"><span class="btn-label">BOX から 1パック あける</span></button>
+        </div>
       </div>
       <details class="rates">
         <summary>でる カードと かくりつ</summary>

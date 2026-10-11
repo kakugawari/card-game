@@ -19,7 +19,8 @@
     moneyNum: $('moneyNum'), tree: $('tree'), plaza: $('plaza'), ground: $('ground'), tapHint: $('tapHint'),
     upLv: $('upLv'), upSub: $('upSub'), btnUp: $('btnUp'), btnUpLabel: $('btnUpLabel'),
     shopPack: $('shopPack'), shopName: $('shopName'), btnFree: $('btnFree'), btnFreeLabel: $('btnFreeLabel'),
-    btnBuy: $('btnBuy'), btnBuyLabel: $('btnBuyLabel'), boxLeft: $('boxLeft'), rates: $('rates'), packDot: $('packDot'),
+    btnBuy: $('btnBuy'), btnBuyLabel: $('btnBuyLabel'), btnBox: $('btnBox'), btnBoxLabel: $('btnBoxLabel'),
+    boxArt: $('boxArt'), myBox: $('myBox'), myBoxLeft: $('myBoxLeft'), myBoxSr: $('myBoxSr'), btnOpenBox: $('btnOpenBox'), boxLeft: $('boxLeft'), rates: $('rates'), packDot: $('packDot'),
     zkCount: $('zkCount'), zkSub: $('zkSub'), zkGrid: $('zkGrid'),
     detail: $('detail'), dtBox: $('dtBox'), btnMute: $('btnMute'), muteIco: $('muteIco')
   };
@@ -175,7 +176,60 @@
     const text = enough ? C.formatMoney(C.PACK_PRICE) + ' コインで かう' : 'あと ' + C.formatMoney(C.PACK_PRICE - state.money) + ' コイン';
     if (els.btnBuyLabel.textContent !== text) els.btnBuyLabel.textContent = text;
     els.btnBuy.disabled = !enough;
+    renderBoxShop();
   }
+
+  // ---- BOX ごと買う。高い買い物なので、1 回目のタップは「ほんとうに？」に変わるだけ
+  let boxConfirmUntil = 0;
+  let boxConfirmTimer = 0;
+
+  function renderBoxShop() {
+    const enough = state.money >= C.BOX_PRICE;
+    const full = state.boxes.length >= C.MAX_BOXES;
+    const confirming = enough && performance.now() < boxConfirmUntil;
+    let text;
+    if (full) text = 'BOX が いっぱい';
+    else if (!enough) text = 'BOX: あと ' + C.formatMoney(C.BOX_PRICE - state.money) + ' コイン';
+    else if (confirming) text = 'ほんとうに かう？ もういちど タップ';
+    else text = C.formatMoney(C.BOX_PRICE) + ' コインで BOX を かう';
+    if (els.btnBoxLabel.textContent !== text) els.btnBoxLabel.textContent = text;
+    els.btnBox.disabled = !enough || full;
+    els.btnBox.classList.toggle('confirm', confirming);
+
+    const inHand = C.packsInHand(state);
+    els.myBox.hidden = inHand === 0;
+    if (inHand) {
+      const st = C.boxStatus(state.boxes[0]);
+      const more = state.boxes.length - 1;
+      els.myBoxLeft.textContent = 'てもとの BOX: のこり ' + st.left + 'パック' + (more ? ' (ほかに ' + more + 'はこ)' : '');
+      els.myBoxSr.textContent = st.srUpOut ? 'SR いじょう: もう でた' : 'SR いじょう: まだ でていない！';
+    }
+  }
+
+  els.btnBox.addEventListener('click', function () {
+    if (state.money < C.BOX_PRICE) return;
+    if (performance.now() >= boxConfirmUntil) {
+      boxConfirmUntil = performance.now() + 3000;
+      clearTimeout(boxConfirmTimer);
+      boxConfirmTimer = setTimeout(renderBoxShop, 3050);
+      renderBoxShop();
+      return;
+    }
+    boxConfirmUntil = 0;
+    if (!C.buyBox(state, Math.random).ok) return;
+    saveNow();
+    Sfx.unlock();
+    Sfx.play('shine');
+    renderMoney();
+    renderPacks();
+    els.boxArt.animate(
+      [{ transform: 'translateY(-120px) rotate(-8deg)', opacity: 0 }, { transform: 'translateY(8px) rotate(2deg)', opacity: 1, offset: 0.7 }, { transform: 'none' }],
+      { duration: 600, easing: 'cubic-bezier(.3,1.3,.5,1)' }
+    );
+    els.myBox.animate([{ transform: 'scale(.9)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 400, delay: 250, fill: 'backwards' });
+  });
+
+  els.btnOpenBox.addEventListener('click', function () { openPack('box'); });
 
   function renderFree() {
     const now = Date.now();
@@ -184,18 +238,20 @@
     els.shopPack.classList.toggle('ready', ready);
     const text = ready ? 'きょうの むりょうパック！' : 'むりょうは また あした (' + C.formatWait(C.msUntilNextDay(now)) + ')';
     if (els.btnFreeLabel.textContent !== text) els.btnFreeLabel.textContent = text;
-    els.packDot.hidden = !ready;
+    els.packDot.hidden = !ready && C.packsInHand(state) === 0;
   }
 
   function renderPacks() {
     renderBuy();
     renderFree();
     const left = state.box ? C.BOX_PACKS - state.box.next : C.BOX_PACKS;
-    els.boxLeft.textContent = 'いまの BOX (' + C.BOX_PACKS + 'パック) の のこり: ' + (left === 0 ? C.BOX_PACKS : left) + 'パック';
+    els.boxLeft.textContent = 'お店の BOX (' + C.BOX_PACKS + 'パック) の のこり: ' + (left === 0 ? C.BOX_PACKS : left) + 'パック';
   }
 
   function buildShop() {
     els.shopPack.innerHTML = V.packHTML();
+    els.boxArt.innerHTML = '<i class="bx-pack"></i><i class="bx-pack"></i><i class="bx-pack"></i><i class="bx-pack"></i>' +
+      '<div class="bx-front"><b>BOX</b><span>30パック入り</span></div>';
     els.shopName.textContent = C.SET.name + '「' + C.SET.title + '」';
     const rows = [
       ['C', '1パックに 3まい'], ['U', '1パックに 1まい'], ['R', 'レアわくに いちばん よく でる'],
@@ -206,12 +262,23 @@
       return '<tr><td><span class="rmark rm-' + r[0] + '">' + r[0] + '</span></td><td>' + C.RARITIES[r[0]].label +
         '</td><td>' + r[1] + '</td><td>' + C.POOL[r[0]].length + 'しゅ</td></tr>';
     }).join('') + '</table><p class="note">1BOX = 30パック。ポケモンカードの かくだいパックと おなじ くみあわせで でてくるよ。' +
-      'むりょうパックも かうパックも、おなじ BOX から じゅんばんに でる。</p>';
+      'むりょうパックも 1パックずつ かうパックも、おみせの おなじ BOX から じゅんばんに でる。' +
+      'BOX ごと かうと、じぶんだけの あたらしい BOX が もらえて、SR いじょうが かならず 1まい はいっている。</p>';
+  }
+
+  /** 「もう1パック」で次に開けるもの: むりょう → 手もとの BOX → 1 パック買う */
+  function nextKind() {
+    if (C.canOpenFree(state, Date.now())) return 'free';
+    if (C.packsInHand(state) > 0) return 'box';
+    if (state.money >= C.PACK_PRICE) return 'buy';
+    return null;
   }
 
   function againLabel() {
-    if (C.canOpenFree(state, Date.now())) return 'むりょうパックを あける！';
-    if (state.money >= C.PACK_PRICE) return 'もう1パック かう (' + C.formatMoney(C.PACK_PRICE) + ')';
+    const k = nextKind();
+    if (k === 'free') return 'むりょうパックを あける！';
+    if (k === 'box') return 'BOX から つぎを あける (のこり ' + C.packsInHand(state) + ')';
+    if (k === 'buy') return 'もう1パック かう (' + C.formatMoney(C.PACK_PRICE) + ')';
     return null;
   }
 
@@ -227,7 +294,8 @@
       show: res.show,
       againLabel: againLabel,
       onAgain: function () {
-        if (!openPack(C.canOpenFree(state, Date.now()) ? 'free' : 'buy')) O.close();
+        const k = nextKind();
+        if (!k || !openPack(k)) O.close();
       },
       onClose: function () {
         renderWalkers();
@@ -323,6 +391,7 @@
       setMoney: function (n) { state.money = n; saveNow(); renderMoney(); },
       renderFree: renderFree,
       /** テスト用: 次の BOX の 1 パック目の中身を決める (top: R/RR/SR/SAR/MUR, ar: true/false) */
+      setBoxConfirmed: function () { boxConfirmUntil = performance.now() + 3000; },
       rigNextPack: function (top, ar) {
         state.box = C.newBox(Math.random);
         state.box.packs[0] = { top: top, ar: !!ar };

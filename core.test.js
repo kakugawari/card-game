@@ -125,6 +125,73 @@ test('開封: むりょうパックも同じ BOX から出る (別の BOX にし
   assert.strictEqual(s.box.next, 2);
 });
 
+// ------------------------------------------------------------ BOX ごと買う
+test('BOX 買い: 30 パックぶんの値段で、手もとに 30 パック入る。お店の BOX は進まない', () => {
+  assert.strictEqual(Core.BOX_PRICE, Core.PACK_PRICE * 30);
+  const s = richState(Core.BOX_PRICE + 7);
+  const shop = JSON.stringify(s.box);
+  assert.deepStrictEqual(Core.buyBox(s, Core.mulberry32(1)), { ok: true });
+  assert.strictEqual(s.money, 7);
+  assert.strictEqual(Core.packsInHand(s), 30);
+  assert.strictEqual(JSON.stringify(s.box), shop);
+});
+
+test('BOX 買い: お金が足りなければ失敗し、何も変わらない', () => {
+  const s = richState(Core.BOX_PRICE - 1);
+  const before = JSON.stringify(s);
+  assert.deepStrictEqual(Core.buyBox(s, Core.mulberry32(1)), { ok: false, reason: 'money' });
+  assert.strictEqual(JSON.stringify(s), before);
+});
+
+test('BOX 買い: 買った BOX を 30 パック開けると、SR 以上 1・RR 4・AR 3 が必ず出て、箱は空になる (200 箱)', () => {
+  const rng = Core.mulberry32(12);
+  for (let b = 0; b < 200; b++) {
+    const s = richState(Core.BOX_PRICE);
+    Core.buyBox(s, rng);
+    const n = {};
+    for (let i = 0; i < 30; i++) {
+      const r = Core.openPack(s, 'box', NOON, rng);
+      assert.ok(r.ok);
+      assert.strictEqual(r.boxLeft, 29 - i);
+      r.cards.forEach((c) => { const k = rarityOf(c.no); n[k] = (n[k] || 0) + 1; });
+    }
+    assert.strictEqual((n.SR || 0) + (n.SAR || 0) + (n.MUR || 0), 1, `箱 ${b}`);
+    assert.strictEqual(n.RR || 0, 4);
+    assert.strictEqual(n.AR || 0, 3);
+    assert.strictEqual(Core.packsInHand(s), 0);
+    assert.strictEqual(s.boxes.length, 0);
+    assert.strictEqual(s.money, 0, 'BOX から開けるときはお金が減らない');
+  }
+});
+
+test('BOX 買い: 2 箱買うと、1 箱目を開け切ってから 2 箱目。BOX が無いと開けられない', () => {
+  const s = richState(Core.BOX_PRICE * 2);
+  assert.deepStrictEqual(Core.openPack(s, 'box', NOON), { ok: false, reason: 'nobox' });
+  Core.buyBox(s, Core.mulberry32(1));
+  Core.buyBox(s, Core.mulberry32(2));
+  const second = JSON.stringify(s.boxes[1]);
+  for (let i = 0; i < 30; i++) Core.openPack(s, 'box', NOON, Core.mulberry32(i));
+  assert.strictEqual(s.boxes.length, 1);
+  assert.strictEqual(JSON.stringify(s.boxes[0]), second);
+  assert.strictEqual(Core.packsInHand(s), 30);
+});
+
+test('BOX 買い: むりょうパックとは別枠 (BOX から開けても、むりょうは残る)', () => {
+  const s = richState(Core.BOX_PRICE);
+  Core.buyBox(s, Core.mulberry32(3));
+  Core.openPack(s, 'box', NOON, Core.mulberry32(4));
+  assert.ok(Core.canOpenFree(s, NOON));
+});
+
+test('BOX 買い: SR 以上がもう出たかが分かる', () => {
+  const box = Core.newBox(Core.mulberry32(5));
+  const at = box.packs.findIndex((p) => Core.rank(p.top) >= Core.rank('SR'));
+  box.next = at;
+  assert.deepStrictEqual(Core.boxStatus(box), { left: 30 - at, srUpOut: false });
+  box.next = at + 1;
+  assert.strictEqual(Core.boxStatus(box).srUpOut, true);
+});
+
 // ------------------------------------------------------------ 演出の計画
 const ORDER = ['none', 'shake', 'rainbow', 'gold'];
 
@@ -311,7 +378,9 @@ test('保存: こわれたデータでも落ちず、まともな値に直る', 
     assert.ok(s.tapLevel >= 0 && s.tapLevel <= Core.MAX_LEVEL);
     Object.keys(s.owned).forEach((no) => assert.ok(Core.cardByNo(no) && s.owned[no] > 0));
     assert.ok(s.box === null || s.box.packs.length === 30);
+    assert.ok(Array.isArray(s.boxes));
   });
+  assert.deepStrictEqual(Core.normalize({ v: 2, boxes: [null, 3, { packs: [] }] }).boxes, []);
   assert.deepStrictEqual(Core.normalize({ v: 2, owned: { '001': -1, '999': 3, '002': 2.9 } }).owned, { '002': 2 });
 });
 
@@ -323,10 +392,13 @@ test('保存: 前の版 (どうぶつの名前で持っていた図鑑) を引�
   assert.strictEqual(s.v, 2);
 });
 
-test('保存: 書き出して読み直しても同じ (BOX の残りも)', () => {
+test('保存: 書き出して読み直しても同じ (BOX の残りも、手もとの BOX も)', () => {
   const s = richState(1e6);
   const rng = Core.mulberry32(1);
   for (let i = 0; i < 7; i++) Core.openPack(s, 'buy', NOON, rng);
+  Core.buyBox(s, rng);
+  Core.buyBox(s, rng);
+  for (let i = 0; i < 4; i++) Core.openPack(s, 'box', NOON, rng);
   s.tapLevel = 3;
   assert.deepStrictEqual(Core.normalize(JSON.parse(JSON.stringify(s))), s);
 });

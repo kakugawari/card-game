@@ -10,7 +10,8 @@
  *   レア枠は BOX ごとに R 25・RR 4・SR 以上 1 を混ぜて配る (BOX 確定)。
  *   SR 以上の 1 まいは SR / SAR (約 5 BOX に 1) / MUR (約 50 BOX に 1)。
  *   公式は確率を出していないので、開封の集計から広く言われている目安に合わせた。
- *   むりょうパックも、買うパックも、同じ BOX から 1 パックずつ出てくる。
+ *   むりょうパックも、1 パックずつ買うパックも、お店の同じ BOX から 1 パックずつ出てくる。
+ *   BOX ごと買う (buyBox) と、自分だけの新しい BOX が手もとに入る。30 パック開ければ必ず SR 以上が 1 まい。
  *
  * ■ 演出の計画 (makeShow)
  *   出たカードから「どう見せるか」を先に決める。光の色は本当のレア度より上には絶対に上がらない。
@@ -174,7 +175,7 @@
   function newState() {
     return {
       v: SAVE_VERSION, money: 0, tapLevel: 0, totalTaps: 0, owned: {}, lastFreeDay: '',
-      packsOpened: 0, box: null, muted: false
+      packsOpened: 0, box: null, boxes: [], muted: false
     };
   }
 
@@ -225,12 +226,20 @@
       if (n > 0) s.owned[c.no] = n;
     });
     s.box = validBox(raw.box);
+    if (Array.isArray(raw.boxes)) {
+      raw.boxes.forEach(function (b) {
+        const v = validBox(b);
+        if (v && v.next < BOX_PACKS && s.boxes.length < MAX_BOXES) s.boxes.push(v);
+      });
+    }
     return s;
   }
 
   // ---------------------------------------------------------------- タップで稼ぐ
   const MAX_LEVEL = 8;
   const PACK_PRICE = 500;
+  const BOX_PRICE = PACK_PRICE * BOX_PACKS;   // BOX は 30 パックぶんの値段 (おまけは「SR 以上 確定」)
+  const MAX_BOXES = 20;
 
   function tapPower(state) { return 1 + state.tapLevel; }
 
@@ -258,10 +267,32 @@
   // ---------------------------------------------------------------- パックを開ける
   function canOpenFree(state, now) { return state.lastFreeDay !== dayKey(now); }
 
+  /** BOX ごと買う。手もとに 30 パック入りの新しい BOX が入る (お店の BOX とは別) */
+  function buyBox(state, rng) {
+    if (state.money < BOX_PRICE) return { ok: false, reason: 'money' };
+    if (state.boxes.length >= MAX_BOXES) return { ok: false, reason: 'full' };
+    state.money -= BOX_PRICE;
+    state.boxes.push(newBox(rng || Math.random));
+    return { ok: true };
+  }
+
+  /** 手もとの BOX に残っているパックの数 */
+  function packsInHand(state) {
+    return state.boxes.reduce(function (n, b) { return n + (BOX_PACKS - b.next); }, 0);
+  }
+
+  /** 手もとの BOX (いま開けている 1 箱目) から、SR 以上がもう出たか */
+  function boxStatus(box) {
+    if (!box) return null;
+    let srUp = false;
+    for (let i = 0; i < box.next; i++) if (rank(box.packs[i].top) >= rank('SR')) srUp = true;
+    return { left: BOX_PACKS - box.next, srUpOut: srUp };
+  }
+
   /**
    * パックを開ける。BOX から 1 パック出し、お金を引き、図鑑を増やす。
-   * kind: 'free' (毎日のむりょう) / 'buy' (コインで買う)
-   * 失敗 (もう開けた・お金が足りない) のときは何も変えない。
+   * kind: 'free' (毎日のむりょう) / 'buy' (コインで 1 パック買う) / 'box' (手もとの BOX から)
+   * 失敗 (もう開けた・お金が足りない・BOX が無い) のときは何も変えない。
    */
   function openPack(state, kind, now, rng) {
     rng = rng || Math.random;
@@ -269,24 +300,33 @@
       if (!canOpenFree(state, now)) return { ok: false, reason: 'already' };
     } else if (kind === 'buy') {
       if (state.money < PACK_PRICE) return { ok: false, reason: 'money' };
+    } else if (kind === 'box') {
+      if (!state.boxes.length) return { ok: false, reason: 'nobox' };
     } else {
       return { ok: false, reason: 'unknown' };
     }
-    if (!state.box || state.box.next >= BOX_PACKS) state.box = newBox(rng);
-    const slot = state.box.packs[state.box.next];
-    state.box.next++;
+    let box;
+    if (kind === 'box') {
+      box = state.boxes[0];
+    } else {
+      if (!state.box || state.box.next >= BOX_PACKS) state.box = newBox(rng);
+      box = state.box;
+    }
+    const slot = box.packs[box.next];
+    box.next++;
     const rarities = packRarities(slot);
     const nos = rollPack(slot, rng);
 
     if (kind === 'buy') state.money -= PACK_PRICE;
-    else state.lastFreeDay = dayKey(now);
+    else if (kind === 'free') state.lastFreeDay = dayKey(now);
+    if (kind === 'box' && box.next >= BOX_PACKS) state.boxes.shift();   // 空になった箱はしまう
     state.packsOpened++;
     const cards = nos.map(function (no) {
       const isNew = !state.owned[no];
       state.owned[no] = (state.owned[no] || 0) + 1;
       return { no: no, isNew: isNew };
     });
-    return { ok: true, cards: cards, show: makeShow(rarities, rng), boxLeft: BOX_PACKS - state.box.next };
+    return { ok: true, cards: cards, show: makeShow(rarities, rng), boxLeft: BOX_PACKS - box.next, kind: kind };
   }
 
   function collectedCount(state, filter) {
@@ -319,6 +359,11 @@
     BOX_PACKS: BOX_PACKS,
     PACK_SIZE: PACK_SIZE,
     PACK_PRICE: PACK_PRICE,
+    BOX_PRICE: BOX_PRICE,
+    MAX_BOXES: MAX_BOXES,
+    buyBox: buyBox,
+    packsInHand: packsInHand,
+    boxStatus: boxStatus,
     MAX_LEVEL: MAX_LEVEL,
     newBox: newBox,
     packRarities: packRarities,

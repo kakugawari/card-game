@@ -464,6 +464,76 @@ async function run() {
       await context.close();
     }
 
+    // ------------------------------------------------ BOX ごと買う
+    if (want('BOX')) {
+      section('BOX: まとめて買って、1 パックずつ開ける');
+      ({ context, page } = await newGame(browser, errors));
+      await page.evaluate(() => {
+        document.documentElement.style.setProperty('--safe-top', '59px');
+        document.documentElement.style.setProperty('--safe-bottom', '34px');
+      });
+      await goTab(page, 'Packs');
+      const price = await page.evaluate(() => window.__app.core.BOX_PRICE);
+      await page.evaluate((p) => window.__app.setMoney(p - 1), price);
+      ok(await page.locator('#btnBox').isDisabled(), `${price - 1} コインでは BOX を買えない (${await page.textContent('#btnBoxLabel')})`);
+      await page.evaluate((p) => window.__app.setMoney(p), price);
+      const vis = await page.evaluate(() => {
+        const b = document.getElementById('btnBox').getBoundingClientRect();
+        const bar = document.getElementById('tabbar').getBoundingClientRect();
+        const sc = document.getElementById('scPacks');
+        return { bottom: b.bottom, barTop: bar.top, scrolled: sc.scrollTop };
+      });
+      ok(vis.bottom <= vis.barTop && vis.scrolled === 0, `BOX のボタンは、送らなくても見える (下 ${Math.round(vis.bottom)} / タブ ${Math.round(vis.barTop)})`);
+      await page.tap('#btnBox');
+      const first = await page.evaluate(() => ({ money: window.__app.state().money, label: document.getElementById('btnBoxLabel').textContent }));
+      ok(first.money === price && first.label.includes('ほんとうに'), `1 回目のタップは「ほんとうに かう？」だけで、まだ買わない (${first.label})`);
+      await page.waitForTimeout(3300);
+      ok(!(await page.textContent('#btnBoxLabel')).includes('ほんとうに'), '3 秒たつと元にもどる');
+      await page.tap('#btnBox');
+      await page.tap('#btnBox');
+      await page.waitForTimeout(300);
+      const bought = await page.evaluate(() => ({
+        money: window.__app.state().money, hand: window.__app.core.packsInHand(window.__app.state()),
+        shop: window.__app.state().box, text: document.getElementById('myBoxLeft').textContent,
+        sr: document.getElementById('myBoxSr').textContent
+      }));
+      ok(bought.money === 0 && bought.hand === 30, `2 回タップで買える: コイン ${bought.money}・手もとに ${bought.hand} パック`);
+      ok(bought.shop === null, 'BOX を買っても、お店の BOX (1 パックずつの方) は進まない');
+      ok(bought.text.includes('30') && bought.sr.includes('まだ'), `手もとの BOX の様子が出る (${bought.text} / ${bought.sr})`);
+      const ob = await page.evaluate(() => {
+        const b = document.getElementById('btnOpenBox').getBoundingClientRect();
+        return b.bottom <= document.getElementById('tabbar').getBoundingClientRect().top;
+      });
+      ok(ob, '「BOX から あける」も、送らなくても見える');
+
+      await page.evaluate(() => { window.__app.state().lastFreeDay = window.__app.core.dayKey(Date.now()); });
+      await page.tap('#btnOpenBox');
+      const end = await playThrough(page);
+      ok(end.phase === 'result', 'BOX から 1 パック開けられる');
+      const after = await page.evaluate(() => ({ hand: window.__app.core.packsInHand(window.__app.state()), money: window.__app.state().money }));
+      ok(after.hand === 29 && after.money === 0, `開けると手もとが 1 パック減り、お金は減らない (のこり ${after.hand})`);
+      ok((await page.textContent('#opAgainLabel')).includes('BOX から'), `「もう1パック」は BOX から (${await page.textContent('#opAgainLabel')})`);
+      await page.tap('#opAgain');
+      await page.waitForFunction(() => window.__app.opening.state().phase === 'pack');
+      ok((await page.evaluate(() => window.__app.core.packsInHand(window.__app.state()))) === 28, '「もう1パック」で BOX の次のパック');
+      await page.evaluate(() => window.__app.opening.close());
+
+      // SR 以上が出たあとは「もう でた」
+      await page.evaluate(() => {
+        const s = window.__app.state();
+        const b = s.boxes[0];
+        b.next = b.packs.findIndex((p) => window.__app.core.rank(p.top) >= window.__app.core.rank('SR')) + 1;
+        window.__app.flush();
+      });
+      await goTab(page, 'Home');
+      await goTab(page, 'Packs');
+      ok((await page.textContent('#myBoxSr')).includes('もう でた'), `SR 以上を引いたあとは「もう でた」(${await page.textContent('#myBoxSr')})`);
+      await page.reload();
+      await page.waitForFunction(() => window.__app);
+      ok((await page.evaluate(() => window.__app.state().boxes.length)) === 1, '開き直しても、手もとの BOX は残る');
+      await context.close();
+    }
+
     // ------------------------------------------------ ずかん
     if (want('ずかん')) {
       section('ずかん');
