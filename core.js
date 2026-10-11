@@ -329,6 +329,49 @@
     return { ok: true, cards: cards, show: makeShow(rarities, rng), boxLeft: BOX_PACKS - box.next, kind: kind };
   }
 
+  /**
+   * 手もとの BOX (1 箱目) の残りを、まとめて全部開ける。
+   * 返すもの: packs (1 パックずつの結果) と、演出で見せるレアだけを並べたもの (bulkHighlights)
+   */
+  function openBoxAll(state, now, rng) {
+    if (!state.boxes.length) return { ok: false, reason: 'nobox' };
+    const box = state.boxes[0];
+    const packs = [];
+    while (state.boxes[0] === box) packs.push(openPack(state, 'box', now, rng || Math.random));
+    return Object.assign({ ok: true, packs: packs }, bulkHighlights(packs));
+  }
+
+  /**
+   * まとめて開けた結果から、演出で 1 まいずつ見せるカード (RR 以上と AR) を選ぶ。
+   * 弱い順に並べて、いちばん良いカードが最後に来るようにする。演出のしかたは、そのパックの計画をそのまま使う
+   */
+  function bulkHighlights(packs) {
+    const items = [];
+    const counts = {};
+    const newNos = [];
+    packs.forEach(function (p) {
+      p.cards.forEach(function (c, i) {
+        const r = BY_NO[c.no].rarity;
+        counts[r] = (counts[r] || 0) + 1;
+        if (c.isNew) newNos.push(c.no);
+        const sp = p.show.specials.find(function (x) { return x.index === i; });
+        if (sp) items.push({ card: c, sp: sp });
+      });
+    });
+    items.sort(function (a, b) { return rank(a.sp.rarity) - rank(b.sp.rarity); });   // 同じレア度は開けた順のまま
+    return {
+      cards: items.map(function (x) { return x.card; }),
+      show: {
+        tier: items.length ? items[items.length - 1].sp.rarity : 'R',
+        omen: 'none',
+        tearLight: 'white',
+        specials: items.map(function (x, i) { return Object.assign({}, x.sp, { index: i }); })
+      },
+      counts: counts,
+      newNos: newNos
+    };
+  }
+
   function collectedCount(state, filter) {
     return CARDS.filter(function (c) { return (!filter || filter(c)) && state.owned[c.no] > 0; }).length;
   }
@@ -362,6 +405,8 @@
     BOX_PRICE: BOX_PRICE,
     MAX_BOXES: MAX_BOXES,
     buyBox: buyBox,
+    openBoxAll: openBoxAll,
+    bulkHighlights: bulkHighlights,
     packsInHand: packsInHand,
     boxStatus: boxStatus,
     MAX_LEVEL: MAX_LEVEL,

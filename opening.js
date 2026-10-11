@@ -144,6 +144,10 @@
     els.count.textContent = '';
     els.skip.hidden = false;
 
+    els.bulk.hidden = true;
+    els.result.classList.toggle('bulk', !!opts.bulk);
+    if (opts.bulk) { els.pack.hidden = true; bulkIntro(r); return; }
+
     els.pack.innerHTML = V.packHTML();
     els.pack.className = 'op-pack';
     els.pack.hidden = false;
@@ -181,6 +185,52 @@
         { color: color, count: o === 'gold' ? 4 : 3, shape: 'star', speed: 90, size: 9, gravity: o === 'gold' ? 120 : -40, life: 1.1, add: true });
     }, 140);
     r.timers.push(t);
+  }
+
+  // ---------------------------------------------------------------- まとめて開ける
+  /**
+   * BOX の残りをまとめて開けたとき: パックが次々にやぶれる様子を数秒で見せてから、
+   * レア (RR 以上と AR) だけを裏向きの束にして、1 まいずつ ふだんと同じ演出でめくる。弱い順なので、いちばん良いのが最後
+   */
+  async function bulkIntro(r) {
+    r.phase = 'bulk';
+    els.skip.hidden = true;
+    els.bulk.hidden = false;
+    els.bulkPack.innerHTML = V.packHTML();
+    hint('');
+    const n = r.opts.bulk.packs;
+    const dur = Math.min(2400, 500 + n * 65);
+    const t0 = performance.now();
+    let shown = 0;
+    await new Promise(function (res) {
+      function step(now) {
+        if (!alive(r)) { res(); return; }
+        const k = Math.min(n, Math.floor(((now - t0) / dur) * n) + 1);
+        while (shown < k) {
+          shown++;
+          els.bulkCount.textContent = shown + ' / ' + n + ' パック';
+          S.play('tear');
+          els.bulkPack.animate([{ transform: 'none' }, { transform: 'scale(1.08) rotate(-3deg)' }, { transform: 'none' }], { duration: 140 });
+          const c = center(els.bulkPack);
+          fx.burst(c.x, c.y - c.h * 0.38, { color: 'white', count: 4, speed: 280, size: 7, life: 0.7, gravity: 420 });
+        }
+        if (shown < n) requestAnimationFrame(step); else res();
+      }
+      requestAnimationFrame(step);
+    });
+    if (!alive(r)) return;
+    S.play('rip');
+    await wait(420);
+    if (!alive(r)) return;
+    els.bulk.hidden = true;
+    if (!r.cards.length) { showResult(r); return; }
+    buildStack(r);
+    els.stack.animate([{ transform: 'translateY(170px) scale(.86)', opacity: 0 }, { transform: 'none', opacity: 1 }],
+      { duration: 560, easing: 'cubic-bezier(.3,1.2,.5,1)' });
+    await wait(520);
+    if (!alive(r)) return;
+    r.phase = 'stack';
+    onTop(r);
   }
 
   // ---------------------------------------------------------------- やぶる
@@ -326,7 +376,7 @@
 
   function onTop(r) {
     const i = r.index;
-    els.count.textContent = (i + 1) + ' / ' + r.cards.length;
+    els.count.textContent = (r.opts.bulk ? 'レア ' : '') + (i + 1) + ' / ' + r.cards.length;
     const slot = r.slots[i];
     const sp = r.special[i];
     const c = r.cards[i];
@@ -667,9 +717,28 @@
     rays(null);
     setBg('day');
     r.tilts.forEach(function (t) { if (t) t.stop(); });
+    let list = r.cards;
+    els.sum.hidden = !r.opts.bulk;
+    els.resTitle.textContent = 'ゲット！';
+    if (r.opts.bulk) {
+      // まとめて開けたとき: 枚数のまとめ + レアと はじめてのカードだけを並べる (強い順)
+      const b = r.opts.bulk;
+      els.resTitle.textContent = b.packs + 'パック あけた！';
+      els.sum.innerHTML = C.RARITY_ORDER.filter(function (k) { return b.counts[k]; }).map(function (k) {
+        return '<span class="sum-i"><span class="rmark rm-' + k + '">' + k + '</span>×' + b.counts[k] + '</span>';
+      }).join('') + '<span class="sum-new">NEW ' + b.newNos.length + 'まい</span>';
+      const seen = {};
+      list = [];
+      r.cards.concat(b.newNos.map(function (no) { return { no: no, isNew: true }; })).forEach(function (c) {
+        if (seen[c.no]) { if (c.isNew) seen[c.no].isNew = true; return; }
+        seen[c.no] = { no: c.no, isNew: b.newNos.indexOf(c.no) >= 0 };
+        list.push(seen[c.no]);
+      });
+      list.sort(function (x, y) { return C.rank(C.cardByNo(y.no).rarity) - C.rank(C.cardByNo(x.no).rarity) || (x.no < y.no ? -1 : 1); });
+    }
     let best = 0;
-    r.cards.forEach(function (c, i) { if (C.rank(C.cardByNo(c.no).rarity) > C.rank(C.cardByNo(r.cards[best].no).rarity)) best = i; });
-    els.grid.innerHTML = r.cards.map(function (c, i) {
+    list.forEach(function (c, i) { if (C.rank(C.cardByNo(c.no).rarity) > C.rank(C.cardByNo(list[best].no).rarity)) best = i; });
+    els.grid.innerHTML = list.map(function (c, i) {
       const card = C.cardByNo(c.no);
       return '<button type="button" class="op-cell' + (i === best && C.rank(card.rarity) >= C.rank('RR') ? ' best' : '') + '" data-no="' + c.no + '">' +
         V.html(card, { small: true }) + (c.isNew ? '<span class="op-new">NEW!</span>' : '') + '</button>';
@@ -680,8 +749,8 @@
     els.result.hidden = false;
     els.result.querySelectorAll('.op-cell').forEach(function (cell, i) {
       cell.animate([{ transform: 'translateY(40px) scale(.6)', opacity: 0 }, { transform: 'none', opacity: 1 }],
-        { duration: 380, delay: 80 + i * 90, easing: 'cubic-bezier(.3,1.5,.5,1)', fill: 'backwards' });
-      setTimeout(function () { if (alive(r)) S.play('pop'); }, 80 + i * 90);
+        { duration: 380, delay: 80 + Math.min(i, 12) * 70, easing: 'cubic-bezier(.3,1.5,.5,1)', fill: 'backwards' });
+      if (i < 8) setTimeout(function () { if (alive(r)) S.play('pop'); }, 80 + i * 70);
     });
   }
 
@@ -738,7 +807,8 @@
       open: $('open'), stage: $('opStage'), pack: $('opPack'), stack: $('opStack'), ring: $('opRing'),
       rays: $('opRays'), hint: $('opHint'), banner: $('opBanner'), flash: $('opFlash'), black: $('opBlack'),
       crack: $('opCrack'), count: $('opCount'), skip: $('opSkip'), result: $('opResult'), grid: $('opGrid'),
-      again: $('opAgain'), againLabel: $('opAgainLabel'), close: $('opClose'), zoom: $('opZoom'), zoomBox: $('opZoomBox')
+      again: $('opAgain'), againLabel: $('opAgainLabel'), resTitle: $('opResTitle'), sum: $('opSum'),
+      bulk: $('opBulk'), bulkPack: $('obPack'), bulkCount: $('obCount'), close: $('opClose'), zoom: $('opZoom'), zoomBox: $('opZoomBox')
     };
     fx = Fx.particles($('opFx'));
     els.pack.addEventListener('pointerdown', tearStart);

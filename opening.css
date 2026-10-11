@@ -357,3 +357,44 @@
 .op-zoom-box { width: 300px; text-align: center; }
 .op-zoom-card { width: 300px; }
 .op-zoom-meta { margin: 16px 0 0; color: #fff; font-size: 16px; }
+
+/* ---------------------------------------------------------------- まとめて開ける */
+.op-bulk {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  pointer-events: none;
+}
+.ob-pack { width: 170px; height: 245px; filter: drop-shadow(0 12px 14px rgba(120,60,40,.28)); }
+.ob-pack .pk-guide { display: none; }
+.ob-count { font-size: 30px; font-weight: 900; color: #ff6f91; font-variant-numeric: tabular-nums; text-shadow: 0 3px 0 #fff; }
+.ob-text { font-size: 16px; color: #9a7f6a; }
+
+.op-sum {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 12px;
+  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.8);
+}
+.sum-i { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.sum-i .rmark { min-width: 34px; font-size: 11px; }
+.sum-new { color: #ff5d73; }
+.op-result.bulk { justify-content: flex-start; }
+.op-result.bulk .op-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: flex-start;
+  gap: 12px 8px;
+  padding: 10px 2px;
+}
+.op-result.bulk .op-cell { width: 88px; }

@@ -531,6 +531,55 @@ async function run() {
       await page.reload();
       await page.waitForFunction(() => window.__app);
       ok((await page.evaluate(() => window.__app.state().boxes.length)) === 1, '開き直しても、手もとの BOX は残る');
+
+      section('BOX: のこりを まとめて開けて、レアだけ演出で見せる');
+      await goTab(page, 'Packs');
+      const leftBefore = await page.evaluate(() => window.__app.core.packsInHand(window.__app.state()));
+      ok((await page.textContent('#btnOpenAllLabel')).includes(String(leftBefore)), `ボタンに残りの数 (${await page.textContent('#btnOpenAllLabel')})`);
+      await page.tap('#btnOpenAll');
+      await page.waitForFunction(() => window.__app.opening.state().phase === 'bulk');
+      ok(await page.locator('#opBulk').isVisible(), 'パックが次々にやぶれる画面が出る');
+      await page.waitForFunction(() => window.__app.opening.state().phase === 'stack', null, { timeout: 8000 });
+      const bulk = await page.evaluate(() => {
+        const st = window.__app.opening.state();
+        const rk = (no) => window.__app.core.rank(window.__app.core.cardByNo(no).rarity);
+        return {
+          n: st.total, hand: window.__app.core.packsInHand(window.__app.state()),
+          count: document.getElementById('obCount').textContent,
+          backs: [...document.querySelectorAll('.slot')].every((x) => !x.querySelector('.c3-in').classList.contains('up')),
+          allRare: st.cards.every((c) => rk(c.no) >= window.__app.core.rank('RR')),
+          sorted: st.cards.every((c, i) => i === 0 || rk(c.no) >= rk(st.cards[i - 1].no))
+        };
+      });
+      ok(bulk.count.startsWith(leftBefore + ' /'), `${leftBefore} パックぶん数えあげる (${bulk.count})`);
+      ok(bulk.hand === 0, '手もとの BOX は空になる');
+      ok(bulk.n > 0 && bulk.backs && bulk.allRare, `レア (RR 以上と AR) だけ ${bulk.n} まいが裏向きで並ぶ`);
+      ok(bulk.sorted, '弱い順 (いちばん良いカードが最後)');
+      for (let g = 0; g < 30; g++) {
+        const st = await opState(page);
+        if (st.phase === 'result') break;
+        if (st.phase !== 'stack') { await page.waitForTimeout(250); continue; }
+        const sp = st.show.specials.find((x) => x.index === st.index);
+        if (sp && !st.revealed.includes(st.index)) {
+          if (sp.mode === 'tap') await tapTop(page); else await holdTop(page, { SR: 2900, SAR: 4000, MUR: 5200 }[sp.rarity]);
+          await page.waitForFunction((i) => window.__app.opening.state().revealed.includes(i), st.index, { timeout: 9000 });
+          await page.waitForTimeout(1300);
+        }
+        await tapTop(page);
+        await page.waitForTimeout(400);
+      }
+      await page.waitForFunction(() => window.__app.opening.state().phase === 'result', null, { timeout: 8000 });
+      await page.waitForTimeout(900);
+      const sum = await page.evaluate(() => ({
+        title: document.getElementById('opResTitle').textContent,
+        total: [...document.querySelectorAll('#opSum .sum-i')].reduce((a, e) => a + Number(e.textContent.split('×')[1]), 0),
+        cells: document.querySelectorAll('.op-cell').length,
+        inside: (() => { const g = document.getElementById('opGrid').getBoundingClientRect(); const a = document.getElementById('opClose').getBoundingClientRect(); return g.bottom <= a.top && a.bottom <= 932; })()
+      }));
+      ok(sum.title === leftBefore + 'パック あけた！' && sum.total === leftBefore * 5, `まとめ: 「${sum.title}」・合計 ${sum.total} まい`);
+      ok(sum.cells >= bulk.n && sum.inside, `レアと はじめてのカードを並べ (${sum.cells} まい)、ボタンにかぶらない`);
+      await page.tap('#opClose');
+      ok(await page.locator('#myBox').isHidden(), '閉じると、手もとの BOX の欄は消える');
       await context.close();
     }
 

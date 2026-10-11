@@ -20,7 +20,7 @@
     upLv: $('upLv'), upSub: $('upSub'), btnUp: $('btnUp'), btnUpLabel: $('btnUpLabel'),
     shopPack: $('shopPack'), shopName: $('shopName'), btnFree: $('btnFree'), btnFreeLabel: $('btnFreeLabel'),
     btnBuy: $('btnBuy'), btnBuyLabel: $('btnBuyLabel'), btnBox: $('btnBox'), btnBoxLabel: $('btnBoxLabel'),
-    boxArt: $('boxArt'), myBox: $('myBox'), myBoxLeft: $('myBoxLeft'), myBoxSr: $('myBoxSr'), btnOpenBox: $('btnOpenBox'), boxLeft: $('boxLeft'), rates: $('rates'), packDot: $('packDot'),
+    boxArt: $('boxArt'), btnOpenAll: $('btnOpenAll'), btnOpenAllLabel: $('btnOpenAllLabel'), myBox: $('myBox'), myBoxLeft: $('myBoxLeft'), myBoxSr: $('myBoxSr'), btnOpenBox: $('btnOpenBox'), boxLeft: $('boxLeft'), rates: $('rates'), packDot: $('packDot'),
     zkCount: $('zkCount'), zkSub: $('zkSub'), zkGrid: $('zkGrid'),
     detail: $('detail'), dtBox: $('dtBox'), btnMute: $('btnMute'), muteIco: $('muteIco')
   };
@@ -203,6 +203,7 @@
       const more = state.boxes.length - 1;
       els.myBoxLeft.textContent = 'てもとの BOX: のこり ' + st.left + 'パック' + (more ? ' (ほかに ' + more + 'はこ)' : '');
       els.myBoxSr.textContent = st.srUpOut ? 'SR いじょう: もう でた' : 'SR いじょう: まだ でていない！';
+      els.btnOpenAllLabel.textContent = 'のこり ' + st.left + 'パック まとめて あける';
     }
   }
 
@@ -230,6 +231,31 @@
   });
 
   els.btnOpenBox.addEventListener('click', function () { openPack('box'); });
+  els.btnOpenAll.addEventListener('click', openBoxAll);
+
+  /** 手もとの BOX の残りを全部開けて、レアだけ演出で見せる */
+  function openBoxAll() {
+    Sfx.unlock();
+    const res = C.openBoxAll(state, Date.now());
+    if (!res.ok) return;
+    saveNow();
+    renderPacks();
+    O.start({
+      cards: res.cards,
+      show: res.show,
+      bulk: { packs: res.packs.length, counts: res.counts, newNos: res.newNos },
+      againLabel: againLabel,
+      onAgain: function () {
+        const k = nextKind();
+        if (!k || !openPack(k)) O.close();
+      },
+      onClose: function () {
+        renderWalkers();
+        renderPacks();
+        if (!$('scZukan').hidden) renderZukan();
+      }
+    });
+  }
 
   function renderFree() {
     const now = Date.now();

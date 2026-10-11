@@ -326,6 +326,9 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   background: #f3efff;
   border: 2px dashed #c9bdf5;
 }
+.mybox-btns { display: flex; gap: 8px; }
+.mybox-btns .btn-box { flex: 0 0 38%; }
+.btn-all { background: #ff8fa8; }
 .mybox-text { display: flex; flex-direction: column; gap: 2px; font-size: 15px; }
 .mybox-text span { font-size: 13px; color: #7a5fc8; }
 

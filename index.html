@@ -82,7 +82,10 @@
         <button type="button" class="btn btn-big btn-coin" id="btnBox"><span class="btn-label" id="btnBoxLabel">15,000</span></button>
         <div class="mybox" id="myBox" hidden>
           <div class="mybox-text"><b id="myBoxLeft">のこり 30パック</b><span id="myBoxSr"></span></div>
-          <button type="button" class="btn btn-big btn-box" id="btnOpenBox"><span class="btn-label">BOX から 1パック あける</span></button>
+          <div class="mybox-btns">
+            <button type="button" class="btn btn-mid btn-box" id="btnOpenBox"><span class="btn-label">1パック あける</span></button>
+            <button type="button" class="btn btn-mid btn-all" id="btnOpenAll"><span class="btn-label" id="btnOpenAllLabel">まとめて あける</span></button>
+          </div>
         </div>
       </div>
       <details class="rates">
@@ -121,12 +124,18 @@
     <svg class="op-crack" id="opCrack" viewBox="0 0 430 932" preserveAspectRatio="none" aria-hidden="true">
       <path pathLength="1" d="M-10 440 L50 418 L92 452 L140 414 L176 446 L215 404 L250 448 L292 420 L330 456 L376 426 L440 446"/>
     </svg>
+    <div class="op-bulk" id="opBulk" hidden>
+      <div class="ob-pack" id="obPack"></div>
+      <div class="ob-count" id="obCount"></div>
+      <div class="ob-text">まとめて あけているよ…</div>
+    </div>
     <div class="op-banner" id="opBanner" hidden></div>
     <div class="op-count" id="opCount"></div>
     <button type="button" class="op-skip" id="opSkip">スキップ ▶▶</button>
     <p class="op-hint" id="opHint" hidden></p>
     <div class="op-result" id="opResult" hidden>
-      <h2>ゲット！</h2>
+      <h2 id="opResTitle">ゲット！</h2>
+      <div class="op-sum" id="opSum" hidden></div>
       <div class="op-grid" id="opGrid"></div>
       <div class="op-actions">
         <button type="button" class="btn btn-big" id="opAgain"><span class="btn-label" id="opAgainLabel">もう1パック</span></button>

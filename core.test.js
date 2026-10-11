@@ -192,6 +192,44 @@ test('BOX 買い: SR 以上がもう出たかが分かる', () => {
   assert.strictEqual(Core.boxStatus(box).srUpOut, true);
 });
 
+test('まとめて開ける: 1 箱の残りを全部開け、レア (RR 以上と AR) だけを弱い順に並べる', () => {
+  const rng = Core.mulberry32(21);
+  for (let b = 0; b < 100; b++) {
+    const s = richState(Core.BOX_PRICE * 2);
+    Core.buyBox(s, rng);
+    Core.buyBox(s, rng);
+    for (let i = 0; i < b % 7; i++) Core.openPack(s, 'box', NOON, rng);   // 途中まで開けた箱でも
+    const left = Core.packsInHand(s) - 30;
+    const r = Core.openBoxAll(s, NOON, rng);
+    assert.ok(r.ok);
+    assert.strictEqual(r.packs.length, left, '1 箱目の残りだけ開ける');
+    assert.strictEqual(Core.packsInHand(s), 30, '2 箱目は手つかず');
+    const want = r.packs.flatMap((p) => p.cards).filter((c) => Core.rank(rarityOf(c.no)) >= Core.rank('RR'));
+    assert.strictEqual(r.cards.length, want.length, '演出に出すのは RR 以上と AR だけ');
+    for (let i = 1; i < r.cards.length; i++) {
+      assert.ok(Core.rank(rarityOf(r.cards[i].no)) >= Core.rank(rarityOf(r.cards[i - 1].no)), '弱い順 (いちばん良いのが最後)');
+    }
+    r.show.specials.forEach((sp, i) => {
+      assert.strictEqual(sp.index, i);
+      assert.strictEqual(sp.rarity, rarityOf(r.cards[i].no), '演出の光はそのカードのレア度のまま');
+    });
+    const total = Object.values(r.counts).reduce((a, x) => a + x, 0);
+    assert.strictEqual(total, left * 5);
+  }
+});
+
+test('まとめて開ける: 丸ごと 1 箱なら SR 以上が必ず最後に来る。NEW は 1 回目だけ', () => {
+  const s = richState(Core.BOX_PRICE);
+  Core.buyBox(s, Core.mulberry32(5));
+  const r = Core.openBoxAll(s, NOON, Core.mulberry32(6));
+  assert.strictEqual(r.packs.length, 30);
+  assert.ok(Core.rank(r.show.tier) >= Core.rank('SR'));
+  assert.ok(Core.rank(rarityOf(r.cards[r.cards.length - 1].no)) >= Core.rank('SR'));
+  assert.strictEqual(new Set(r.newNos).size, r.newNos.length);
+  assert.strictEqual(r.newNos.length, Core.collectedCount(s));
+  assert.deepStrictEqual(Core.openBoxAll(s, NOON), { ok: false, reason: 'nobox' });
+});
+
 // ------------------------------------------------------------ 演出の計画
 const ORDER = ['none', 'shake', 'rainbow', 'gold'];
 
