@@ -21,6 +21,7 @@
     shopPack: $('shopPack'), shopName: $('shopName'), btnFree: $('btnFree'), btnFreeLabel: $('btnFreeLabel'),
     btnBuy: $('btnBuy'), btnBuyLabel: $('btnBuyLabel'), btnBox: $('btnBox'), btnBoxLabel: $('btnBoxLabel'),
     boxArt: $('boxArt'), btnOpenAll: $('btnOpenAll'), btnOpenAllLabel: $('btnOpenAllLabel'), myBox: $('myBox'), myBoxLeft: $('myBoxLeft'), myBoxSr: $('myBoxSr'), btnOpenBox: $('btnOpenBox'), boxLeft: $('boxLeft'), rates: $('rates'), packDot: $('packDot'),
+    setPick: $('setPick'), zkPick: $('zkPick'), zkTitle: $('zkTitle'),
     zkCount: $('zkCount'), zkSub: $('zkSub'), zkGrid: $('zkGrid'),
     detail: $('detail'), dtBox: $('dtBox'),
     petSheet: $('petSheet'), psClose: $('psClose'), psAnimal: $('psAnimal'), psFx: $('psFx'), psName: $('psName'), psLv: $('psLv'),
@@ -151,8 +152,8 @@
   const TRICK = { 2: 'うれしいと ハートが でるように なった！', 3: 'ぴょんと はねるように なった！', 4: 'くるっと まわるように なった！', 5: 'かんむりを もらった！' };
 
   /**
-   * ひろばの草原: 手前に なかよしの子 (3 人まで・タップで おやつ)、奥を ほかの子が歩く。
-   * なかよしの子は動き回らず、木の下で待っている (押しやすいように)
+   * ひろばの草原: 持っている子たちが、それぞれの道すじで行ったり来たり歩く。
+   * 歩いている子をタップすると、おやつの画面が出る。なかよしレベルが上がると、歩きながら はねたり まわったりする
    */
   function renderWalkers() {
     const charas = [];
@@ -162,41 +163,39 @@
       if (best[c.chara] === undefined) charas.push(c.chara);
       best[c.chara] = Math.max(best[c.chara] || 0, C.rank(c.rarity));
     });
-    charas.sort(function (a, b) { return best[b] - best[a]; });
-    const shown = charas.filter(function (ch) { return state.favs.indexOf(ch) < 0; }).slice(0, state.favs.length ? 4 : 6);
+    const now = Date.now();
+    const aff = function (ch) { return state.pets[ch] ? state.pets[ch].aff : 0; };
+    // なかよしの子 → レアな子 の順に、草原に出てくる
+    charas.sort(function (a, b) { return aff(b) - aff(a) || best[b] - best[a]; });
+    const shown = charas.slice(0, 7);
     const width = els.ground.clientWidth || 430;
-    const back = state.favs.length > 0;
-    // 奥の子: ひろい草原を、それぞれ自分の道すじで行ったり来たりする。奥 (上) の子から先に描き、手前の子が前に出る
+    // 草原を人数ぶんの区画に分け、それぞれの区画の中を行ったり来たりする (かたまらない)
+    const lane = (width - 84) / Math.max(1, shown.length);
+    const order = shown.map(function (_, i) { return i; }).sort(function () { return Math.random() - 0.5; });
     const walkers = shown.map(function (id, i) {
-      const dist = 130 + Math.random() * 110;
-      const dur = dist / (14 + Math.random() * 6);
-      return { id: id, dist: dist, dur: dur, left: Math.random() * Math.max(0, width - 80 - dist), bottom: (back ? 126 : 6) + (i % 2) * (back ? 6 : 14) };
-    }).sort(function (x, y) { return y.bottom - x.bottom; });
+      const dist = Math.min(150, Math.max(40, lane + 40)) * (0.7 + Math.random() * 0.3);
+      const dur = dist / (13 + Math.random() * 6);
+      const left = Math.max(0, Math.min(width - 84 - dist, order[i] * lane + lane / 2 - dist / 2));
+      return { id: id, dist: dist, dur: dur, left: left, bottom: 8 + (i % 3) * 30 };
+    }).sort(function (x, y) { return y.bottom - x.bottom; });   // 奥 (上) の子から描き、手前の子が前に出る
     let html = walkers.map(function (w) {
-      return '<div class="walker' + (back ? ' far' : '') + '" style="left:' + w.left.toFixed(0) + 'px;bottom:' + w.bottom + 'px;--dist:' + w.dist.toFixed(0) +
-        'px;--dur:' + w.dur.toFixed(1) + 's;--del:-' + (Math.random() * w.dur).toFixed(1) + 's">' +
-        A.svg(w.id, { delay: randomDelay() }).replace('<svg ', '<svg width="100%" height="100%" ') + '</div>';
+      const info = C.petInfo(state, w.id, now);
+      return '<button type="button" class="walker lv' + info.level + '" data-ch="' + w.id + '" aria-label="おやつ" style="left:' + w.left.toFixed(0) +
+        'px;bottom:' + w.bottom + 'px;--dist:' + w.dist.toFixed(0) + 'px;--dur:' + w.dur.toFixed(1) + 's;--del:-' + (Math.random() * w.dur).toFixed(1) + 's">' +
+        (info.level >= 2 ? '<span class="wk-lv">♥' + info.level + '</span>' : '') + (info.level >= 5 ? '<span class="wk-crown">👑</span>' : '') +
+        '<span class="wk-body">' + A.svg(w.id, { delay: randomDelay() }).replace('<svg ', '<svg width="100%" height="100%" ') + '</span></button>';
     }).join('');
-    // 手前: なかよしの子
-    const n = state.favs.length;
-    html += state.favs.map(function (ch, i) {
-      const info = C.petInfo(state, ch, Date.now());
-      const x = (width * (i + 1)) / (n + 1) - 52;
-      return '<button type="button" class="fav lv' + info.level + '" data-ch="' + ch + '" style="left:' + x.toFixed(0) + 'px" aria-label="おやつ">' +
-        '<span class="fav-lv">♥' + info.level + '</span>' + (info.level >= 5 ? '<span class="fav-crown">👑</span>' : '') +
-        '<span class="fav-body">' + A.svg(ch, { delay: randomDelay() }).replace('<svg ', '<svg width="100%" height="100%" ') + '</span>' +
-        (info.snacksLeft > 0 ? '<span class="fav-want">' + C.CHARAS[ch].food + '</span>' : '') + '</button>';
-    }).join('');
-    if (!n && charas.length) html += '<p class="fav-hint">ずかんで「なかよし」の子を えらぶと、ここで おやつを あげられるよ</p>';
+    const fedEver = Object.keys(state.pets).length > 0;
+    if (shown.length && !fedEver) html += '<p class="wk-hint">あるいている こを タップすると、おやつを あげられるよ</p>';
     els.ground.innerHTML = html;
   }
 
   els.ground.addEventListener('click', function (e) {
-    const f = e.target.closest('.fav');
-    if (f) openPet(f.dataset.ch);
+    const w = e.target.closest('.walker');
+    if (w) openPet(w.dataset.ch);
   });
 
-  // ---------------------------------------------------------------- おやつ (なかよしの子)
+  // ---------------------------------------------------------------- おやつ
   let petCh = null;
 
   function snackView(id) {
@@ -207,7 +206,7 @@
 
   function renderPet() {
     const info = C.petInfo(state, petCh, Date.now());
-    const card = C.CARDS.find(function (c) { return c.chara === petCh; });
+    const card = C.CARDS.find(function (c) { return c.chara === petCh; });   // 名前は いちばん はじめの カードから
     els.psName.textContent = card.name;
     els.psLv.textContent = 'なかよし Lv.' + info.level + (info.level >= info.maxLevel ? ' (MAX)' : '');
     els.psBar.style.width = (info.progress * 100).toFixed(0) + '%';
@@ -347,6 +346,21 @@
     renderBoxShop();
   }
 
+  // ---- いま見ているパックの種類 (パック画面とずかんで別々に覚える)
+  let curSet = C.SET.id;
+  let zkSet = C.SET.id;
+
+  function shortName(set) { return set.name.replace(/パック$/, '').replace('みらいの どうぶつ', 'みらい'); }
+
+  /** パックの種類をえらぶ並び (6 つ。横に送らずに全部見える) */
+  function pickerHTML(selected, badge) {
+    return C.SETS.map(function (st) {
+      return '<button type="button" class="sp-btn' + (st.id === selected ? ' on' : '') + '" data-set="' + st.id + '">' +
+        '<span class="sp-pack">' + V.packHTML(st.id) + '</span><span class="sp-name">' + shortName(st) + '</span>' +
+        (badge && badge(st) ? '<i class="sp-badge">' + badge(st) + '</i>' : '') + '</button>';
+    }).join('');
+  }
+
   // ---- BOX ごと買う。高い買い物なので、1 回目のタップは「ほんとうに？」に変わるだけ
   let boxConfirmUntil = 0;
   let boxConfirmTimer = 0;
@@ -364,11 +378,11 @@
     els.btnBox.disabled = !enough || full;
     els.btnBox.classList.toggle('confirm', confirming);
 
-    const inHand = C.packsInHand(state);
+    const inHand = C.packsInHand(state, curSet);
     els.myBox.hidden = inHand === 0;
     if (inHand) {
-      const st = C.boxStatus(state.boxes[0]);
-      const more = state.boxes.length - 1;
+      const st = C.boxStatus(C.boxInHand(state, curSet));
+      const more = state.boxes.filter(function (b) { return b.set === curSet; }).length - 1;
       els.myBoxLeft.textContent = 'てもとの BOX: のこり ' + st.left + 'パック' + (more ? ' (ほかに ' + more + 'はこ)' : '');
       els.myBoxSr.textContent = st.srUpOut ? 'SR いじょう: もう でた' : 'SR いじょう: まだ でていない！';
       els.btnOpenAllLabel.textContent = 'のこり ' + st.left + 'パック まとめて あける';
@@ -385,7 +399,7 @@
       return;
     }
     boxConfirmUntil = 0;
-    if (!C.buyBox(state, Math.random).ok) return;
+    if (!C.buyBox(state, Math.random, curSet).ok) return;
     saveNow();
     Sfx.unlock();
     Sfx.play('shine');
@@ -404,18 +418,21 @@
   /** 手もとの BOX の残りを全部開けて、レアだけ演出で見せる */
   function openBoxAll() {
     Sfx.unlock();
-    const res = C.openBoxAll(state, Date.now());
+    lastSet = curSet;
+    const set = curSet;
+    const res = C.openBoxAll(state, Date.now(), Math.random, set);
     if (!res.ok) return;
     saveNow();
     renderPacks();
     O.start({
+      set: set,
       cards: res.cards,
       show: res.show,
       bulk: { packs: res.packs.length, counts: res.counts, newNos: res.newNos },
       againLabel: againLabel,
       onAgain: function () {
-        const k = nextKind();
-        if (!k || !openPack(k)) O.close();
+        const k = nextKind(set);
+        if (!k || !openPack(k, set)) O.close();
       },
       onClose: function () {
         renderWalkers();
@@ -435,18 +452,27 @@
     els.packDot.hidden = !ready && C.packsInHand(state) === 0;
   }
 
+  function renderPicker() {
+    els.setPick.innerHTML = pickerHTML(curSet, function (st) { const n = C.packsInHand(state, st.id); return n ? String(n) : ''; });
+  }
+
   function renderPacks() {
+    renderPicker();
     renderBuy();
     renderFree();
-    const left = state.box ? C.BOX_PACKS - state.box.next : C.BOX_PACKS;
+    const shop = state.shop[curSet];
+    const left = shop ? C.BOX_PACKS - shop.next : C.BOX_PACKS;
     els.boxLeft.textContent = 'お店の BOX (' + C.BOX_PACKS + 'パック) の のこり: ' + (left === 0 ? C.BOX_PACKS : left) + 'パック';
   }
 
+  /** いま選んでいるパックの絵・名前・でるカードの表 */
   function buildShop() {
-    els.shopPack.innerHTML = V.packHTML();
+    const set = C.setById(curSet);
+    els.shopPack.innerHTML = V.packHTML(curSet);
+    els.boxArt.style.cssText = '--pk1:' + set.colors[0] + ';--pk2:' + set.colors[1] + ';--pk3:' + set.colors[2];
     els.boxArt.innerHTML = '<i class="bx-pack"></i><i class="bx-pack"></i><i class="bx-pack"></i><i class="bx-pack"></i>' +
-      '<div class="bx-front"><b>BOX</b><span>30パック入り</span></div>';
-    els.shopName.textContent = C.SET.name + '「' + C.SET.title + '」';
+      '<div class="bx-front"><b>BOX</b><span>' + shortName(set) + '</span></div>';
+    els.shopName.textContent = set.mark + ' ' + set.name + '「' + set.title + '」';
     const rows = [
       ['C', '1パックに 3まい'], ['U', '1パックに 1まい'], ['R', 'レアわくに いちばん よく でる'],
       ['RR', '1BOX に 4まい くらい'], ['AR', '1BOX に 3まい くらい'], ['SR', '1BOX に 1まい くらい'],
@@ -454,42 +480,57 @@
     ];
     els.rates.innerHTML = '<table>' + rows.map(function (r) {
       return '<tr><td><span class="rmark rm-' + r[0] + '">' + r[0] + '</span></td><td>' + C.RARITIES[r[0]].label +
-        '</td><td>' + r[1] + '</td><td>' + C.POOL[r[0]].length + 'しゅ</td></tr>';
+        '</td><td>' + r[1] + '</td><td>' + C.POOL[curSet][r[0]].length + 'しゅ</td></tr>';
     }).join('') + '</table><p class="note">1BOX = 30パック。ポケモンカードの かくだいパックと おなじ くみあわせで でてくるよ。' +
-      'むりょうパックも 1パックずつ かうパックも、おみせの おなじ BOX から じゅんばんに でる。' +
+      'むりょうパックは 1にち 1かい、すきな パックを えらべる。1パックずつ かうと、おみせの おなじ BOX から じゅんばんに でる。' +
       'BOX ごと かうと、じぶんだけの あたらしい BOX が もらえて、SR いじょうが かならず 1まい はいっている。</p>';
   }
 
+  els.setPick.addEventListener('click', function (e) {
+    const b = e.target.closest('.sp-btn');
+    if (!b || b.dataset.set === curSet) return;
+    curSet = b.dataset.set;
+    boxConfirmUntil = 0;
+    buildShop();
+    renderPacks();
+    els.shopPack.animate([{ transform: 'translateY(-16px) scale(.9)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: 'cubic-bezier(.3,1.4,.5,1)' });
+  });
+
   /** 「もう1パック」で次に開けるもの: むりょう → 手もとの BOX → 1 パック買う */
-  function nextKind() {
+  function nextKind(setId) {
     if (C.canOpenFree(state, Date.now())) return 'free';
-    if (C.packsInHand(state) > 0) return 'box';
+    if (C.packsInHand(state, setId || curSet) > 0) return 'box';
     if (state.money >= C.PACK_PRICE) return 'buy';
     return null;
   }
 
   function againLabel() {
-    const k = nextKind();
+    const k = nextKind(lastSet);
     if (k === 'free') return 'むりょうパックを あける！';
-    if (k === 'box') return 'BOX から つぎを あける (のこり ' + C.packsInHand(state) + ')';
+    if (k === 'box') return 'BOX から つぎを あける (のこり ' + C.packsInHand(state, lastSet) + ')';
     if (k === 'buy') return 'もう1パック かう (' + C.formatMoney(C.PACK_PRICE) + ')';
     return null;
   }
 
-  function openPack(kind) {
+  let lastSet = C.SET.id;   // いちばん最後に開けたパックの種類 (「もう1パック」はこれ)
+
+  function openPack(kind, setId) {
     Sfx.unlock();
-    const res = C.openPack(state, kind, Date.now());
+    const set = setId || curSet;
+    const res = C.openPack(state, kind, Date.now(), Math.random, set);
     if (!res.ok) return false;
+    lastSet = set;
     saveNow();   // 開けた時点で記録する (途中で閉じても、もらったカードは残る)
     renderMoney();
     renderPacks();
     O.start({
+      set: set,
       cards: res.cards,
       show: res.show,
       againLabel: againLabel,
       onAgain: function () {
-        const k = nextKind();
-        if (!k || !openPack(k)) O.close();
+        const k = nextKind(set);
+        if (!k || !openPack(k, set)) O.close();
       },
       onClose: function () {
         renderWalkers();
@@ -505,20 +546,34 @@
 
   // ---------------------------------------------------------------- ずかん
   function renderZukan() {
-    const all = C.collectedCount(state);
-    const main = C.collectedCount(state, function (c) { return Number(c.no) <= C.SET.mainCount; });
-    els.zkCount.textContent = all + ' / ' + C.CARDS.length;
-    els.zkSub.textContent = 'ふつう ' + main + '/' + C.SET.mainCount + ' ・ シークレット ' + (all - main) + '/' + (C.CARDS.length - C.SET.mainCount);
-    els.zkGrid.innerHTML = C.CARDS.map(function (c) {
+    const set = C.setById(zkSet);
+    els.zkPick.innerHTML = pickerHTML(zkSet, function (st) {
+      const n = C.collectedCount(state, function (c) { return c.set === st.id; });
+      return n ? n + '/' + st.cards.length : '';
+    });
+    const all = C.collectedCount(state, function (c) { return c.set === zkSet; });
+    const main = C.collectedCount(state, function (c) { return c.set === zkSet && Number(c.num) <= set.mainCount; });
+    els.zkTitle.textContent = set.mark + ' ' + set.name;
+    els.zkCount.textContent = all + ' / ' + set.cards.length;
+    els.zkSub.textContent = 'ふつう ' + main + '/' + set.mainCount + ' ・ シークレット ' + (all - main) + '/' + (set.cards.length - set.mainCount);
+    els.zkGrid.innerHTML = set.cards.map(function (c) {
       const n = state.owned[c.no] || 0;
       if (!n) {
         return '<button type="button" class="zk-cell locked" data-no="' + c.no + '" disabled>' + V.backHTML() +
-          '<span class="zk-q">？</span><span class="zk-no">' + c.no + '</span></button>';
+          '<span class="zk-q">？</span><span class="zk-no">' + c.num + '</span></button>';
       }
       return '<button type="button" class="zk-cell" data-no="' + c.no + '">' + V.html(c, { small: true }) +
         (n > 1 ? '<span class="zk-n">×' + n + '</span>' : '') + '</button>';
     }).join('');
   }
+
+  els.zkPick.addEventListener('click', function (e) {
+    const b = e.target.closest('.sp-btn');
+    if (!b || b.dataset.set === zkSet) return;
+    zkSet = b.dataset.set;
+    renderZukan();
+    $('scZukan').scrollTop = 0;
+  });
 
   let detailTilt = null;
   els.zkGrid.addEventListener('click', function (e) {
@@ -528,35 +583,20 @@
     els.dtBox.innerHTML = '<div class="dt-card">' + V.html(card) + '</div>' +
       '<div class="dt-meta">' + card.rarity + ' ' + C.RARITIES[card.rarity].label +
       '<small>もっている かず: ' + state.owned[card.no] + 'まい</small></div>' +
-      '<button type="button" class="btn btn-mid dt-fav" data-ch="' + card.chara + '"><span class="btn-label"></span></button>' +
-      '<p class="dt-favmsg"></p>';
-    renderFavButton();
+      '<button type="button" class="btn btn-mid dt-feed" data-ch="' + card.chara + '"><span class="btn-label">' + C.CHARAS[card.chara].food + ' この子に おやつを あげる</span></button>';
     els.detail.hidden = false;
     detailTilt = V.tilt(els.dtBox.querySelector('.dt-card'), { idle: true });
   });
-  function renderFavButton() {
-    const b = els.dtBox.querySelector('.dt-fav');
-    if (!b) return;
-    const on = state.favs.indexOf(b.dataset.ch) >= 0;
-    b.classList.toggle('on', on);
-    b.firstChild.textContent = on ? '♥ なかよし (タップで やめる)' : '♡ なかよしに する';
-    els.dtBox.querySelector('.dt-favmsg').textContent = on ? 'コインの木の下で まっているよ' :
-      state.favs.length >= C.MAX_FAVS ? 'なかよしは ' + C.MAX_FAVS + 'にん まで。だれかを やめると えらべるよ' : '';
+  function closeDetail() {
+    els.detail.hidden = true;
+    if (detailTilt) { detailTilt.stop(); detailTilt = null; }
   }
 
   els.detail.addEventListener('click', function (e) {
-    const fb = e.target.closest('.dt-fav');
+    const fb = e.target.closest('.dt-feed');
     if (fb) {
-      const r = C.toggleFav(state, fb.dataset.ch);
-      if (r.ok) {
-        saveNow();
-        Sfx.unlock();
-        if (r.on) { Sfx.play('shine'); fb.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 300 }); }
-        renderWalkers();
-      } else {
-        fb.animate([{ transform: 'none' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'none' }], { duration: 300 });
-      }
-      renderFavButton();
+      closeDetail();
+      openPet(fb.dataset.ch);
       return;
     }
     if (e.target.closest('.dt-card')) return;   // カードをさわっている間は閉じない (かたむけて遊ぶ)
@@ -611,11 +651,13 @@
       opening: O,
       setMoney: function (n) { state.money = n; saveNow(); renderMoney(); },
       renderFree: renderFree,
+      curSet: function () { return curSet; },
       /** テスト用: 次の BOX の 1 パック目の中身を決める (top: R/RR/SR/SAR/MUR, ar: true/false) */
       setBoxConfirmed: function () { boxConfirmUntil = performance.now() + 3000; },
-      rigNextPack: function (top, ar) {
-        state.box = C.newBox(Math.random);
-        state.box.packs[0] = { top: top, ar: !!ar };
+      rigNextPack: function (top, ar, set) {
+        const st = set || curSet;
+        state.shop[st] = C.newBox(Math.random, st);
+        state.shop[st].packs[0] = { top: top, ar: !!ar };
         saveNow();
       },
       flush: saveNow

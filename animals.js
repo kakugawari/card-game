@@ -116,6 +116,9 @@
     return one(38.5) + one(61.5);
   }
 
+  /** つばさ (とり・こうもり・プテラ)。armL / armR の入れ物に入れて、歩くときに羽ばたく */
+  function wingL(c) { return pa('M31 64 Q12 66 14 84 Q22 80 26 84 Q30 78 34 76 Z', c, O); }
+
   function render(s) {
     const head = s.head || s.body;
     const arm = s.arm || s.body;
@@ -124,14 +127,24 @@
     let o = '';
     o += s.behind || '';
     o += tailOf(s);
-    o += '<g class="footL">' + el(37, 88.5, 8, 5, foot, O) + '</g>';
-    o += '<g class="footR">' + el(63, 88.5, 8, 5, foot, O) + '</g>';
-    o += el(50, 75, 21, 16, s.body, O);
-    if (s.belly && s.belly !== s.body) o += el(50, 78, 13, 10, s.belly);
-    o += '<g class="armL"><g transform="rotate(14 29 73)">' + el(29, 73, 5.5, 8.5, arm, O) + '</g></g>';
-    o += '<g class="armR"><g transform="rotate(-14 71 73)">' + el(71, 73, 5.5, 8.5, arm, O) + '</g></g>';
+    if (!s.noFeet) {
+      o += '<g class="footL">' + el(37, 88.5, 8, 5, foot, O) + '</g>';
+      o += '<g class="footR">' + el(63, 88.5, 8, 5, foot, O) + '</g>';
+    }
+    if (s.bodyEl) o += s.bodyEl;
+    else if (!s.noBody) {
+      o += el(50, 75, 21, 16, s.body, O);
+      if (s.belly && s.belly !== s.body) o += el(50, 78, 13, 10, s.belly);
+    }
+    if (s.wings) {
+      o += '<g class="armL">' + wingL(s.wings) + '</g>';
+      o += '<g class="armR"><g transform="matrix(-1 0 0 1 100 0)">' + wingL(s.wings) + '</g></g>';
+    } else if (!s.noArms) {
+      o += '<g class="armL"><g transform="rotate(14 29 73)">' + el(29, 73, 5.5, 8.5, arm, O) + '</g></g>';
+      o += '<g class="armR"><g transform="rotate(-14 71 73)">' + el(71, 73, 5.5, 8.5, arm, O) + '</g></g>';
+    }
     o += earsOf(s);
-    o += el(50, 46, 30, 26, head, O);
+    o += s.headEl || el(50, 46, 30, 26, head, O);
     o += s.under || '';
     o += eyes(s);
     o += el(29, 57, 5.2, 3.3, cheek, 'opacity=".55"') + el(71, 57, 5.2, 3.3, cheek, 'opacity=".55"');
@@ -268,6 +281,200 @@
     }
   };
 
+  // ------------------------------------------------------------ ほかのパックの なかま (仮の絵)
+  // ぜんぶ同じ「あたまの大きい正面向き」の作りを使い、部品を足して作る。絵が届いたら cards.js の art で差し替わる
+  const smile = line('M46.5 57.5 Q48.25 60.2 50 57.5 Q51.75 60.2 53.5 57.5', INK, 1.5);
+  const oMouth = el(50, 59, 2.6, 3, '#ff7f9d', O.replace('1.5', '1'));
+  const fang = pg('46,58 48,58 47,61', '#fff', O.replace('1.5', '0.8')) + pg('52,58 54,58 53,61', '#fff', O.replace('1.5', '0.8'));
+  const sparkles = star(12, 26, 4.5, '#ffd966') + star(88, 30, 3.6, '#ffd966', 'twinkle t2') + star(84, 12, 3, '#ffffff', 'twinkle t3');
+
+  // ---- うみ (さかな): 足が無く、ふわふわ泳ぐ。からだ = 大きなまる
+  function fish(o) {
+    const fin = o.fin || o.body;
+    return Object.assign({
+      noFeet: true, noArms: true, noBody: true, float: true, ears: 'none', tail: 'none', noNose: true,
+      behind: (o.tailFin === false ? '' : '<g class="tail">' + pa(o.tailPath || 'M74 46 L96 30 Q90 46 96 62 Z', fin, O) + '</g>') +
+        (o.dorsal === false ? '' : pa('M38 24 Q50 4 64 22 Z', fin, O)) + (o.behind2 || ''),
+      front: (o.sideFins === false ? '' : pair(pa('M22 58 Q12 64 18 72 Q24 66 26 62 Z', fin, O))) + (o.front2 || '')
+    }, o);
+  }
+
+  // ---- そら (とり): つばさ・くちばし・オレンジの足
+  function bird(o) {
+    const beak = o.beak || '#ffab40';
+    return Object.assign({
+      ears: 'none', tail: 'none', foot: '#ffab40', wings: o.wing || o.body, noNose: true, noMouth: true,
+      front: pg('45.5,53 54.5,53 50,60', beak, O) + (o.front2 || '')
+    }, o);
+  }
+
+  // ---- むかし (きょうりゅう): とげ・つの・しっぽ
+  function dino(o) {
+    return Object.assign({ ears: 'none', tail: 'long', tailC: o.body }, o);
+  }
+
+  // ---- よる (おばけ): すそがひらひらの体で、ふわふわ浮く
+  const SHEET = 'M21 50 Q19 92 29 89 Q35 96 42 89 Q50 97 58 89 Q65 96 71 89 Q81 92 79 50 Z';
+  function ghost(o) {
+    return Object.assign({
+      noFeet: true, float: true, ears: 'none', tail: 'none', noNose: true,
+      bodyEl: pa(SHEET, o.body, O), arm: o.body
+    }, o);
+  }
+
+  // ---- みらい (ロボ): 元の子を金属の色にして、アンテナと目のバイザーを足す
+  function robo(base, o) {
+    const b = SPECS[base];
+    const metal = o.body || '#c9d3e6';
+    const r = Object.assign({}, b, {
+      body: metal, head: o.head || metal, belly: o.belly || '#eef3fb', arm: o.arm || metal, foot: o.foot || '#8e9bb5',
+      earC: o.earC || metal, inner: o.inner || '#7fe3ff', tailC: o.tailC || metal, cheek: '#7fe3ff', nose: '#4a5a7a'
+    });
+    r.under = (o.keepUnder ? b.under || '' : '') + (o.under2 || '');
+    r.behind = (o.keepBehind === false ? '' : b.behind || '') + (o.behind2 || '');
+    r.front = (o.keepFront ? b.front || '' : '') +
+      line('M50 20 L50 9', '#5b6b8a', 2) + ci(50, 8, 3.2, o.light || '#ff5d73', O) +       // アンテナ
+      line('M31 72 L35 72 M65 72 L69 72', '#5b6b8a', 1.4) + ci(50, 78, 2.2, o.light || '#7fe3ff') +   // むねのランプ
+      (o.front2 || '');
+    return r;
+  }
+
+  const MORE = {
+    // ======================================== うみ
+    kingyo: fish({ body: '#ff8a5b', fin: '#ff6b4a', under: el(50, 56, 15, 10, '#ffc2a0'),
+      tailPath: 'M74 46 Q92 24 98 34 Q88 46 98 60 Q92 70 74 48 Z', front2: oMouth }),
+    kumanomi: fish({ body: '#ff9a3c', fin: '#ff7a1c', under: el(34, 46, 4.5, 24, '#fff', O) + el(66, 46, 4.5, 24, '#fff', O), front2: smile }),
+    fugu: fish({ body: '#ffe08a', fin: '#f5c542', dorsal: false, under: el(50, 58, 16, 10, '#fff8dc'),
+      behind2: pair(pg('20,30 14,24 24,26', '#e0b030', O) + pg('16,46 8,46 16,40', '#e0b030', O) + pg('20,62 13,68 22,66', '#e0b030', O)), front2: oMouth }),
+    tako: Object.assign({ body: '#ff7f8f', noFeet: true, noArms: true, noBody: true, float: true, ears: 'none', tail: 'none', noNose: true,
+      behind: [28, 38, 46, 54, 62, 72].map(function (x, i) { return fat('M' + x + ' 64 Q' + (x + (i % 2 ? 4 : -4)) + ' 84 ' + (x + (i < 3 ? -6 : 6)) + ' 88', '#ff7f8f', 7); }).join(''),
+      front: smile + ci(36, 66, 1.6, '#ffd0d8') + ci(64, 66, 1.6, '#ffd0d8') }),
+    kurage: Object.assign({ body: '#ffc2e6', noFeet: true, noArms: true, noBody: true, float: true, ears: 'none', tail: 'none', noNose: true,
+      headEl: pa('M20 52 Q20 18 50 18 Q80 18 80 52 Q72 58 65 52 Q57 58 50 52 Q43 58 35 52 Q28 58 20 52 Z', '#ffc2e6', O),
+      behind: line('M32 54 Q28 70 34 86 M44 56 Q48 72 42 90 M56 56 Q52 72 58 90 M68 54 Q72 70 66 86', '#ff9ccf', 2.4),
+      front: oMouth + ci(36, 30, 3, '#fff', 'opacity=".7"') }),
+    kani: Object.assign({ body: '#ff6b5b', belly: '#ffb3a6', ears: 'none', tail: 'none', noNose: true, foot: '#ff6b5b',
+      behind: pair(line('M28 34 L20 18', LINE, 6) + line('M28 34 L20 18', '#ff6b5b', 3.4) + ci(18, 14, 8, '#ff6b5b', O) + pg('14,8 22,14 12,16', '#fff8f0')) +
+        pair(line('M24 74 L10 80 M24 80 L12 88', LINE, 3.4) + line('M24 74 L10 80 M24 80 L12 88', '#ff6b5b', 1.8)),
+      front: smile }),
+    iruka: fish({ body: '#8fb8e8', fin: '#7aa4d8', under: el(50, 60, 17, 10, '#eef6ff'),
+      front2: el(50, 60, 8, 4.6, '#b9d4f2', O) + smile.replace(/57\.5/g, '63').replace(/60\.2/g, '65.6') }),
+    manta: fish({ body: '#5a6f9e', fin: '#4a5e8a', dorsal: false, sideFins: false, tailFin: false, under: el(50, 58, 16, 10, '#e6ecf8'),
+      behind2: pair(pa('M30 38 Q2 40 4 64 Q18 56 32 58 Z', '#5a6f9e', O)) + fat('M50 70 L50 96', '#5a6f9e', 2), front2: smile }),
+    kujira: fish({ body: '#5f8fd6', fin: '#4f7cc0', dorsal: false,
+      under: pa('M28 58 Q50 70 72 58 Q70 68 50 72 Q30 68 28 58 Z', '#e6f0ff') + line('M36 62 L36 68 M44 64 L44 71 M56 64 L56 71 M64 62 L64 68', '#b9cff2', 1.2),
+      front2: line('M50 20 L50 10 M50 12 Q44 4 40 8 M50 12 Q56 4 60 8', '#7fc8ff', 2.4) + smile }),
+    nijiuo: fish({ body: '#c9b3ff', fin: '#ff9ccf',
+      under: line('M34 36 Q38 32 42 36 M46 34 Q50 30 54 34 M58 36 Q62 32 66 36 M30 46 Q34 42 38 46 M62 46 Q66 42 70 46', '#ffd36b', 2) +
+        line('M36 66 Q40 62 44 66 M56 66 Q60 62 64 66', '#8fe3b0', 2),
+      front2: smile + sparkles }),
+
+    // ======================================== そら
+    suzume: bird({ body: '#c89a6a', head: '#a86e42', belly: '#fff4e6', wing: '#8a5a34', cheek: '#5a3a2a',
+      under: el(50, 58, 12, 8, '#fff4e6') }),
+    niwatori: bird({ body: '#ffffff', belly: '#fff8ee', wing: '#f3ead8', beak: '#ffc04a',
+      front2: ci(44, 21, 5, '#ff5d5d', O) + ci(51, 18, 6, '#ff5d5d', O) + ci(58, 22, 5, '#ff5d5d', O) + el(50, 64, 3.4, 4.4, '#ff5d5d', O) }),
+    ahiru: bird({ body: '#fff3b0', belly: '#ffffff', wing: '#ffe680', beak: '#ff9a3c',
+      front: el(50, 57, 9, 4.6, '#ff9a3c', O) + line('M43 57 L57 57', '#d97a20', 1) }),
+    hato: bird({ body: '#b6c0d8', head: '#a8b2cc', belly: '#e4e8f2', wing: '#8e9ab8', beak: '#6b7280',
+      under: pa('M26 64 Q50 76 74 64 Q72 70 50 74 Q28 70 26 64 Z', '#8fd0b8') }),
+    fukurou: bird({ body: '#a57b56', belly: '#f2dcc0', wing: '#7a5636', ears: 'tri', earC: '#7a5636', inner: '#a57b56',
+      under: ci(38.5, 48, 9, '#fff4e0', O) + ci(61.5, 48, 9, '#fff4e0', O),
+      front: pg('47,54 53,54 50,59', '#ffab40', O) + line('M40 70 Q44 73 48 70 M52 70 Q56 73 60 70 M44 78 Q48 81 52 78', '#8a6644', 1.4) }),
+    inko: bird({ body: '#8fe07a', head: '#ffe066', belly: '#c8f5b8', wing: '#5fc04a', beak: '#ff9a3c', cheek: '#7ab8ff',
+      front2: line('M44 26 Q50 22 56 26', '#e0c040', 1.4) }),
+    tsuru: bird({ body: '#ffffff', belly: '#ffffff', wing: '#3d3d4a', beak: '#e0c060', foot: '#3d3d4a',
+      front2: ci(50, 22, 7, '#ff4a4a', O), behind: pair(pg('30,80 20,94 34,88', '#3d3d4a', O)) }),
+    kujaku: bird({ body: '#4f8fdc', head: '#4f8fdc', belly: '#8fd0f5', wing: '#3a72b8', beak: '#ffc04a',
+      behind: [-60, -36, -12, 12, 36, 60].map(function (a) {
+        const r = a * Math.PI / 180, x = 50 + Math.sin(r) * 40, y = 60 - Math.cos(r) * 40;
+        return line('M50 60 L' + x.toFixed(1) + ' ' + y.toFixed(1), '#4fb07a', 3) + el(x, y, 7, 9, '#4fb07a', O) + el(x, y, 3.5, 4.5, '#3a72b8') + ci(x, y, 1.6, '#ffd966');
+      }).join(''),
+      front2: line('M50 20 L46 12 M50 20 L50 10 M50 20 L54 12', '#3a72b8', 1.6) + ci(46, 12, 1.8, '#3a72b8') + ci(50, 10, 1.8, '#3a72b8') + ci(54, 12, 1.8, '#3a72b8') }),
+    flamingo: bird({ body: '#ff9cc0', belly: '#ffc4da', wing: '#ff7fae', beak: '#ffffff', foot: '#ff7fae',
+      front: pa('M45 53 L55 53 Q56 58 50 61 Q48 58 46 58 Z', '#fff', O) + pa('M49 58 Q50 61 52 59 L50 62 Z', '#3d3d4a') }),
+    hinotori: bird({ body: '#ff7a3c', head: '#ff9a3c', belly: '#ffd36b', wing: '#ff5a3c', beak: '#ffe066',
+      behind: pair(pa('M30 80 Q8 70 6 92 Q18 86 30 92 Z', '#ffb03b', O)),
+      front2: pa('M42 24 Q40 8 46 16 Q48 4 52 16 Q56 4 58 16 Q62 10 58 24 Z', '#ffd36b', O) + sparkles }),
+
+    // ======================================== むかし
+    tirano: dino({ body: '#7ccf6a', belly: '#e9f7c9', front: fang + smile,
+      behind: pg('34,22 38,12 42,22', '#4fa043', O) + pg('46,19 50,8 54,19', '#4fa043', O) + pg('58,22 62,12 66,22', '#4fa043', O) }),
+    torikera: dino({ body: '#ffb26b', belly: '#fff0d6',
+      behind: el(50, 34, 40, 26, '#ff8a4a', O) + pair(ci(20, 30, 3, '#ffd6a6') + ci(28, 16, 3, '#ffd6a6')),
+      front: pair(pg('36,30 38,14 42,30', '#fff8ee', O)) + pg('47,52 50,42 53,52', '#fff8ee', O) + smile }),
+    sutego: dino({ body: '#8fc9e8', belly: '#e6f5ff',
+      behind: pg('22,40 16,20 34,30', '#ff9a5a', O) + pg('34,26 36,4 50,20', '#ff9a5a', O) + pg('50,20 64,4 66,26', '#ff9a5a', O) + pg('66,30 84,20 78,40', '#ff9a5a', O),
+      tailTip: '#ff9a5a' }),
+    putera: dino({ body: '#b49cf0', belly: '#ece4ff', tail: 'none', wings: '#9a7fe6', noNose: true, noMouth: true,
+      behind: pg('60,26 92,14 70,34', '#9a7fe6', O),
+      front: pg('44,54 56,54 50,66', '#ffd36b', O) }),
+    burakio: dino({ body: '#9fd8c0', belly: '#e6fbf2',
+      under: ci(30, 36, 3, '#7cc4a8') + ci(68, 32, 3.6, '#7cc4a8') + ci(62, 66, 2.6, '#7cc4a8'),
+      behind: el(50, 26, 18, 18, '#9fd8c0', O) }),
+    ankiro: dino({ body: '#c9a273', belly: '#f2e3cf', tailTip: '#a07a4a',
+      behind: [20, 32, 44, 56, 68, 80].map(function (x, i) { return pg((x - 5) + ',' + (i % 2 ? 30 : 34) + ' ' + x + ',' + (i % 2 ? 18 : 22) + ' ' + (x + 5) + ',' + (i % 2 ? 30 : 34), '#a07a4a', O); }).join('') }),
+    pakike: dino({ body: '#e0a46b', belly: '#fbe6cc',
+      behind: el(50, 26, 26, 18, '#f5c48a', O) + pair(ci(26, 28, 3, '#c98a50', O) + ci(32, 18, 2.6, '#c98a50', O)) }),
+    supino: dino({ body: '#5fa8c8', belly: '#d8f0fa',
+      behind: pa('M24 40 Q22 4 40 16 Q50 -2 60 16 Q78 4 76 40 Z', '#ff7a5a', O) + line('M36 18 L40 38 M50 8 L50 36 M64 18 L60 38', '#e05a3a', 1.4),
+      front: fang + smile }),
+    raputoru: dino({ body: '#9bb06a', belly: '#eef5d6',
+      under: line('M24 40 L30 44 M22 50 L29 52 M76 40 L70 44 M78 50 L71 52', '#6a7a3a', 2),
+      front: pa('M44 22 Q48 8 52 20 Q56 10 58 22 Z', '#ff9a5a', O) + fang + smile }),
+    kohaku: dino({ body: '#ffcf6b', belly: '#fff3c4', tailTip: '#ffe9a8',
+      behind: pg('30,26 34,8 40,24', '#fff1b0', O) + pg('44,20 50,0 56,20', '#fff1b0', O) + pg('60,24 66,8 70,26', '#fff1b0', O),
+      front: sparkles + smile }),
+
+    // ======================================== よる
+    shiroobake: ghost({ body: '#ffffff', head: '#ffffff', noMouth: true, cheek: '#ffb3c8',
+      front: pa('M45 58 Q50 66 55 58 Z', '#ff7f9d', O.replace('1.5', '1')) }),
+    kabocha: Object.assign({ body: '#ff9a3c', noFeet: true, noArms: true, noBody: true, float: true, ears: 'none', tail: 'none', noNose: true,
+      headEl: el(50, 50, 32, 28, '#ff9a3c', O) + line('M38 24 Q30 50 38 76 M62 24 Q70 50 62 76 M50 22 L50 78', '#e07a1c', 1.6),
+      behind: pa('M48 24 Q46 12 54 10 L56 14 Q52 16 53 24 Z', '#5fa040', O) + pa('M54 18 Q66 10 70 18 Q62 22 54 20 Z', '#7ed957', O),
+      front: pa('M42 60 L46 64 L50 60 L54 64 L58 60 Q50 70 42 60 Z', '#5a3a2a') }),
+    chouchin: Object.assign({ body: '#ffe7b0', noFeet: true, noArms: true, noBody: true, float: true, ears: 'none', tail: 'none', noNose: true,
+      headEl: el(50, 50, 28, 32, '#ffe7b0', O) + line('M24 38 Q50 34 76 38 M23 50 Q50 46 77 50 M24 62 Q50 58 76 62', '#e0b070', 1.2) +
+        '<rect x="38" y="15" width="24" height="7" rx="2" fill="#e05a4a" ' + O + '/>' + '<rect x="38" y="78" width="24" height="7" rx="2" fill="#e05a4a" ' + O + '/>',
+      front: pa('M45 60 Q50 72 55 60 Z', '#ff5d73', O.replace('1.5', '1')) }),
+    nekoobake: ghost({ body: '#f3ecff', head: '#f3ecff', ears: 'point', earC: '#f3ecff', inner: '#ffb3c8', front: whiskers }),
+    koumori: Object.assign({ body: '#6b5a9e', belly: '#9a8ad0', ears: 'point', inner: '#ff9ccf', tail: 'none', wings: '#4a3a7a', foot: '#4a3a7a',
+      noMouth: true, front: fang + line('M46.5 57 Q50 59.5 53.5 57', INK, 1.4) }),
+    miira: Object.assign({ body: '#f2ead8', belly: '#f2ead8', ears: 'none', tail: 'none', noNose: true,
+      under: line('M22 34 L78 30 M20 42 L80 40 M22 64 L78 66', '#d8ccb0', 2.4) + pg('20,42 50,44 22,50', '#d8ccb0'),
+      front: smile }),
+    yukiobake: ghost({ body: '#e6f4ff', head: '#e6f4ff', cheek: '#9fd0ff',
+      front: smile + star(20, 22, 4, '#ffffff', 'twinkle') + star(82, 30, 3.4, '#ffffff', 'twinkle t2') + star(76, 80, 3, '#ffffff', 'twinkle t3') }),
+    majoneko: Object.assign({}, SPECS.neko, { body: '#4a4466', head: '#4a4466', belly: '#7a7499', inner: '#ff9ccf', tailC: '#4a4466', earC: '#4a4466',
+      front: whiskers + pa('M22 26 L50 -2 L78 26 Q50 32 22 26 Z', '#7a4ac0', O) + el(50, 26, 34, 5, '#7a4ac0', O) + '<rect x="40" y="18" width="20" height="5" fill="#ffd966"/>' }),
+    gaikotsu: Object.assign({ body: '#3d3d4a', head: '#f8f8f0', belly: '#3d3d4a', arm: '#3d3d4a', foot: '#f8f8f0', ears: 'none', tail: 'none', noNose: true,
+      under: pa('M47 53 L50 49 L53 53 Z', INK),
+      front: line('M40 68 L60 68 M42 74 L58 74 M44 80 L56 80 M50 64 L50 84', '#f8f8f0', 2.2) + smile }),
+    obakeou: ghost({ body: '#ffffff', head: '#ffffff', cheek: '#ffb3c8',
+      behind: pa('M18 52 Q10 90 26 92 L74 92 Q90 90 82 52 Z', '#d0405a', O),
+      front: smile + pg('34,24 36,8 43,16 50,4 57,16 64,8 66,24', '#ffd966', O) + ci(50, 16, 2.2, '#ff5d73') + sparkles })
+  };
+  Object.assign(SPECS, MORE);
+
+  // みらい: ロボの なかま (元の子の形を使う)
+  Object.assign(SPECS, {
+    robon: robo('neko', { light: '#7fe3ff' }),
+    roboinu: robo('inu', { body: '#d6dce8', earC: '#8e9bb5', light: '#ffd966' }),
+    robousa: robo('usagi', { body: '#eef3fb', inner: '#ff9ccf' }),
+    robopiyo: robo('hiyoko', { body: '#ffe680', head: '#ffe680', belly: '#fff6c2', keepFront: true }),
+    robokuma: robo('kuma', { body: '#b8c2d6', light: '#ff9a3c' }),
+    jetpen: robo('penguin', { body: '#5a6f9e', head: '#5a6f9e', belly: '#ffffff', arm: '#5a6f9e', foot: '#8e9bb5', keepFront: true, keepUnder: true,
+      behind2: pair('<rect x="22" y="66" width="10" height="18" rx="3" fill="#b8c2d6" ' + O + '/>' + pa('M23 84 L31 84 L27 96 Z', '#ffb03b')) }),
+    neonkitsu: robo('kitsune', { body: '#2a2f55', head: '#2a2f55', belly: '#3a4070', earC: '#2a2f55', inner: '#ff5df0', tailC: '#2a2f55', light: '#5dfff0',
+      under2: line('M24 52 L36 56 M76 52 L64 56', '#5dfff0', 1.8) }),
+    uchulion: robo('lion', { body: '#ffd166', head: '#ffd166', belly: '#fff1c9', keepBehind: true, keepUnder: true,
+      front2: ci(50, 46, 38, 'rgba(180,230,255,.25)', 'stroke="#9fd8ff" stroke-width="2"') + ci(34, 24, 4, '#fff', 'opacity=".8"') }),
+    mechadra: robo('dragon', { body: '#9aa6bf', head: '#9aa6bf', belly: '#d6dce8', light: '#ff5d73', keepBehind: true,
+      front2: pair(pg('29,27 32,9 43,22', '#ffb03b', O)) }),
+    galaxyuni: robo('unicorn', { body: '#2a2f6e', head: '#2a2f6e', belly: '#4a4f9e', earC: '#2a2f6e', inner: '#c39bff', tailC: '#c39bff', light: '#ffd966',
+      keepBehind: true, keepFront: true, under2: ci(30, 34, 1.2, '#fff') + ci(66, 30, 1, '#fff') + ci(60, 62, 1.3, '#fff') + ci(40, 66, 1, '#fff') })
+  });
+
   /**
    * どうぶつの SVG 文字列。
    * opts.walk=false で止まった絵 / opts.locked で影絵 / opts.delay で歩きのずれ (秒)
@@ -276,7 +483,7 @@
     const s = SPECS[id];
     if (!s) throw new Error('絵が無い: ' + id);
     const o = opts || {};
-    const cls = 'animal' + (o.walk === false || o.locked ? '' : ' walk') + (o.locked ? ' locked' : '');
+    const cls = 'animal' + (o.walk === false || o.locked ? '' : ' walk') + (o.locked ? ' locked' : '') + (s.float ? ' float' : '');
     const style = o.delay != null ? ' style="--d:' + o.delay + 's"' : '';
     return '<svg class="' + cls + '" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"' + style + '>' +
       '<ellipse class="shadow" cx="50" cy="93" rx="26" ry="4.5" fill="#000" opacity=".13"/>' +

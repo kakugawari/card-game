@@ -146,82 +146,62 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .walker {
   position: absolute;
   bottom: 8px;
-  width: 80px;
-  height: 80px;
-  animation: stroll var(--dur, 12s) linear infinite alternate;
-  animation-delay: var(--del, 0s);
-  pointer-events: none;
-}
-/* 奥の子 (なかよしの子がいるとき) は小さく */
-.walker.far { width: 54px; height: 54px; opacity: .9; }
-
-/* ------------------------------------------------ なかよしの子 (木の下) */
-.fav {
-  position: absolute;
-  bottom: 8px;
-  width: 104px;
-  height: 118px;
+  width: 84px;
+  height: 92px;
   padding: 0;
   border: 0;
   background: none;
   cursor: pointer;
-  z-index: 2;
+  animation: stroll var(--dur, 12s) linear infinite alternate;
+  animation-delay: var(--del, 0s);
+  -webkit-tap-highlight-color: transparent;
 }
-.fav-body { position: absolute; left: 0; right: 0; bottom: 0; height: 104px; display: block; }
-.fav-lv {
+.wk-body { position: absolute; left: 0; right: 0; bottom: 0; height: 84px; display: block; pointer-events: none; }
+.walker:active .wk-body { scale: .94; }
+.wk-lv {
   position: absolute;
   left: 50%;
   translate: -50% 0;
-  top: -2px;
-  padding: 1px 8px;
+  top: -4px;
+  padding: 0 7px;
   border-radius: 999px;
   background: #fff;
   color: #ff5d73;
-  font-size: 13px;
+  font-size: 12px;
   box-shadow: 0 2px 0 rgba(0,0,0,.12);
-  z-index: 1;
   white-space: nowrap;
-}
-.fav-crown { position: absolute; left: 50%; translate: -50% 0; top: -22px; font-size: 20px; z-index: 1; }
-.fav-want {
-  position: absolute;
-  right: -2px;
-  top: 18px;
-  font-size: 18px;
-  padding: 2px 4px;
-  border-radius: 12px 12px 12px 2px;
-  background: rgba(255,255,255,.9);
-  animation: hint 1.6s ease-in-out infinite;
-}
-.fav.lv3 .fav-body { animation: fav-hop 3.2s ease-in-out infinite; }
-.fav.lv4 .fav-body, .fav.lv5 .fav-body { animation: fav-hop 3.2s ease-in-out infinite, fav-spin 6.4s ease-in-out infinite; }
-@keyframes fav-hop { 0%, 78%, 100% { translate: 0 0; } 86% { translate: 0 -18px; } 92% { translate: 0 0; } }
-@keyframes fav-spin { 0%, 80%, 100% { rotate: 0deg; } 92% { rotate: 360deg; } }
-.fav.lv2::after, .fav.lv3::after, .fav.lv4::after, .fav.lv5::after {
-  content: "♥";
-  position: absolute;
-  left: 18px;
-  top: 30px;
-  color: #ff7f9d;
-  font-size: 16px;
-  animation: fav-heart 2.4s ease-out infinite;
+  z-index: 1;
   pointer-events: none;
 }
-@keyframes fav-heart { 0% { translate: 0 0; opacity: 0; } 20% { opacity: 1; } 100% { translate: -6px -40px; opacity: 0; } }
-.fav-hint {
+.wk-crown { position: absolute; left: 50%; translate: -50% 0; top: -24px; font-size: 18px; z-index: 1; pointer-events: none; }
+.walker.lv3 .wk-body { animation: wk-hop 3.2s ease-in-out infinite; }
+.walker.lv4 .wk-body, .walker.lv5 .wk-body { animation: wk-hop 3.2s ease-in-out infinite, wk-spin 6.4s ease-in-out infinite; }
+@keyframes wk-hop { 0%, 78%, 100% { translate: 0 0; } 86% { translate: 0 -16px; } 92% { translate: 0 0; } }
+@keyframes wk-spin { 0%, 80%, 100% { rotate: 0deg; } 92% { rotate: 360deg; } }
+.walker.lv2::after, .walker.lv3::after, .walker.lv4::after, .walker.lv5::after {
+  content: "♥";
+  position: absolute;
+  left: 14px;
+  top: 24px;
+  color: #ff7f9d;
+  font-size: 15px;
+  animation: wk-heart 2.4s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes wk-heart { 0% { translate: 0 0; opacity: 0; } 20% { opacity: 1; } 100% { translate: -6px -40px; opacity: 0; } }
+.wk-hint {
   position: absolute;
   left: 30px;
   right: 30px;
-  bottom: 12px;
+  top: 12px;
   margin: 0;
-  padding: 8px 12px;
+  padding: 6px 12px;
   border-radius: 14px;
   background: rgba(255,255,255,.75);
   font-size: 13px;
   text-align: center;
   color: #5c7a3a;
   pointer-events: none;
-  z-index: 2;
 }
 
 @keyframes stroll {
@@ -483,6 +463,11 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 
 .animal.walk .sway { animation: a-sway .9s ease-in-out infinite; animation-delay: var(--d, 0s); }
 .animal.walk .bob { animation: a-bob .45s ease-in-out infinite; animation-delay: var(--d, 0s); }
+/* 足の無い子 (さかな・おばけ) は、ゆっくり ふわふわ */
+.animal.walk.float .sway { animation-duration: 2.4s; }
+.animal.walk.float .bob { animation: a-float 1.8s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes a-float { 0%, 100% { transform: translateY(-2px); } 50% { transform: translateY(-9px); } }
+.animal.float .shadow { transform: scale(.7); transform-box: fill-box; transform-origin: 50% 50%; }
 .animal.walk .footL { animation: a-foot .9s ease-in-out infinite; animation-delay: var(--d, 0s); }
 .animal.walk .footR { animation: a-foot .9s ease-in-out infinite; animation-delay: calc(var(--d, 0s) + .45s); }
 .animal.walk .armL { animation: a-arm .9s ease-in-out infinite; animation-delay: var(--d, 0s); }
@@ -649,9 +634,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .sn-price::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: #ffc933; border: 2px solid #c98a0b; }
 .ps-tip { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
 
-.dt-fav { margin-top: 12px; background: #fff; color: #ff5d73; box-shadow: 0 5px 0 #f3c5d1; }
-.dt-fav.on { background: #ff8fa8; color: #fff; box-shadow: 0 5px 0 #d9647f; }
-.dt-favmsg { margin: 8px 0 0; font-size: 12px; min-height: 1em; }
+.dt-feed { margin-top: 12px; background: #fff; color: #ff5d73; box-shadow: 0 5px 0 #f3c5d1; }
 
 /* ------------------------------------------------ カードを大きく見る */
 #detail {
@@ -689,4 +672,43 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 @media (prefers-reduced-motion: reduce) {
   .animal * { animation: none !important; }
   .tap-hint, .shop-pack.ready { animation: none !important; }
+}
+
+/* ------------------------------------------------ パックの種類をえらぶ (6 つを 1 列に。横に送らない) */
+.set-pick { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 4px 0 10px; }
+.sp-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 2px 4px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: rgba(255,255,255,.55);
+  font: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.sp-btn.on { border-color: #ffb547; background: #fff; color: var(--text); box-shadow: 0 3px 0 #f3d9a8; }
+.sp-pack { width: 40px; height: 58px; display: block; pointer-events: none; }
+.sp-pack .pk-guide, .sp-pack .pk-logo, .sp-pack .pk-count { display: none; }
+.sp-pack .pk-mascots { left: 0; right: 0; bottom: 10%; height: 70%; }
+.sp-btn:not(.on) .sp-pack { opacity: .8; }
+.sp-name { font-size: 10.5px; line-height: 1.1; white-space: nowrap; pointer-events: none; }
+.sp-badge {
+  position: absolute;
+  right: -2px;
+  top: -4px;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ff5d73;
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 18px;
+  text-align: center;
+  pointer-events: none;
 }

@@ -69,12 +69,20 @@
   function ladderOf(r) { return LADDER.indexOf(RARITIES[r].color); }
 
   // ---------------------------------------------------------------- カード
-  const SET = Cards.SET;
+  const SETS = Cards.SETS;
+  const SET = SETS[0];
+  const SET_BY_ID = {};
+  SETS.forEach(function (st) { SET_BY_ID[st.id] = st; });
+  function setById(id) { return SET_BY_ID[id] || null; }
   const CARDS = Cards.CARDS;
   const BY_NO = {};
   CARDS.forEach(function (c) { BY_NO[c.no] = c; });
+  // POOL[パック][レア度] = そのパックの、そのレア度のカード
   const POOL = {};
-  RARITY_ORDER.forEach(function (r) { POOL[r] = CARDS.filter(function (c) { return c.rarity === r; }); });
+  SETS.forEach(function (st) {
+    POOL[st.id] = {};
+    RARITY_ORDER.forEach(function (r) { POOL[st.id][r] = CARDS.filter(function (c) { return c.set === st.id && c.rarity === r; }); });
+  });
 
   function cardByNo(no) { return BY_NO[no] || null; }
 
@@ -85,7 +93,7 @@
   const SR_UP_SPLIT = { MUR: 1 / 50, SAR: 1 / 5 };     // 「SR 以上」の 1 まいが何になるか (BOX あたり)
 
   /** 新しい BOX。30 パックぶんの「レア枠」と「AR が入るか」を先に決めて混ぜる */
-  function newBox(rng) {
+  function newBox(rng, setId) {
     const r = rng();
     const top = r < SR_UP_SPLIT.MUR ? 'MUR' : r < SR_UP_SPLIT.MUR + SR_UP_SPLIT.SAR ? 'SAR' : 'SR';
     const tops = [top];
@@ -95,13 +103,14 @@
     const ar = [];
     for (let i = 0; i < BOX_PACKS; i++) ar.push(i < BOX.AR);
     shuffle(ar, rng);
-    return { packs: tops.map(function (t, i) { return { top: t, ar: ar[i] }; }), next: 0 };
+    return { set: setId || SET.id, packs: tops.map(function (t, i) { return { top: t, ar: ar[i] }; }), next: 0 };
   }
 
   /** 同じレア度のカードを、パックの中で重ならないように選ぶ */
-  function pick(rarity, used, rng) {
-    const pool = POOL[rarity].filter(function (c) { return !used[c.no]; });
-    const from = pool.length ? pool : POOL[rarity];
+  function pick(setId, rarity, used, rng) {
+    const all = POOL[setId][rarity];
+    const pool = all.filter(function (c) { return !used[c.no]; });
+    const from = pool.length ? pool : all;
     const c = from[Math.min(from.length - 1, Math.floor(rng() * from.length))];
     used[c.no] = true;
     return c.no;
@@ -112,9 +121,10 @@
     return ['C', 'C', 'C', slot.ar ? 'AR' : 'U', slot.top];
   }
 
-  function rollPack(slot, rng) {
+  function rollPack(slot, rng, setId) {
     const used = {};
-    return packRarities(slot).map(function (r) { return pick(r, used, rng); });
+    const st = setId || SET.id;
+    return packRarities(slot).map(function (r) { return pick(st, r, used, rng); });
   }
 
   // ---------------------------------------------------------------- 演出の計画
@@ -170,12 +180,12 @@
   }
 
   // ---------------------------------------------------------------- 状態
-  const SAVE_VERSION = 2;
+  const SAVE_VERSION = 3;
 
   function newState() {
     return {
       v: SAVE_VERSION, money: 0, tapLevel: 0, totalTaps: 0, owned: {}, lastFreeDay: '',
-      packsOpened: 0, box: null, boxes: [], muted: false, favs: [], pets: {}
+      packsOpened: 0, shop: {}, boxes: [], muted: false, pets: {}
     };
   }
 
@@ -192,7 +202,8 @@
         typeof p.ar === 'boolean';
     });
     const next = toCount(b.next, BOX_PACKS);
-    return ok ? { packs: b.packs.map(function (p) { return { top: p.top, ar: p.ar }; }), next: next } : null;
+    const st = setById(b.set) ? b.set : SET.id;   // 前の版の箱には set が無い (どうぶつパックだけだった)
+    return ok ? { set: st, packs: b.packs.map(function (p) { return { top: p.top, ar: p.ar }; }), next: next } : null;
   }
 
   /** 前の版 (v1) は どうぶつの名前で図鑑を持っていた。いちばん下のレア度のカードへ移す */
@@ -201,7 +212,7 @@
     Object.keys(owned).forEach(function (chara) {
       const n = toCount(owned[chara], 1e6);
       if (!n) return;
-      const base = CARDS.filter(function (c) { return c.chara === chara; })
+      const base = CARDS.filter(function (c) { return c.set === SET.id && c.chara === chara; })
         .sort(function (a, b) { return rank(a.rarity) - rank(b.rarity); })[0];
       if (base) out[base.no] = (out[base.no] || 0) + n;
     });
@@ -229,16 +240,25 @@
     }
     let owned = raw.owned && typeof raw.owned === 'object' ? raw.owned : {};
     if (!(raw.v >= 2)) owned = migrateOwnedV1(owned);
+    if (!(raw.v >= 3)) {
+      // v2 までは どうぶつパックだけで、番号 (001) で持っていた → A1-001
+      const o3 = {};
+      Object.keys(owned).forEach(function (k) { o3[/^\d{3}$/.test(k) ? SET.code + '-' + k : k] = owned[k]; });
+      owned = o3;
+    }
     CARDS.forEach(function (c) {
       const n = toCount(owned[c.no], 1e6);
       if (n > 0) s.owned[c.no] = n;
     });
-    s.box = validBox(raw.box);
-    if (Array.isArray(raw.favs)) {
-      const have = ownedCharas(s);
-      raw.favs.forEach(function (ch) {
-        if (have[ch] && s.favs.indexOf(ch) < 0 && s.favs.length < MAX_FAVS) s.favs.push(ch);
+    // お店の BOX (パックごと)。前の版は 1 つだけ (box)
+    if (raw.shop && typeof raw.shop === 'object') {
+      SETS.forEach(function (st) {
+        const v = validBox(raw.shop[st.id]);
+        if (v) { v.set = st.id; s.shop[st.id] = v; }
       });
+    } else if (raw.box) {
+      const v = validBox(raw.box);
+      if (v) s.shop[SET.id] = v;
     }
     if (Array.isArray(raw.boxes)) {
       raw.boxes.forEach(function (b) {
@@ -282,17 +302,22 @@
   function canOpenFree(state, now) { return state.lastFreeDay !== dayKey(now); }
 
   /** BOX ごと買う。手もとに 30 パック入りの新しい BOX が入る (お店の BOX とは別) */
-  function buyBox(state, rng) {
+  function buyBox(state, rng, setId) {
     if (state.money < BOX_PRICE) return { ok: false, reason: 'money' };
     if (state.boxes.length >= MAX_BOXES) return { ok: false, reason: 'full' };
     state.money -= BOX_PRICE;
-    state.boxes.push(newBox(rng || Math.random));
+    state.boxes.push(newBox(rng || Math.random, setById(setId) ? setId : SET.id));
     return { ok: true };
   }
 
-  /** 手もとの BOX に残っているパックの数 */
-  function packsInHand(state) {
-    return state.boxes.reduce(function (n, b) { return n + (BOX_PACKS - b.next); }, 0);
+  /** 手もとの BOX に残っているパックの数 (setId を渡すと、そのパックの BOX だけ) */
+  function packsInHand(state, setId) {
+    return state.boxes.reduce(function (n, b) { return n + (!setId || b.set === setId ? BOX_PACKS - b.next : 0); }, 0);
+  }
+
+  /** そのパックの、手もとの 1 箱目 */
+  function boxInHand(state, setId) {
+    return state.boxes.find(function (b) { return b.set === setId; }) || null;
   }
 
   /** 手もとの BOX (いま開けている 1 箱目) から、SR 以上がもう出たか */
@@ -308,51 +333,53 @@
    * kind: 'free' (毎日のむりょう) / 'buy' (コインで 1 パック買う) / 'box' (手もとの BOX から)
    * 失敗 (もう開けた・お金が足りない・BOX が無い) のときは何も変えない。
    */
-  function openPack(state, kind, now, rng) {
+  function openPack(state, kind, now, rng, setId) {
     rng = rng || Math.random;
+    const st = setById(setId) ? setId : SET.id;
     if (kind === 'free') {
       if (!canOpenFree(state, now)) return { ok: false, reason: 'already' };
     } else if (kind === 'buy') {
       if (state.money < PACK_PRICE) return { ok: false, reason: 'money' };
     } else if (kind === 'box') {
-      if (!state.boxes.length) return { ok: false, reason: 'nobox' };
+      if (!boxInHand(state, st)) return { ok: false, reason: 'nobox' };
     } else {
       return { ok: false, reason: 'unknown' };
     }
     let box;
     if (kind === 'box') {
-      box = state.boxes[0];
+      box = boxInHand(state, st);
     } else {
-      if (!state.box || state.box.next >= BOX_PACKS) state.box = newBox(rng);
-      box = state.box;
+      if (!state.shop[st] || state.shop[st].next >= BOX_PACKS) state.shop[st] = newBox(rng, st);
+      box = state.shop[st];
     }
     const slot = box.packs[box.next];
     box.next++;
     const rarities = packRarities(slot);
-    const nos = rollPack(slot, rng);
+    const nos = rollPack(slot, rng, st);
 
     if (kind === 'buy') state.money -= PACK_PRICE;
     else if (kind === 'free') state.lastFreeDay = dayKey(now);
-    if (kind === 'box' && box.next >= BOX_PACKS) state.boxes.shift();   // 空になった箱はしまう
+    if (kind === 'box' && box.next >= BOX_PACKS) state.boxes.splice(state.boxes.indexOf(box), 1);   // 空になった箱はしまう
     state.packsOpened++;
     const cards = nos.map(function (no) {
       const isNew = !state.owned[no];
       state.owned[no] = (state.owned[no] || 0) + 1;
       return { no: no, isNew: isNew };
     });
-    return { ok: true, cards: cards, show: makeShow(rarities, rng), boxLeft: BOX_PACKS - box.next, kind: kind };
+    return { ok: true, cards: cards, show: makeShow(rarities, rng), boxLeft: BOX_PACKS - box.next, kind: kind, set: st };
   }
 
   /**
    * 手もとの BOX (1 箱目) の残りを、まとめて全部開ける。
    * 返すもの: packs (1 パックずつの結果) と、演出で見せるレアだけを並べたもの (bulkHighlights)
    */
-  function openBoxAll(state, now, rng) {
-    if (!state.boxes.length) return { ok: false, reason: 'nobox' };
-    const box = state.boxes[0];
+  function openBoxAll(state, now, rng, setId) {
+    const st = setById(setId) ? setId : SET.id;
+    const box = boxInHand(state, st);
+    if (!box) return { ok: false, reason: 'nobox' };
     const packs = [];
-    while (state.boxes[0] === box) packs.push(openPack(state, 'box', now, rng || Math.random));
-    return Object.assign({ ok: true, packs: packs }, bulkHighlights(packs));
+    while (state.boxes.indexOf(box) >= 0) packs.push(openPack(state, 'box', now, rng || Math.random, st));
+    return Object.assign({ ok: true, packs: packs, set: st }, bulkHighlights(packs));
   }
 
   /**
@@ -392,12 +419,10 @@
 
   // ---------------------------------------------------------------- なかよし (お気に入り・おやつ)
   /*
-   * お気に入りの子 (なかよし) を 3 人まで決めて、コインの木の下に並べる。
-   * おやつ (コイン) と なでる (1 日 1 回・ただ) で なかよし度が上がる。おやつは 1 人 1 日 3 こまで (おなか いっぱい)。
+   * ひろばを歩いている子をタップすると、おやつ (コイン) と なでる (1 日 1 回・ただ) で なかよし度が上がる。おやつは 1 人 1 日 3 こまで (おなか いっぱい)。
    * なかよし度はお金に戻らない (おやつで得をする道を作らない)。レベルが上がると、できることが増える (はねる・まわる・かんむり)
    */
   const CHARAS = Cards.CHARAS;
-  const MAX_FAVS = 3;
   const DAILY_SNACKS = 3;
   const SNACKS = {
     apple: { name: 'りんご', icon: '🍎', price: 30, aff: 1 },
@@ -438,16 +463,6 @@
     };
   }
 
-  /** なかよしにする / やめる。持っている子だけ、3 人まで */
-  function toggleFav(state, chara) {
-    const i = state.favs.indexOf(chara);
-    if (i >= 0) { state.favs.splice(i, 1); return { ok: true, on: false }; }
-    if (!ownedCharas(state)[chara]) return { ok: false, reason: 'notOwned' };
-    if (state.favs.length >= MAX_FAVS) return { ok: false, reason: 'full' };
-    state.favs.push(chara);
-    return { ok: true, on: true };
-  }
-
   function addAff(state, chara, gain) {
     const p = petOf(state, chara);
     const before = petLevel(p.aff);
@@ -456,11 +471,11 @@
     return { gain: gain, level: after, levelUp: after > before };
   }
 
-  /** おやつをあげる。なかよしの子だけ・お金が足りるときだけ・1 日 3 こまで。失敗は何も変えない */
+  /** おやつをあげる。持っている子だけ・お金が足りるときだけ・1 日 3 こまで。失敗は何も変えない */
   function feed(state, chara, snackId, now) {
     const sn = SNACKS[snackId];
     if (!sn) return { ok: false, reason: 'unknown' };
-    if (state.favs.indexOf(chara) < 0) return { ok: false, reason: 'notFav' };
+    if (!ownedCharas(state)[chara]) return { ok: false, reason: 'notOwned' };
     if (petInfo(state, chara, now).snacksLeft <= 0) return { ok: false, reason: 'full' };
     if (state.money < sn.price) return { ok: false, reason: 'money' };
     state.money -= sn.price;
@@ -473,7 +488,7 @@
 
   /** なでる。1 日 1 回、なかよし度 +1 (ただ) */
   function pet(state, chara, now) {
-    if (state.favs.indexOf(chara) < 0) return { ok: false, reason: 'notFav' };
+    if (!ownedCharas(state)[chara]) return { ok: false, reason: 'notOwned' };
     const p = petOf(state, chara);
     const today = dayKey(now);
     if (p.pettedDay === today) return { ok: false, reason: 'already' };
@@ -493,7 +508,7 @@
     return h > 0 ? 'あと' + h + 'じかん' + m + 'ふん' : 'あと' + m + 'ふん';
   }
 
-  function numberLabel(card) { return card.no + '/' + pad2(SET.mainCount).padStart(3, '0'); }
+  function numberLabel(card) { return card.num + '/' + String(SET_BY_ID[card.set].mainCount).padStart(3, '0'); }
 
   return {
     mulberry32: mulberry32,
@@ -501,6 +516,9 @@
     RARITY_ORDER: RARITY_ORDER,
     LADDER: LADDER,
     SET: SET,
+    SETS: SETS,
+    setById: setById,
+    boxInHand: boxInHand,
     CARDS: CARDS,
     POOL: POOL,
     cardByNo: cardByNo,
@@ -535,14 +553,12 @@
     formatWait: formatWait,
     numberLabel: numberLabel,
     CHARAS: CHARAS,
-    MAX_FAVS: MAX_FAVS,
     DAILY_SNACKS: DAILY_SNACKS,
     SNACKS: SNACKS,
     PET_LEVELS: PET_LEVELS,
     ownedCharas: ownedCharas,
     petLevel: petLevel,
     petInfo: petInfo,
-    toggleFav: toggleFav,
     feed: feed,
     pet: pet
   };

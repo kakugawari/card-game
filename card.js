@@ -27,14 +27,26 @@
       return '<img class="pc-img" src="' + esc(card.art) + '" alt="" draggable="false" decoding="async">';
     }
     const deco = full ? '<i class="pc-deco"></i>' : '';
-    return '<div class="pc-scene sc-' + card.rarity + '">' + deco + '</div>' +
+    return '<div class="pc-scene sc-' + card.rarity + ' set-' + card.set + '">' + deco + '</div>' +
       '<div class="pc-animal">' + A.svg(card.chara, { delay: -(Math.random() * 0.9).toFixed(2) }) + '</div>';
   }
 
   function footHTML(card) {
-    return '<div class="pc-foot"><span class="pc-rar">' + card.rarity + '</span>' +
+    return '<div class="pc-foot"><span class="pc-mark">' + C.setById(card.set).mark + '</span><span class="pc-rar">' + card.rarity + '</span>' +
       '<span class="pc-no">' + C.numberLabel(card) + '</span>' +
       '<span class="pc-ill">' + (card.illus ? 'Illus. ' + esc(card.illus) : '') + '</span></div>';
+  }
+
+  /**
+   * 名前。長い名前は字を小さくして、カードの幅に必ず収める (--nl = 字の数。空白は半分)。
+   * 「おうごんの ギャラクシーユニコーン」のように前置きがあって長いときは、前置きを小さく上の行へ
+   */
+  function nameHTML(name) {
+    const w = function (t) { return t.replace(/ /g, '').length + (t.split(' ').length - 1) * 0.5; };
+    let pre = '', main = name;
+    const sp = name.indexOf(' ');
+    if (w(name) > 9 && sp > 0) { pre = name.slice(0, sp); main = name.slice(sp + 1); }
+    return '<span class="pc-name" style="--nl:' + Math.max(1, w(main)) + '">' + (pre ? '<small>' + esc(pre) + '</small>' : '') + esc(main) + '</span>';
   }
 
   /**
@@ -48,11 +60,11 @@
     let inner;
     if (full) {
       inner = '<div class="pc-art">' + artHTML(card, true) + '</div>' +
-        '<div class="pc-head"><span class="pc-name">' + esc(card.name) + '</span></div>' +
+        '<div class="pc-head">' + nameHTML(card.name) + '</div>' +
         '<div class="pc-panel"><div class="pc-kind">' + esc(card.kind) + '</div>' +
         '<div class="pc-text">' + esc(card.text) + '</div>' + footHTML(card) + '</div>';
     } else {
-      inner = '<div class="pc-head"><span class="pc-name">' + esc(card.name) + '</span>' +
+      inner = '<div class="pc-head">' + nameHTML(card.name) +
         '<span class="pc-kind">' + esc(card.kind) + '</span></div>' +
         '<div class="pc-art">' + artHTML(card, false) + '</div>' +
         '<div class="pc-text">' + esc(card.text) + '</div>' + footHTML(card);
@@ -87,14 +99,18 @@
     };
   })();
 
-  function packHTML() {
-    const mascots = ['usagi', 'neko', 'dragon'].map(function (id, i) {
+  /** パックの絵。setId でパックの種類ごとの色・顔ぶれ・名前になる */
+  function packHTML(setId) {
+    const set = C.setById(setId) || C.SET;
+    const mascots = set.mascots.map(function (id, i) {
       return '<div class="pk-m pk-m' + i + '">' + A.svg(id, { walk: false }) + '</div>';
     }).join('');
-    const body = '<div class="pk-shine"></div><div class="pk-logo"><span class="pk-small">' + esc(C.SET.name) + '</span>' +
-      '<span class="pk-big">どうぶつパック</span><span class="pk-sub">' + esc(C.SET.title) + '</span></div>' +
+    const big = set.name.replace(/パック$/, '');
+    const body = '<div class="pk-shine"></div><div class="pk-logo"><span class="pk-small">' + set.mark + ' ' + set.code + '</span>' +
+      '<span class="pk-big' + (big.length > 5 ? ' long' : '') + '">' + esc(big) + '<small>パック</small></span><span class="pk-sub">' + esc(set.title) + '</span></div>' +
       '<div class="pk-mascots">' + mascots + '</div><div class="pk-count">1パック 5まい入り</div>';
-    return '<div class="pk"><div class="pk-body" style="clip-path:' + PACK_CLIP.body + '">' + body + '</div>' +
+    const bg = '--pk1:' + set.colors[0] + ';--pk2:' + set.colors[1] + ';--pk3:' + set.colors[2];
+    return '<div class="pk pk-' + set.id + '" style="' + bg + '"><div class="pk-body" style="clip-path:' + PACK_CLIP.body + '">' + body + '</div>' +
       '<div class="pk-top" style="clip-path:' + PACK_CLIP.top + '"><div class="pk-shine"></div></div>' +
       '<div class="pk-guide"></div><div class="pk-leak"></div></div>';
   }

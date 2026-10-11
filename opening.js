@@ -148,7 +148,7 @@
     els.result.classList.toggle('bulk', !!opts.bulk);
     if (opts.bulk) { els.pack.hidden = true; bulkIntro(r); return; }
 
-    els.pack.innerHTML = V.packHTML();
+    els.pack.innerHTML = V.packHTML(r.opts.set);
     els.pack.className = 'op-pack';
     els.pack.hidden = false;
     const leak = { white: ['#ffffff', 'rgba(255,255,255,.7)'], blue: ['#bfe6ff', 'rgba(110,180,255,.75)'], gold: ['#fff2a8', 'rgba(255,190,40,.85)'] }[r.show.tearLight];
@@ -196,7 +196,7 @@
     r.phase = 'bulk';
     els.skip.hidden = true;
     els.bulk.hidden = false;
-    els.bulkPack.innerHTML = V.packHTML();
+    els.bulkPack.innerHTML = V.packHTML(r.opts.set);
     hint('');
     const n = r.opts.bulk.packs;
     const dur = Math.min(2400, 500 + n * 65);

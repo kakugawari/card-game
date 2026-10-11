@@ -209,7 +209,7 @@ async function run() {
         const r = await page.evaluate((t) => {
           const bar = document.getElementById('tabbar').getBoundingClientRect();
           const scr = document.getElementById('sc' + t);
-          const inner = [...scr.querySelectorAll(t === 'Zukan' ? '.zk-head' : t === 'Packs' ? '.btn, .shop-pack' : '.btn, .upgrade, .tree-btn')];
+          const inner = [...scr.querySelectorAll(t === 'Zukan' ? '.zk-head' : t === 'Packs' ? '.btn, .shop-pack, .sp-btn' : '.btn, .upgrade, .tree-btn')];
           return {
             barBottom: bar.bottom, barTop: bar.top,
             worst: inner.reduce((m, e) => Math.max(m, e.getBoundingClientRect().bottom), 0),
@@ -441,7 +441,7 @@ async function run() {
       await page.tap('#btnBuy');
       await page.waitForFunction(() => window.__app.opening.state().phase === 'pack');
       ok((await money(page)) === 500, '買うと 500 コイン減る');
-      ok((await page.evaluate(() => window.__app.state().box.next)) === 1, 'BOX から 1 パック出る');
+      ok((await page.evaluate(() => window.__app.state().shop.animal.next)) === 1, 'BOX から 1 パック出る');
       await page.evaluate(() => window.__app.opening.skip());
       await page.waitForTimeout(1500);
       for (let i = 0; i < 8 && (await opState(page)).phase !== 'result'; i++) {
@@ -494,7 +494,7 @@ async function run() {
       await page.waitForTimeout(300);
       const bought = await page.evaluate(() => ({
         money: window.__app.state().money, hand: window.__app.core.packsInHand(window.__app.state()),
-        shop: window.__app.state().box, text: document.getElementById('myBoxLeft').textContent,
+        shop: window.__app.state().shop.animal || null, text: document.getElementById('myBoxLeft').textContent,
         sr: document.getElementById('myBoxSr').textContent
       }));
       ok(bought.money === 0 && bought.hand === 30, `2 回タップで買える: コイン ${bought.money}・手もとに ${bought.hand} パック`);
@@ -583,56 +583,40 @@ async function run() {
       await context.close();
     }
 
-    // ------------------------------------------------ なかよし (お気に入り・おやつ)
+    // ------------------------------------------------ なかよし (歩いている子に おやつ)
     if (want('なかよし')) {
-      section('なかよし: ずかんで えらぶ → 木の下に並ぶ → おやつ・なでる');
+      section('なかよし: 歩いている子を タップ → おやつ・なでる');
       ({ context, page } = await newGame(browser, errors));
       await page.evaluate(() => {
         document.documentElement.style.setProperty('--safe-top', '59px');
         document.documentElement.style.setProperty('--safe-bottom', '34px');
         const s = window.__app.state();
-        ['001', '003', '020', '011'].forEach((n) => { s.owned[n] = 1; });
+        ['A1-001', 'A1-003', 'A1-020', 'A1-011', 'S1-001', 'S1-002', 'G1-001', 'F1-001'].forEach((n) => { s.owned[n] = 1; });
         window.__app.setMoney(1000);
       });
-      await goTab(page, 'Home');
-      ok(await page.locator('.fav-hint').isVisible(), 'なかよしがいないときは、えらび方の案内が出る');
       await goTab(page, 'Zukan');
-      const pick = async (no) => {
-        await page.tap(`.zk-cell[data-no="${no}"]`);
-        await page.waitForTimeout(150);
-        await page.tap('.dt-fav');
-        await page.waitForTimeout(150);
-        const t = await page.textContent('.dt-fav');
-        await page.mouse.click(20, 900);
-        return t;
-      };
-      ok((await pick('001')).includes('なかよし'), 'ずかんの「なかよしに する」で えらべる');
-      await pick('003');
-      await pick('020');
-      await page.tap('.zk-cell[data-no="011"]');
-      await page.tap('.dt-fav');
-      const full = await page.evaluate(() => ({ favs: window.__app.state().favs.length, msg: document.querySelector('.dt-favmsg').textContent }));
-      ok(full.favs === 3 && full.msg.includes('3にん'), `4 人目は えらべず、わけが出る (${full.msg})`);
-      ok(await page.locator('#detail').isVisible(), 'ボタンを押しても、大きいカードは閉じない');
-      await page.mouse.click(20, 900);
-
       await goTab(page, 'Home');
       await page.waitForTimeout(300);
-      const row = await page.evaluate(() => {
-        const favs = [...document.querySelectorAll('.fav')];
-        const bar = document.getElementById('tabbar').getBoundingClientRect();
+      ok(await page.locator('.wk-hint').isVisible(), 'まだ おやつを あげたことが無いときは、案内が出る');
+      const field = await page.evaluate(() => {
+        const g = document.getElementById('ground').getBoundingClientRect();
         const up = document.getElementById('upgrade').getBoundingClientRect();
-        const rs = favs.map((f) => f.getBoundingClientRect());
-        let overlap = false;
-        for (let i = 1; i < rs.length; i++) if (rs[i].left < rs[i - 1].right - 1) overlap = true;
-        return { n: favs.length, chars: favs.map((f) => f.dataset.ch), overlap,
-          inside: rs.every((r) => r.left >= 0 && r.right <= 430 && r.bottom <= up.top + 0.5 && r.bottom <= bar.top) };
+        const ws = [...document.querySelectorAll('.walker')];
+        // 歩く範囲ぜんぶ (left から left + dist まで) が草原の中か
+        const inside = ws.every((w) => {
+          const l = parseFloat(w.style.left), d = parseFloat(w.style.getPropertyValue('--dist'));
+          return l >= 0 && l + d + w.offsetWidth <= g.width + 0.5;
+        });
+        const rs = ws.map((w) => w.getBoundingClientRect());
+        return { n: ws.length, inside, bottom: Math.max(...rs.map((r) => r.bottom)), upTop: up.top, gTop: g.top, top: Math.min(...rs.map((r) => r.top)),
+          tags: ws.map((w) => w.tagName) };
       });
-      ok(row.n === 3 && JSON.stringify(row.chars) === '["neko","usagi","dragon"]', `木の下に 3 人並ぶ (${row.chars})`);
-      ok(!row.overlap && row.inside, 'なかよしの子どうし重ならず、画面とボタンの内側に収まる');
+      ok(field.n === 7 && field.tags.every((t) => t === 'BUTTON'), `持っている子が 7 人まで歩き、どの子も押せる (${field.n})`);
+      ok(field.inside && field.bottom <= field.upTop + 0.5 && field.top >= field.gTop - 30, `歩く範囲が草原の中に収まる (下 ${Math.round(field.bottom)} / 強化の上 ${Math.round(field.upTop)})`);
 
-      await page.tap('.fav[data-ch="neko"]');
-      ok(await page.locator('#petSheet').isVisible(), 'なかよしの子をタップすると、おやつの画面が出る');
+      // 歩いている子を そのまま タップ (止まらない)
+      await page.locator('.walker[data-ch="neko"]').tap({ force: true });
+      ok(await page.locator('#petSheet').isVisible(), '歩いている子をタップすると、おやつの画面が出る');
       const snackNames = await page.evaluate(() => [...document.querySelectorAll('#psSnacks .sn-name')].map((e) => e.textContent));
       ok(snackNames[2] === 'おさかな', `3 つめは その子の だいこうぶつ (${snackNames.join('・')})`);
       await page.tap('[data-snack="cookie"]');
@@ -654,22 +638,76 @@ async function run() {
       await page.waitForTimeout(700);
       const fullTummy = await page.evaluate(() => ({
         dis: [...document.querySelectorAll('#psSnacks button')].every((b) => b.disabled),
-        txt: document.getElementById('psTummy').textContent, money: window.__app.state().money
+        txt: document.getElementById('psTummy').textContent
       }));
       ok(fullTummy.dis && fullTummy.txt.includes('いっぱい'), '3 こ食べると「おなか いっぱい」で、おやつボタンが押せない');
       await page.tap('#psClose');
       ok(await page.locator('#petSheet').isHidden(), '× で閉じる');
-      const badge = await page.textContent('.fav[data-ch="neko"] .fav-lv');
-      ok(badge.includes('2'), `木の下の子の ♥ がレベルに合わせて変わる (${badge})`);
+      const after = await page.evaluate(() => {
+        const w = document.querySelector('.walker[data-ch="neko"]');
+        return { badge: w && w.querySelector('.wk-lv') ? w.querySelector('.wk-lv').textContent : '', first: document.querySelector('.walker').dataset.ch,
+          hint: !!document.querySelector('.wk-hint') };
+      });
+      ok(after.badge.includes('2') && !after.hint, `歩いている子に ♥ のレベルが付き、案内は消える (${after.badge})`);
+
+      // ずかんからも おやつを あげられる (歩いていない子にも)
+      await goTab(page, 'Zukan');
+      await page.tap('#zkPick [data-set="ghost"]');
+      await page.tap('.zk-cell[data-no="G1-001"]');
+      await page.waitForTimeout(150);
+      await page.tap('.dt-feed');
+      await page.waitForTimeout(200);
+      const fromZk = await page.evaluate(() => ({ sheet: !document.getElementById('petSheet').hidden, detail: !document.getElementById('detail').hidden, name: document.getElementById('psName').textContent }));
+      ok(fromZk.sheet && !fromZk.detail && fromZk.name === 'しろおばけ', `ずかんの「おやつを あげる」で、その子の おやつ画面が出る (${fromZk.name})`);
+      await page.tap('#psClose');
+      await goTab(page, 'Home');
+
       await page.waitForTimeout(1100);
       await page.reload();
       await page.waitForFunction(() => window.__app);
-      const kept = await page.evaluate(() => ({ favs: window.__app.state().favs, aff: window.__app.state().pets.neko.aff }));
-      ok(kept.favs.length === 3 && kept.aff === 11, `開き直しても、なかよしと なかよし度が残る (♥${kept.aff})`);
+      const kept = await page.evaluate(() => ({ aff: window.__app.state().pets.neko.aff, favs: window.__app.state().favs }));
+      ok(kept.aff === 11 && kept.favs === undefined, `開き直しても なかよし度が残る (♥${kept.aff})`);
       const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(9, 0, 0, 0);
       await page.clock.setFixedTime(tomorrow);
-      await page.tap('.fav[data-ch="neko"]');
+      await page.locator('.walker[data-ch="neko"]').tap({ force: true });
       ok(await page.locator('[data-snack="apple"]').isEnabled(), '次の日になると、また おやつを あげられる');
+      await context.close();
+    }
+
+    // ------------------------------------------------ パックの種類
+    if (want('しゅるい')) {
+      section('しゅるい: パックの種類を えらんで、その種類のパックを開ける');
+      ({ context, page } = await newGame(browser, errors));
+      await goTab(page, 'Packs');
+      const pk = await page.evaluate(() => {
+        const bs = [...document.querySelectorAll('#setPick .sp-btn')];
+        return { n: bs.length, right: Math.max(...bs.map((b) => b.getBoundingClientRect().right)), left: Math.min(...bs.map((b) => b.getBoundingClientRect().left)),
+          wide: document.documentElement.scrollWidth - document.documentElement.clientWidth, on: bs.filter((b) => b.classList.contains('on')).map((b) => b.dataset.set) };
+      });
+      ok(pk.n === 6 && pk.left >= 0 && pk.right <= 430 && pk.wide <= 0, `6 しゅるいが 横に送らずに全部見える (${Math.round(pk.left)}〜${Math.round(pk.right)})`);
+      ok(pk.on.join() === 'animal', 'はじめは どうぶつパック');
+      for (const [id, word] of [['sea', 'さかな'], ['bird', 'とり'], ['dino', 'きょうりゅう'], ['ghost', 'おばけ'], ['future', 'みらい']]) {
+        await page.tap(`#setPick [data-set="${id}"]`);
+        const v = await page.evaluate(() => ({ name: document.getElementById('shopName').textContent, pack: document.querySelector('#shopPack .pk').className }));
+        ok(v.name.includes(word) && v.pack.includes('pk-' + id), `${word}: お店のパックと名前が変わる (${v.name})`);
+      }
+      await page.tap('#setPick [data-set="sea"]');
+      await page.evaluate(() => window.__app.rigNextPack('RR', false, 'sea'));
+      await page.tap('#btnFree');
+      await page.waitForFunction(() => window.__app.opening.state().phase === 'pack');
+      const op = await page.evaluate(() => ({
+        pack: document.querySelector('#opPack .pk').className,
+        sets: window.__app.opening.state().cards.map((c) => window.__app.core.CARDS.find((k) => k.no === c.no).set),
+        top: window.__app.core.CARDS.find((k) => k.no === window.__app.opening.state().cards[4].no).rarity
+      }));
+      ok(op.pack.includes('pk-sea') && op.sets.every((x) => x === 'sea') && op.top === 'RR', `さかなパックを開けると、さかなのカードだけ出る (${op.sets.join(',')})`);
+      const end = await playThrough(page);
+      ok(end.phase === 'result', 'さかなパックも最後まで開けられる');
+      await page.waitForTimeout(500);
+      const got = await page.evaluate(() => Object.keys(window.__app.state().owned));
+      ok(got.length > 0 && got.every((k) => k.startsWith('S1-')), `図鑑に さかなのカードが入る (${got.join(',')})`);
+      const shops = await page.evaluate(() => ({ sea: window.__app.state().shop.sea.next, animal: window.__app.state().shop.animal }));
+      ok(shops.sea === 1 && !shops.animal, 'お店の BOX は種類ごとに別 (さかなだけ進む)');
       await context.close();
     }
 
@@ -679,7 +717,7 @@ async function run() {
       ({ context, page } = await newGame(browser, errors));
       await page.evaluate(() => {
         const s = window.__app.state();
-        s.owned['001'] = 2; s.owned['021'] = 1; s.owned['033'] = 1;
+        s.owned['A1-001'] = 2; s.owned['A1-021'] = 1; s.owned['A1-033'] = 1; s.owned['S1-001'] = 1;
       });
       await goTab(page, 'Zukan');
       const zk = await page.evaluate(() => {
@@ -695,7 +733,34 @@ async function run() {
       ok(zk.n === 33 && zk.locked === 30, `33 まいの枠、もっていない 30 まいは押せない (${zk.locked})`);
       ok(zk.count === '3 / 33' && zk.sub.includes('ふつう 1/20') && zk.sub.includes('シークレット 2/13'), `数の表示 (${zk.count} ${zk.sub})`);
       ok(zk.leaked.length === 0, 'もっていないカードの名前は出ない');
-      await page.tap('.zk-cell[data-no="033"]');
+      await page.tap('#zkPick [data-set="sea"]');
+      const sea = await page.evaluate(() => ({
+        n: document.querySelectorAll('.zk-cell').length, count: document.getElementById('zkCount').textContent,
+        title: document.getElementById('zkTitle').textContent, first: document.querySelector('.zk-cell').dataset.no
+      }));
+      ok(sea.n === 17 && sea.count === '1 / 17' && sea.title.includes('さかな') && sea.first === 'S1-001', `パックの種類を えらぶと、その図鑑に変わる (${sea.title} ${sea.count})`);
+      await page.tap('#zkPick [data-set="animal"]');
+      // どのカードも、名前がカードの中に収まる (ずかんの小さい表示と、大きい表示の両方。6 しゅるい全部)
+      const names = await page.evaluate(() => {
+        const out = [];
+        for (const [small, w] of [[true, 125], [false, 300]]) {
+          const host = document.createElement('div');
+          host.style.cssText = 'position:fixed;left:0;top:0;width:' + w + 'px;';
+          document.body.appendChild(host);
+          for (const c of window.__app.core.CARDS) {
+            host.innerHTML = window.CardView.html(c, { small });
+            const pc = host.querySelector('.pc').getBoundingClientRect();
+            const nm = host.querySelector('.pc-name');
+            const r = nm.getBoundingClientRect();
+            const fs = parseFloat(getComputedStyle(nm).fontSize);
+            if (r.left < pc.left - 0.5 || r.right > pc.right + 0.5 || fs < w * 0.05) out.push(c.no + (small ? ' 小' : ' 大') + ' ' + fs.toFixed(1) + 'px');
+          }
+          host.remove();
+        }
+        return { bad: out, n: window.__app.core.CARDS.length };
+      });
+      ok(names.bad.length === 0, `${names.n} まい × 2 の大きさで、名前がカードからはみ出さず、字が小さすぎない (${names.bad.join(', ') || 'OK'})`);
+      await page.tap('.zk-cell[data-no="A1-033"]');
       ok(await page.locator('#detail').isVisible(), 'もっているカードを押すと大きく出る');
       const before = await page.evaluate(() => getComputedStyle(document.querySelector('.dt-card')).getPropertyValue('--mx'));
       await page.waitForTimeout(800);
@@ -734,11 +799,11 @@ async function run() {
       await pg.goto(URL);
       await pg.waitForFunction(() => window.__app);
       const st = await pg.evaluate(() => window.__app.state());
-      ok(st.money === 345 && st.tapLevel === 2 && st.owned['001'] === 2 && st.owned['020'] === 1, `前の版のコイン・強さ・図鑑が残る (${JSON.stringify(st.owned)})`);
+      ok(st.money === 345 && st.tapLevel === 2 && st.owned['A1-001'] === 2 && st.owned['A1-020'] === 1, `前の版のコイン・強さ・図鑑が残る (${JSON.stringify(st.owned)})`);
       await pg.evaluate(() => window.__app.flush());
       await pg.reload();
       await pg.waitForFunction(() => window.__app);
-      ok((await pg.evaluate(() => window.__app.state().owned['001'])) === 2, '新しい形で保存し直し、開き直しても残る');
+      ok((await pg.evaluate(() => window.__app.state().owned['A1-001'])) === 2, '新しい形で保存し直し、開き直しても残る');
       await ctx.close();
       for (const bad of ['{"money":"abc","owned":{"001":-3,"ぬ":9},"box":{"packs":[1]}}', 'これはJSONじゃない', '[]', 'null']) {
         const c2 = await browser.newContext({ ...PHONE });
@@ -757,7 +822,7 @@ async function run() {
     if (want('歩く')) {
       section('歩く: ひろばと、カードの中の動物');
       ({ context, page } = await newGame(browser, errors));
-      await page.evaluate(() => { const s = window.__app.state(); ['001', '019', '033', '011'].forEach((n) => { s.owned[n] = 1; }); });
+      await page.evaluate(() => { const s = window.__app.state(); ['A1-001', 'A1-019', 'A1-033', 'A1-011'].forEach((n) => { s.owned[n] = 1; }); });
       await goTab(page, 'Zukan');
       await goTab(page, 'Home');
       await page.waitForTimeout(300);

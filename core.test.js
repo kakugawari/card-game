@@ -16,40 +16,64 @@ function richState(money) {
 }
 
 // ------------------------------------------------------------ カードの一覧
-test('一覧: 番号は 001 から順に、重ならずに並ぶ', () => {
-  Core.CARDS.forEach((c, i) => assert.strictEqual(c.no, String(i + 1).padStart(3, '0')));
+test('一覧: パックは 6 しゅるい (どうぶつ・さかな・とり・きょうりゅう・おばけ・みらい)', () => {
+  assert.deepStrictEqual(Core.SETS.map((st) => st.id), ['animal', 'sea', 'bird', 'dino', 'ghost', 'future']);
+  assert.strictEqual(new Set(Core.SETS.map((st) => st.code)).size, 6);
+  Core.SETS.forEach((st) => assert.ok(st.name && st.title && st.mark && st.colors.length === 3 && st.mascots.length === 3, st.id));
 });
 
-test('一覧: 001〜020 は C/U/R/RR、021 以降 (シークレット) は AR 以上', () => {
-  Core.CARDS.forEach((c) => {
-    const main = Number(c.no) <= Core.SET.mainCount;
-    assert.strictEqual(main, Core.rank(c.rarity) <= Core.rank('RR'), `${c.no} ${c.rarity}`);
+test('一覧: パックごとに番号は 001 から順。見分け (A1-001) は全部で重ならない', () => {
+  Core.SETS.forEach((st) => {
+    st.cards.forEach((c, i) => {
+      assert.strictEqual(c.num, String(i + 1).padStart(3, '0'), `${st.id} ${c.num}`);
+      assert.strictEqual(c.no, st.code + '-' + c.num);
+      assert.strictEqual(c.set, st.id);
+    });
+  });
+  assert.strictEqual(new Set(Core.CARDS.map((c) => c.no)).size, Core.CARDS.length);
+});
+
+test('一覧: 通常 (C〜RR) が先、シークレット (AR 以上) があと', () => {
+  Core.SETS.forEach((st) => {
+    st.cards.forEach((c) => {
+      const main = Number(c.num) <= st.mainCount;
+      assert.strictEqual(main, Core.rank(c.rarity) <= Core.rank('RR'), `${c.no} ${c.rarity}`);
+    });
   });
 });
 
-test('一覧: どのレア度にも 1 まい以上ある (パックから出せないレア度がない)', () => {
-  Core.RARITY_ORDER.forEach((r) => assert.ok(Core.POOL[r].length > 0, r));
-  assert.ok(Core.POOL.C.length >= 3, 'C は 1 パックに 3 まい、重ならずに選べる');
+test('一覧: どのパックも、どのレア度にも 1 まい以上・C は 3 まい以上 (パックから出せないレア度がない)', () => {
+  Core.SETS.forEach((st) => {
+    Core.RARITY_ORDER.forEach((r) => assert.ok(Core.POOL[st.id][r].length > 0, `${st.id} ${r}`));
+    assert.ok(Core.POOL[st.id].C.length >= 3, st.id);
+  });
 });
 
-test('一覧: 名前・分類・説明が全部ある。仮の絵は全部のキャラにある', () => {
+test('一覧: 名前・分類・説明が全部ある。仮の絵・だいこうぶつ・パックの顔のキャラも全部ある', () => {
   Core.CARDS.forEach((c) => {
     assert.ok(c.name && c.kind && c.text, c.no);
     assert.ok(Animals.ids.includes(c.chara), `${c.no}: ${c.chara} の仮の絵`);
+    assert.ok(Core.CHARAS[c.chara], `${c.no}: ${c.chara} の だいこうぶつ`);
     assert.strictEqual(typeof c.art, 'string');
+  });
+  Core.SETS.forEach((st) => st.mascots.forEach((m) => assert.ok(Animals.ids.includes(m), `${st.id}: ${m}`)));
+});
+
+test('一覧: 手で書いた表に、同じパックの中で同じ番号が 2 回書かれていない (あとの方だけ残る事故よけ)', () => {
+  const src = fs.readFileSync(require.resolve('./cards.js'), 'utf8');
+  const blocks = src.split(/\n {6}id: '/).slice(1);
+  assert.strictEqual(blocks.length, Core.SETS.length);
+  blocks.forEach((b, i) => {
+    const nos = [...b.matchAll(/no: '(\d{3})'/g)].map((m) => m[1]);
+    assert.strictEqual(new Set(nos).size, nos.length, Core.SETS[i].id);
+    assert.strictEqual(nos.length, Core.SETS[i].cards.length, Core.SETS[i].id);
   });
 });
 
-test('一覧: 手で書いた表に、同じ番号が 2 回書かれていない (あとの方だけ残る事故よけ)', () => {
-  const src = fs.readFileSync(require.resolve('./cards.js'), 'utf8');
-  const nos = [...src.matchAll(/no: '(\d{3})'/g)].map((m) => m[1]);
-  assert.strictEqual(new Set(nos).size, nos.length);
-  assert.strictEqual(nos.length, Cards.CARDS.length);
-});
-
-test('番号の表示はポケモンカードと同じ数え方 (021/020)', () => {
-  assert.strictEqual(Core.numberLabel(Core.cardByNo('001')), '001/020');
-  assert.strictEqual(Core.numberLabel(Core.cardByNo('033')), '033/020');
+test('番号の表示はポケモンカードと同じ数え方 (021/020)。パックごとに数える', () => {
+  assert.strictEqual(Core.numberLabel(Core.cardByNo('A1-001')), '001/020');
+  assert.strictEqual(Core.numberLabel(Core.cardByNo('A1-033')), '033/020');
+  assert.strictEqual(Core.numberLabel(Core.cardByNo('S1-011')), '011/010');
 });
 
 // ------------------------------------------------------------ BOX の封入
@@ -75,12 +99,15 @@ test('BOX: SR 以上の 1 まいは、SAR が約 5 BOX に 1、MUR が約 50 BOX
   assert.ok(Math.abs(n.MUR / N - 0.02) < 0.003, `MUR ${n.MUR / N}`);
 });
 
-test('パック: 5 まいで、1〜3 まいめ C・4 まいめ U か AR・5 まいめ R 以上。中で同じカードは出ない', () => {
+test('パック: 5 まいで、1〜3 まいめ C・4 まいめ U か AR・5 まいめ R 以上。中で同じカードは出ない。そのパックのカードだけ', () => {
   const rng = Core.mulberry32(5);
-  for (let i = 0; i < 2000; i++) {
-    const box = Core.newBox(rng);
+  for (let i = 0; i < 2400; i++) {
+    const st = Core.SETS[i % Core.SETS.length].id;
+    const box = Core.newBox(rng, st);
+    assert.strictEqual(box.set, st);
     box.packs.forEach((slot) => {
-      const nos = Core.rollPack(slot, rng);
+      const nos = Core.rollPack(slot, rng, st);
+      nos.forEach((no) => assert.strictEqual(Core.cardByNo(no).set, st));
       assert.strictEqual(nos.length, 5);
       assert.deepStrictEqual(nos.slice(0, 3).map(rarityOf), ['C', 'C', 'C']);
       assert.strictEqual(rarityOf(nos[3]), slot.ar ? 'AR' : 'U');
@@ -97,7 +124,7 @@ test('パック: 同じレア度の中では、どのカードも同じくらい
     Core.newBox(rng).packs.forEach((slot) => Core.rollPack(slot, rng).forEach((no) => { count[no] = (count[no] || 0) + 1; }));
   }
   ['C', 'U', 'R', 'RR', 'AR'].forEach((r) => {
-    const g = Core.POOL[r].map((c) => count[c.no] || 0);
+    const g = Core.POOL.animal[r].map((c) => count[c.no] || 0);
     const mean = g.reduce((a, b) => a + b, 0) / g.length;
     g.forEach((v) => assert.ok(Math.abs(v - mean) / mean < 0.08, `${r}: ${g}`));
   });
@@ -122,18 +149,46 @@ test('開封: むりょうパックも同じ BOX から出る (別の BOX にし
   const rng = Core.mulberry32(9);
   Core.openPack(s, 'buy', NOON, rng);
   Core.openPack(s, 'free', NOON, rng);
-  assert.strictEqual(s.box.next, 2);
+  assert.strictEqual(s.shop.animal.next, 2);
 });
+
+test('パックの種類: お店の BOX はパックごとに別。むりょうは どのパックでも 1 日 1 回 (合わせて)', () => {
+  const s = richState(1e9);
+  const rng = Core.mulberry32(10);
+  const r1 = Core.openPack(s, 'buy', NOON, rng, 'sea');
+  assert.ok(r1.ok && r1.set === 'sea');
+  r1.cards.forEach((c) => assert.strictEqual(Core.cardByNo(c.no).set, 'sea'));
+  Core.openPack(s, 'buy', NOON, rng, 'ghost');
+  assert.deepStrictEqual([s.shop.sea.next, s.shop.ghost.next], [1, 1]);
+  assert.ok(Core.openPack(s, 'free', NOON, rng, 'dino').ok);
+  assert.strictEqual(Core.openPack(s, 'free', NOON, rng, 'bird').ok, false, 'ほかのパックでも、むりょうは 1 日 1 回');
+  assert.strictEqual(Core.openPack(s, 'buy', NOON, rng, 'nope').set, 'animal', '知らないパックは どうぶつパック');
+});
+
+test('パックの種類: どのパックも、BOX 30 パックで SR 以上が必ず 1 まい', () => {
+  Core.SETS.forEach((st, k) => {
+    const s = richState(1e9);
+    const rng = Core.mulberry32(100 + k);
+    for (let box = 0; box < 5; box++) {
+      let srUp = 0;
+      for (let i = 0; i < 30; i++) {
+        srUp += Core.openPack(s, 'buy', NOON, rng, st.id).cards.filter((c) => Core.rank(rarityOf(c.no)) >= Core.rank('SR')).length;
+      }
+      assert.strictEqual(srUp, 1, `${st.id} BOX ${box}`);
+    }
+  });
+});
+
 
 // ------------------------------------------------------------ BOX ごと買う
 test('BOX 買い: 30 パックぶんの値段で、手もとに 30 パック入る。お店の BOX は進まない', () => {
   assert.strictEqual(Core.BOX_PRICE, Core.PACK_PRICE * 30);
   const s = richState(Core.BOX_PRICE + 7);
-  const shop = JSON.stringify(s.box);
+  const shop = JSON.stringify(s.shop);
   assert.deepStrictEqual(Core.buyBox(s, Core.mulberry32(1)), { ok: true });
   assert.strictEqual(s.money, 7);
   assert.strictEqual(Core.packsInHand(s), 30);
-  assert.strictEqual(JSON.stringify(s.box), shop);
+  assert.strictEqual(JSON.stringify(s.shop), shop);
 });
 
 test('BOX 買い: お金が足りなければ失敗し、何も変わらない', () => {
@@ -174,6 +229,20 @@ test('BOX 買い: 2 箱買うと、1 箱目を開け切ってから 2 箱目。B
   assert.strictEqual(s.boxes.length, 1);
   assert.strictEqual(JSON.stringify(s.boxes[0]), second);
   assert.strictEqual(Core.packsInHand(s), 30);
+});
+
+test('BOX 買い: パックの種類ごとに別の箱。開けるときも、そのパックの箱から', () => {
+  const s = richState(Core.BOX_PRICE * 2);
+  Core.buyBox(s, Core.mulberry32(1), 'sea');
+  Core.buyBox(s, Core.mulberry32(2), 'future');
+  assert.deepStrictEqual([Core.packsInHand(s, 'sea'), Core.packsInHand(s, 'future'), Core.packsInHand(s, 'animal'), Core.packsInHand(s)], [30, 30, 0, 60]);
+  assert.deepStrictEqual(Core.openPack(s, 'box', NOON, Core.mulberry32(3), 'animal'), { ok: false, reason: 'nobox' });
+  const r = Core.openPack(s, 'box', NOON, Core.mulberry32(3), 'future');
+  r.cards.forEach((c) => assert.strictEqual(Core.cardByNo(c.no).set, 'future'));
+  assert.deepStrictEqual([Core.packsInHand(s, 'sea'), Core.packsInHand(s, 'future')], [30, 29]);
+  const all = Core.openBoxAll(s, NOON, Core.mulberry32(4), 'sea');
+  assert.strictEqual(all.packs.length, 30);
+  assert.deepStrictEqual([Core.packsInHand(s, 'sea'), Core.packsInHand(s, 'future')], [0, 29]);
 });
 
 test('BOX 買い: むりょうパックとは別枠 (BOX から開けても、むりょうは残る)', () => {
@@ -420,19 +489,8 @@ test('なかよし: どのキャラにも、だいこうぶつ (絵と名前) �
   });
 });
 
-test('なかよし: 持っている子だけ、3 人まで。もう一度押すと やめる', () => {
-  const s = withCharas(0, ['neko', 'inu', 'usagi', 'kuma']);
-  assert.deepStrictEqual(Core.toggleFav(s, 'panda'), { ok: false, reason: 'notOwned' });
-  ['neko', 'inu', 'usagi'].forEach((ch) => assert.ok(Core.toggleFav(s, ch).on));
-  assert.deepStrictEqual(Core.toggleFav(s, 'kuma'), { ok: false, reason: 'full' });
-  assert.deepStrictEqual(Core.toggleFav(s, 'inu'), { ok: true, on: false });
-  assert.ok(Core.toggleFav(s, 'kuma').on);
-  assert.deepStrictEqual(s.favs, ['neko', 'usagi', 'kuma']);
-});
-
 test('おやつ: 値段ぶんコインが減り、なかよし度が上がる (りんご 1・クッキー 3・だいこうぶつ 6)', () => {
   const s = withCharas(1000, ['neko']);
-  Core.toggleFav(s, 'neko');
   assert.strictEqual(Core.feed(s, 'neko', 'apple', NOON).gain, 1);
   assert.strictEqual(Core.feed(s, 'neko', 'cookie', NOON).gain, 3);
   assert.strictEqual(Core.feed(s, 'neko', 'fav', NOON).gain, 6);
@@ -442,7 +500,6 @@ test('おやつ: 値段ぶんコインが減り、なかよし度が上がる (�
 
 test('おやつ: 1 人 1 日 3 こまで。次の日にはまた食べられる', () => {
   const s = withCharas(1e6, ['neko']);
-  Core.toggleFav(s, 'neko');
   for (let i = 0; i < 3; i++) assert.ok(Core.feed(s, 'neko', 'apple', NOON).ok);
   const before = JSON.stringify(s);
   assert.deepStrictEqual(Core.feed(s, 'neko', 'apple', NOON + 3600e3), { ok: false, reason: 'full' });
@@ -452,42 +509,36 @@ test('おやつ: 1 人 1 日 3 こまで。次の日にはまた食べられる'
   assert.ok(Core.feed(s, 'neko', 'apple', NOON + DAY).ok);
 });
 
-test('おやつ: お金が足りない・なかよしでない子には あげられず、何も変わらない', () => {
-  const s = withCharas(29, ['neko', 'inu']);
-  Core.toggleFav(s, 'neko');
+test('おやつ: お金が足りない・持っていない子には あげられず、何も変わらない', () => {
+  const s = withCharas(29, ['neko']);
   const before = JSON.stringify(s);
   assert.deepStrictEqual(Core.feed(s, 'neko', 'apple', NOON), { ok: false, reason: 'money' });
-  assert.deepStrictEqual(Core.feed(s, 'inu', 'apple', NOON), { ok: false, reason: 'notFav' });
+  assert.deepStrictEqual(Core.feed(s, 'inu', 'apple', NOON), { ok: false, reason: 'notOwned' });
+  assert.deepStrictEqual(Core.pet(s, 'inu', NOON), { ok: false, reason: 'notOwned' });
   assert.strictEqual(JSON.stringify(s), before);
 });
 
 test('なでる: 1 日 1 回 +1 (ただ)。次の日にまた なでられる', () => {
   const s = withCharas(0, ['neko']);
-  Core.toggleFav(s, 'neko');
   assert.strictEqual(Core.pet(s, 'neko', NOON).gain, 1);
   assert.deepStrictEqual(Core.pet(s, 'neko', NOON + 1000), { ok: false, reason: 'already' });
   assert.ok(Core.pet(s, 'neko', NOON + DAY).ok);
   assert.strictEqual(s.money, 0);
 });
 
-test('なかよしレベル: 5 段。上がった瞬間だけ levelUp。やめても なかよし度は残る', () => {
+test('なかよしレベル: 5 段。上がった瞬間だけ levelUp', () => {
   assert.deepStrictEqual([0, 4, 5, 14, 15, 29, 30, 54, 55, 999].map(Core.petLevel), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]);
   const s = withCharas(1e6, ['neko']);
-  Core.toggleFav(s, 'neko');
   const ups = [];
   for (let d = 0; d < 10; d++) {
     for (let i = 0; i < 3; i++) { const r = Core.feed(s, 'neko', 'fav', NOON + d * DAY); if (r.levelUp) ups.push(r.level); }
   }
   assert.deepStrictEqual(ups, [2, 3, 4, 5]);
   assert.strictEqual(Core.petInfo(s, 'neko', NOON).progress, 1);
-  Core.toggleFav(s, 'neko');
-  Core.toggleFav(s, 'neko');
-  assert.strictEqual(Core.petInfo(s, 'neko', NOON).level, 5);
 });
 
 test('なかよし: 毎日 クッキー 3 こ + なでる で、いちばん上まで 1 週間くらい', () => {
   const s = withCharas(1e6, ['neko']);
-  Core.toggleFav(s, 'neko');
   let d = 0;
   while (Core.petInfo(s, 'neko', NOON + d * DAY).level < 5 && d < 100) {
     for (let i = 0; i < 3; i++) Core.feed(s, 'neko', 'cookie', NOON + d * DAY);
@@ -505,24 +556,34 @@ test('保存: こわれたデータでも落ちず、まともな値に直る', 
     assert.ok(Number.isFinite(s.money) && s.money >= 0);
     assert.ok(s.tapLevel >= 0 && s.tapLevel <= Core.MAX_LEVEL);
     Object.keys(s.owned).forEach((no) => assert.ok(Core.cardByNo(no) && s.owned[no] > 0));
-    assert.ok(s.box === null || s.box.packs.length === 30);
+    assert.ok(typeof s.shop === 'object' && Object.values(s.shop).every((b) => b.packs.length === 30));
     assert.ok(Array.isArray(s.boxes));
   });
-  // なかよしは、持っている子だけ・3 人まで・重ならない。なかよし度はこわれていても数に直る
-  const f = Core.normalize({ v: 2, owned: { '001': 1, '002': 1, '003': 1, '004': 1 }, favs: ['neko', 'neko', 'panda', 'inu', 'usagi', 'kuma'],
-    pets: { neko: { aff: 'x', fed: 99, fedDay: 'きのう' }, nope: { aff: 3 } } });
-  assert.deepStrictEqual(f.favs, ['neko', 'inu', 'usagi']);
+  // なかよし度はこわれていても数に直る。知らないキャラは捨てる
+  const f = Core.normalize({ v: 3, pets: { neko: { aff: 'x', fed: 99, fedDay: 'きのう' }, nope: { aff: 3 } } });
   assert.deepStrictEqual(f.pets, { neko: { aff: 0, fedDay: '', fed: 3, pettedDay: '' } });
   assert.deepStrictEqual(Core.normalize({ v: 2, boxes: [null, 3, { packs: [] }] }).boxes, []);
-  assert.deepStrictEqual(Core.normalize({ v: 2, owned: { '001': -1, '999': 3, '002': 2.9 } }).owned, { '002': 2 });
+  assert.deepStrictEqual(Core.normalize({ v: 2, owned: { '001': -1, '999': 3, '002': 2.9 } }).owned, { 'A1-002': 2 });
+  assert.deepStrictEqual(Core.normalize({ v: 3, owned: { 'S1-003': 2, 'X9-001': 1, '001': 1 } }).owned, { 'S1-003': 2 });
 });
 
 test('保存: 前の版 (どうぶつの名前で持っていた図鑑) を引き継ぐ', () => {
   const s = Core.normalize({ v: 1, money: 120, owned: { neko: 3, dragon: 1, unicorn: 2, nope: 4 }, lastFreeDay: '2026-10-11' });
-  assert.deepStrictEqual(s.owned, { '001': 3, '019': 2, '020': 1 });
+  assert.deepStrictEqual(s.owned, { 'A1-001': 3, 'A1-019': 2, 'A1-020': 1 });
   assert.strictEqual(s.money, 120);
   assert.strictEqual(s.lastFreeDay, '2026-10-11');
-  assert.strictEqual(s.v, 2);
+  assert.strictEqual(s.v, 3);
+});
+
+test('保存: その前の版 (v2: 番号で持つ図鑑・お店の BOX が 1 つ) を引き継ぐ', () => {
+  const box = Core.newBox(Core.mulberry32(1));
+  delete box.set;
+  box.next = 7;
+  const s = Core.normalize({ v: 2, money: 50, owned: { '001': 2, '033': 1 }, box: box, boxes: [Object.assign({}, box, { next: 3 })] });
+  assert.deepStrictEqual(s.owned, { 'A1-001': 2, 'A1-033': 1 });
+  assert.strictEqual(s.shop.animal.next, 7);
+  assert.strictEqual(s.boxes[0].set, 'animal');
+  assert.strictEqual(Core.packsInHand(s, 'animal'), 27);
 });
 
 test('保存: 書き出して読み直しても同じ (BOX の残りも、手もとの BOX も)', () => {
@@ -532,8 +593,9 @@ test('保存: 書き出して読み直しても同じ (BOX の残りも、手も
   Core.buyBox(s, rng);
   Core.buyBox(s, rng);
   for (let i = 0; i < 4; i++) Core.openPack(s, 'box', NOON, rng);
+  Core.openPack(s, 'buy', NOON, rng, 'dino');
+  Core.buyBox(s, rng, 'ghost');
   const ch = Core.cardByNo(Object.keys(s.owned)[0]).chara;
-  Core.toggleFav(s, ch);
   Core.feed(s, ch, 'cookie', NOON);
   Core.pet(s, ch, NOON);
   s.tapLevel = 3;
