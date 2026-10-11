@@ -1,0 +1,416 @@
+/* card.css — カード・カードの裏・パックの絵。大きさは入れ物の幅で決まる (cqw = カードの幅の 1/100) */
+
+/* ================================================================ カード */
+.pc {
+  container-type: inline-size;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 63 / 88;
+  --mx: 50;
+  --my: 50;
+}
+.tilt { --mx: 50; --my: 50; --rx: 0deg; --ry: 0deg; --glare: 0; }
+.tilt { transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)); }
+.tilt .pc { --mx: inherit; --my: inherit; }
+
+.pc-in {
+  position: absolute;
+  inset: 0;
+  border-radius: 4.5cqw;
+  overflow: hidden;
+  color: #3d2c2e;
+  box-shadow: 0 1.2cqw 2.4cqw rgba(60, 30, 20, .22);
+}
+
+/* ---------------------------------------------------------------- ふつうの枠 (C U R RR) */
+.fr-normal .pc-in {
+  padding: 3.2cqw;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6cqw;
+  background: linear-gradient(160deg, #e6f5ff, #bfe1fb 55%, #a9d4f5);
+  border: 1.2cqw solid #fffdf6;
+}
+.fr-normal.r-U .pc-in { background: linear-gradient(160deg, #eafbe9, #c4ecc3 55%, #a8dda7); }
+.fr-normal.r-R .pc-in { background: linear-gradient(160deg, #fff4e0, #ffd9a6 55%, #ffc27a); }
+.fr-normal.r-RR .pc-in {
+  background: linear-gradient(150deg, #f4f0ff, #d9cff7 40%, #c4d8f6 70%, #e6f0ff);
+  border-color: #e9eef8;
+}
+
+.fr-normal .pc-head {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2cqw;
+  padding: 0 1.4cqw;
+  min-height: 10cqw;
+}
+.pc-name { font-size: 8.4cqw; font-weight: 900; line-height: 1.15; white-space: nowrap; }
+.fr-normal .pc-kind { font-size: 4.2cqw; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+.fr-normal .pc-art {
+  flex: none;
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 2.4cqw;
+  overflow: hidden;
+  border: 1cqw solid #fff;
+  box-shadow: inset 0 0 0 .3cqw rgba(0,0,0,.08), 0 .6cqw 1.2cqw rgba(0,0,0,.12);
+}
+.fr-normal .pc-text {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 2.4cqw 3cqw;
+  background: rgba(255, 255, 255, .86);
+  border-radius: 2.4cqw;
+  font-size: 4.9cqw;
+  line-height: 1.55;
+  overflow: hidden;
+}
+.pc-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2cqw;
+  padding: 0 1cqw;
+  font-size: 3.9cqw;
+  white-space: nowrap;
+}
+.pc-rar {
+  flex: none;
+  padding: .3cqw 2cqw;
+  border-radius: 99px;
+  background: #fff;
+  border: .45cqw solid #3d2c2e;
+  font-weight: 900;
+  letter-spacing: .05em;
+}
+.pc-no { font-variant-numeric: tabular-nums; opacity: .8; }
+.pc-ill { margin-left: auto; opacity: .6; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------------------------------------------------------------- 全面イラスト (AR SR SAR MUR) */
+.fr-full .pc-in { padding: 2.6cqw; background: #fff; }
+.fr-full.r-SR .pc-in { background: linear-gradient(135deg, #f4f6fa, #c7cdd8 30%, #fafbfd 50%, #b9c0cc 75%, #eef1f6); }
+.fr-full.r-SAR .pc-in { background: linear-gradient(135deg, #ffe3f1, #e3ddff 25%, #d9f6ff 50%, #e8ffe1 75%, #fff4d6); }
+.fr-full.r-MUR .pc-in { background: linear-gradient(135deg, #fff3b8, #d9a520 25%, #fff7d6 50%, #c08a10 75%, #ffe58a); }
+
+.fr-full .pc-art {
+  position: absolute;
+  inset: 2.6cqw;
+  border-radius: 3cqw;
+  overflow: hidden;
+}
+.fr-full .pc-head {
+  position: absolute;
+  left: 6cqw;
+  right: 6cqw;
+  top: 5cqw;
+  color: #fff;
+}
+.fr-full .pc-name {
+  paint-order: stroke fill;
+  -webkit-text-stroke: 1.6cqw rgba(50, 30, 40, .55);
+  text-shadow: 0 .6cqw 1.6cqw rgba(0,0,0,.25);
+}
+.fr-full.r-MUR .pc-name { -webkit-text-stroke-color: rgba(120, 70, 0, .75); }
+.fr-full .pc-panel {
+  position: absolute;
+  left: 2.6cqw;
+  right: 2.6cqw;
+  bottom: 2.6cqw;
+  padding: 7cqw 4.4cqw 3cqw;
+  border-radius: 0 0 3cqw 3cqw;
+  background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,.86) 26%, rgba(255,255,255,.93));
+  display: flex;
+  flex-direction: column;
+  gap: 1.4cqw;
+}
+.fr-full .pc-kind { font-size: 4cqw; opacity: .7; }
+.fr-full .pc-text { font-size: 4.6cqw; line-height: 1.5; }
+.fr-full .pc-rar { border: 0; color: #fff; text-shadow: 0 .3cqw 0 rgba(0,0,0,.2); }
+.r-AR .pc-rar { background: linear-gradient(90deg, #ffb3d1, #c7a6ff); }
+.r-SR .pc-rar { background: linear-gradient(90deg, #9aa4b5, #e4e8ef, #9aa4b5); color: #3d2c2e; text-shadow: none; }
+.r-SAR .pc-rar { background: linear-gradient(90deg, #ff8fc4, #ffd36b, #8fe3b0, #7ec8ff, #c39bff); }
+.r-MUR .pc-rar { background: linear-gradient(90deg, #b07a00, #ffe27a, #b07a00); color: #4a2e00; text-shadow: 0 .2cqw 0 rgba(255,255,255,.6); }
+.r-RR .pc-rar { background: linear-gradient(90deg, #ececf4, #ffffff, #dcdcec); }
+
+/* ---------------------------------------------------------------- 絵 */
+.pc-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; -webkit-user-drag: none; }
+.pc-scene { position: absolute; inset: 0; }
+.pc-animal { position: absolute; left: 14%; right: 14%; top: 2%; bottom: -2%; }
+.pc-animal .animal { width: 100%; height: 100%; }
+.fr-full .pc-animal { left: 6%; right: 6%; top: 15%; bottom: auto; aspect-ratio: 1; }
+
+/* 仮の絵の背景 (絵が届いたら使われない) */
+.sc-C, .sc-U, .sc-R {
+  background:
+    radial-gradient(ellipse 80% 40% at 50% 112%, #a9de8c 0 60%, #8fd06e 61% 97%, rgba(0,0,0,0) 100%),
+    radial-gradient(circle at 78% 22%, #fff7c2 0 9%, rgba(255,247,194,0) 10%),
+    linear-gradient(#cfeeff, #f6fbff 70%);
+}
+.sc-U { background:
+    radial-gradient(ellipse 80% 40% at 50% 112%, #f0d39a 0 60%, #e5c07a 61% 97%, rgba(0,0,0,0) 100%),
+    radial-gradient(circle at 22% 24%, #ffffff 0 7%, rgba(255,255,255,0) 8%),
+    linear-gradient(#ffe1c4, #fff6ea 70%); }
+.sc-R { background:
+    radial-gradient(ellipse 80% 40% at 50% 112%, #9fd6c0 0 60%, #7cc4a8 61% 97%, rgba(0,0,0,0) 100%),
+    radial-gradient(circle at 80% 20%, #ffe17a 0 10%, rgba(255,225,122,0) 11%),
+    linear-gradient(#bfe6ff, #eaf7ff 70%); }
+.sc-RR { background:
+    radial-gradient(ellipse 80% 40% at 50% 112%, #c9b8f2 0 60%, #b29ee8 61% 97%, rgba(0,0,0,0) 100%),
+    radial-gradient(circle at 20% 25%, #fff 0 1.2%, rgba(255,255,255,0) 1.6%),
+    radial-gradient(circle at 70% 15%, #fff 0 1%, rgba(255,255,255,0) 1.4%),
+    radial-gradient(circle at 85% 40%, #fff 0 1.4%, rgba(255,255,255,0) 1.8%),
+    linear-gradient(#8f8fe8, #d9c8ff 70%); }
+.sc-AR { background:
+    radial-gradient(ellipse 70% 22% at 25% 100%, #b6e89c 0 98%, rgba(0,0,0,0) 100%),
+    radial-gradient(ellipse 80% 26% at 80% 104%, #9fdc86 0 98%, rgba(0,0,0,0) 100%),
+    radial-gradient(circle at 70% 18%, #fff3c9 0 8%, rgba(255,243,201,0) 20%),
+    linear-gradient(#ffc9de, #ffe6cf 45%, #fff7dc 70%); }
+.sc-SR { background:
+    radial-gradient(ellipse 90% 24% at 50% 104%, #4b3a7a 0 98%, rgba(0,0,0,0) 100%),
+    radial-gradient(circle at 50% 46%, #ffe7a6 0 14%, rgba(255,200,120,0) 40%),
+    linear-gradient(#2c2a6e, #8a4fa0 40%, #ff9a6b 70%, #ffd08a); }
+.sc-SAR { background:
+    radial-gradient(circle at 50% 70%, rgba(0,0,0,0) 0 36%, rgba(255,120,170,.75) 37% 40%, rgba(255,210,110,.75) 40% 43%,
+      rgba(140,230,170,.75) 43% 46%, rgba(120,200,255,.75) 46% 49%, rgba(190,150,255,.75) 49% 52%, rgba(0,0,0,0) 53%),
+    radial-gradient(circle at 15% 15%, #fff 0 .8%, rgba(255,255,255,0) 1.2%),
+    radial-gradient(circle at 80% 10%, #fff 0 .7%, rgba(255,255,255,0) 1.1%),
+    radial-gradient(circle at 65% 30%, #fff 0 .6%, rgba(255,255,255,0) 1%),
+    linear-gradient(#1f2a6e, #5b4fb8 45%, #ff9cc8 85%); }
+.sc-MUR { background:
+    radial-gradient(circle at 50% 42%, #fffbe0 0 10%, rgba(255,240,170,.6) 26%, rgba(255,210,80,0) 55%),
+    repeating-conic-gradient(from 0deg at 50% 42%, #ffe58a 0 5deg, #f5b52e 5deg 10deg),
+    #f5b52e; }
+.pc-deco {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 30%, rgba(255,255,255,.9) 0 .9%, rgba(255,255,255,0) 1.4%),
+    radial-gradient(circle at 88% 26%, rgba(255,255,255,.9) 0 1.1%, rgba(255,255,255,0) 1.6%),
+    radial-gradient(circle at 20% 58%, rgba(255,255,255,.8) 0 .7%, rgba(255,255,255,0) 1.2%),
+    radial-gradient(circle at 82% 60%, rgba(255,255,255,.8) 0 .8%, rgba(255,255,255,0) 1.3%);
+}
+
+/* ---------------------------------------------------------------- キラ (ホロ) と てかり */
+.pc-holo, .pc-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: 4.5cqw;
+  pointer-events: none;
+}
+.pc-holo { --h: 0; opacity: calc(var(--h) * (.3 + var(--glare, 0) * .7)); mix-blend-mode: color-dodge; }
+.pc-glare {
+  mix-blend-mode: overlay;
+  opacity: var(--glare, 0);
+  background: radial-gradient(circle at calc(var(--mx) * 1%) calc(var(--my) * 1%), rgba(255,255,255,.85), rgba(255,255,255,0) 52%);
+}
+
+/* R: 絵の窓にだけ、細い光の帯 */
+.r-R .pc-holo {
+  --h: .7;
+  mix-blend-mode: overlay;
+  background: linear-gradient(115deg, rgba(255,255,255,0) 38%, rgba(255,255,255,.75) 50%, rgba(255,255,255,0) 62%);
+  background-size: 260% 100%;
+  background-position: calc(var(--mx) * 1%) 0;
+  -webkit-mask: linear-gradient(#000, #000) 50% 26% / 92% 52% no-repeat;
+  mask: linear-gradient(#000, #000) 50% 26% / 92% 52% no-repeat;
+}
+/* RR: カード全体が虹色に光る */
+.r-RR .pc-holo {
+  --h: .55;
+  background:
+    repeating-linear-gradient(110deg, #ff7eb3 0%, #ffd36b 6%, #8fe3b0 12%, #7ec8ff 18%, #c39bff 24%, #ff7eb3 30%);
+  background-size: 300% 300%;
+  background-position: calc(var(--mx) * 1%) calc(var(--my) * 1%);
+}
+/* AR: きらきらの粒 + やわらかい虹 */
+.r-AR .pc-holo {
+  --h: .5;
+  mix-blend-mode: soft-light;
+  background:
+    radial-gradient(circle, rgba(255,255,255,.95) 0 .5px, rgba(255,255,255,0) 1.2px) 0 0 / 7px 7px,
+    radial-gradient(circle, rgba(255,240,200,.9) 0 .6px, rgba(255,255,255,0) 1.3px) 3px 4px / 11px 11px,
+    linear-gradient(125deg, #ffb3d1, #fff0b3, #b3f0ff, #d9b3ff);
+  background-size: 7px 7px, 11px 11px, 300% 300%;
+  background-position: 0 0, 3px 4px, calc(var(--mx) * 1%) calc(var(--my) * 1%);
+}
+/* SR: 銀の筋 (エッチング) + 銀の照り */
+.r-SR .pc-holo {
+  --h: .85;
+  mix-blend-mode: overlay;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.55) 0 1px, rgba(255,255,255,0) 1px 4px),
+    linear-gradient(115deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.9) 48%, rgba(200,210,230,.4) 56%, rgba(255,255,255,0) 70%);
+  background-size: auto, 260% 100%;
+  background-position: 0 0, calc(var(--mx) * 1%) 0;
+}
+/* SAR: 虹 + 粒 + 筋 (いちばんにぎやか) */
+.r-SAR .pc-holo {
+  --h: .6;
+  background:
+    radial-gradient(circle, rgba(255,255,255,.95) 0 .6px, rgba(255,255,255,0) 1.3px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.35) 0 1px, rgba(255,255,255,0) 1px 5px),
+    repeating-linear-gradient(110deg, #ff7eb3 0%, #ffd36b 7%, #8fe3b0 14%, #7ec8ff 21%, #c39bff 28%, #ff7eb3 35%);
+  background-size: 9px 9px, auto, 320% 320%;
+  background-position: 0 0, 0 0, calc(var(--mx) * 1%) calc(var(--my) * 1%);
+}
+/* MUR: 金の照り + 金の粒 */
+.r-MUR .pc-holo {
+  --h: .8;
+  mix-blend-mode: overlay;
+  background:
+    radial-gradient(circle, rgba(255,250,210,1) 0 .7px, rgba(255,255,255,0) 1.4px),
+    linear-gradient(125deg, #fff6c8 0%, #ffcf40 22%, #fff8dc 40%, #e0a000 60%, #fff0a0 80%, #c88a00 100%);
+  background-size: 8px 8px, 320% 320%;
+  background-position: 0 0, calc(var(--mx) * 1%) calc(var(--my) * 1%);
+}
+
+/* ---------------------------------------------------------------- 小さい表示 (ずかん・結果) */
+.pc.small .pc-text, .pc.small .fr-normal .pc-kind, .pc.small.fr-normal .pc-kind,
+.pc.small .pc-panel .pc-kind, .pc.small .pc-ill { display: none; }
+.pc.small.fr-full .pc-panel { padding: 4cqw 4cqw 3cqw; }
+.pc.small .pc-foot { font-size: 6cqw; }
+.pc.small .pc-name { font-size: 10cqw; }
+.pc.small.fr-normal .pc-art { flex: 1 1 auto; aspect-ratio: auto; }
+
+/* ================================================================ カードの裏 */
+.pc-back {
+  container-type: inline-size;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 63 / 88;
+}
+.pc-back::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 4.5cqw;
+  border: 3cqw solid #fff5e6;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.35) 0 30%, rgba(255,255,255,0) 60%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 4cqw, rgba(255,255,255,0) 4cqw 8cqw),
+    linear-gradient(160deg, #6b7cf0, #8e63d6 50%, #d46bb3);
+  box-shadow: 0 1.2cqw 2.4cqw rgba(60, 30, 20, .25);
+}
+.pb-ring {
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  top: 50%;
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255,255,255,.45) 0 8deg, rgba(255,255,255,0) 8deg 20deg);
+}
+.pb-emblem {
+  position: absolute;
+  left: 27%;
+  right: 27%;
+  top: 50%;
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: #fff5e6;
+  box-shadow: 0 0 0 1.6cqw rgba(255,255,255,.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ff7fa3;
+}
+.pb-emblem svg { width: 46%; height: auto; }
+.pb-title { font-size: 5cqw; line-height: 1.05; text-align: center; color: #7a5fc8; font-weight: 900; letter-spacing: .06em; }
+
+/* ================================================================ パックの絵 */
+.pk { position: relative; width: 100%; height: 100%; container-type: inline-size; }
+.pk-body, .pk-top {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255,255,255,.55), rgba(255,255,255,0) 40%),
+    linear-gradient(165deg, #ff9fc6 0%, #ffb27a 45%, #ffe27a 100%);
+}
+.pk-shine {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(115deg, rgba(255,255,255,.22) 0 10px, rgba(255,255,255,0) 10px 26px);
+  pointer-events: none;
+}
+.pk-logo {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 20%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(200, 80, 90, .45);
+}
+.pk-small { font-size: 4.6cqw; letter-spacing: .1em; opacity: .95; }
+.pk-big {
+  font-size: 13.5cqw;
+  font-weight: 900;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 2.8cqw #ff6f91;
+  text-shadow: 0 1.6cqw 0 #d9506f;
+}
+.pk-sub { font-size: 5.2cqw; padding: 2px 10px; border-radius: 99px; background: rgba(255,111,145,.85); text-shadow: none; }
+.pk-mascots { position: absolute; left: 6%; right: 6%; bottom: 13%; height: 44%; }
+.pk-m { position: absolute; bottom: 0; width: 46%; aspect-ratio: 1; }
+.pk-m .animal { width: 100%; height: 100%; }
+.pk-m0 { left: 0; }
+.pk-m1 { right: 0; }
+.pk-m2 { left: 24%; bottom: 18%; width: 54%; }
+.pk-count { position: absolute; left: 0; right: 0; bottom: 5.5%; text-align: center; font-size: 4.8cqw; color: #fff; text-shadow: 0 1px 0 rgba(200,80,90,.5); }
+
+/* 切り口のなぞり線 (パックの上から 13%) */
+.pk-guide {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  top: 13%;
+  height: 0;
+  border-top: 3px dashed rgba(255,255,255,.9);
+  filter: drop-shadow(0 1px 0 rgba(200,80,90,.4));
+}
+.pk-guide::after {
+  content: "👆";
+  position: absolute;
+  left: 0;
+  top: -2px;
+  font-size: 12cqw;
+  animation: pk-finger 1.5s ease-in-out infinite;
+}
+@keyframes pk-finger {
+  0% { transform: translateX(-6px); opacity: 0; }
+  15% { opacity: 1; }
+  80% { transform: translateX(78cqw); opacity: 1; }
+  100% { transform: translateX(82cqw); opacity: 0; }
+}
+.pk.tearing .pk-guide::after, .pk.torn .pk-guide { display: none; }
+.pk-leak {
+  position: absolute;
+  top: 13%;
+  height: 6px;
+  margin-top: -3px;
+  left: 0;
+  width: 0;
+  border-radius: 3px;
+  background: var(--leak, #fff);
+  box-shadow: 0 0 12px 4px var(--leak, #fff), 0 0 30px 10px var(--leak-glow, rgba(255,255,255,.6));
+  pointer-events: none;
+  opacity: 0;
+}
+.pk.tearing .pk-leak, .pk.torn .pk-leak { opacity: 1; }
+
+.fr-full.r-AR .pc-name { -webkit-text-stroke-color: rgba(214, 90, 140, .8); }
+.fr-full.r-SAR .pc-name { -webkit-text-stroke-color: rgba(90, 60, 160, .75); }
+/* 仮の絵: 金のちびりゅうは金色に */
+.sc-MUR + .pc-animal .animal { filter: sepia(.75) saturate(2.4) hue-rotate(-12deg) brightness(1.05); }

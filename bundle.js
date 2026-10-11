@@ -12,8 +12,8 @@ const out = args.find((a) => !a.startsWith('--')) || path.join(__dirname, 'anima
 const read = (f) => fs.readFileSync(path.join(__dirname, f), 'utf8');
 
 let html = read('index.html');
-const css = read('styles.css');
-const scripts = ['core.js', 'animals.js', 'app.js'];
+const css = ['styles.css', 'card.css', 'opening.css'].map(read).join('\n');
+const scripts = ['cards.js', 'core.js', 'animals.js', 'card.js', 'fx.js', 'opening.js', 'app.js'];
 
 if (artifact) {
   const title = html.match(/<title>[^<]*<\/title>/)[0];
@@ -25,6 +25,7 @@ if (artifact) {
     scripts.map((f) => '<script>\n' + read(f).replace(/<\/script>/g, '<\\/script>') + '\n</script>\n').join('');
 } else {
   html = html.replace(/<link rel="stylesheet" href="\.\/styles\.css">/, () => '<style>\n' + css + '\n</style>');
+  html = html.replace(/<link rel="stylesheet" href="\.\/(card|opening)\.css">\n?/g, '');
   html = html.replace(/<link rel="icon"[^>]*>/, () =>
     '<link rel="icon" href="data:image/svg+xml;base64,' + Buffer.from(read('icon.svg')).toString('base64') + '">');
   scripts.forEach((f) => {

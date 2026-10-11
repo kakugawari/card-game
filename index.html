@@ -8,6 +8,8 @@
 <meta name="theme-color" content="#fff3d6">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="./card.css">
+<link rel="stylesheet" href="./opening.css">
 </head>
 <body>
 
@@ -17,6 +19,7 @@
       <svg class="coin-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#ffc933" stroke="#c98a0b" stroke-width="1.6"/><circle cx="12" cy="12" r="7" fill="none" stroke="#e9a512" stroke-width="1.6"/><path d="M12 7.5v9M9.6 10h3.6a1.6 1.6 0 010 3.2H9.6" fill="none" stroke="#c98a0b" stroke-width="1.5" stroke-linecap="round"/></svg>
       <span id="moneyNum">0</span>
     </div>
+    <button type="button" class="mute" id="btnMute" aria-label="おと"><span id="muteIco">🔊</span></button>
   </header>
 
   <main id="stage">
@@ -59,23 +62,24 @@
     <!-- パック -->
     <section class="screen" id="scPacks" hidden>
       <h2 class="h2">パックをあける</h2>
-      <div class="pack-free" id="packFree">
-        <div class="pack-art" id="artFree"></div>
-        <div class="pack-body">
-          <div class="pack-name">まいにちパック</div>
-          <div class="pack-sub">1にち1かい ただでひける！</div>
-          <button type="button" class="btn btn-big" id="btnFree"><span class="btn-label" id="btnFreeLabel">あける</span></button>
-        </div>
+      <div class="shop">
+        <div class="shop-pack" id="shopPack"></div>
+        <div class="shop-name" id="shopName">どうぶつパック</div>
+        <button type="button" class="btn btn-big" id="btnFree"><span class="btn-label" id="btnFreeLabel">きょうの むりょうパック！</span></button>
+        <button type="button" class="btn btn-big btn-coin" id="btnBuy"><span class="btn-label" id="btnBuyLabel">500</span></button>
+        <div class="box-left" id="boxLeft"></div>
       </div>
-      <div class="pack-row" id="packShop"></div>
-      <p class="note">コインのきを タップして ためよう。</p>
+      <details class="rates">
+        <summary>でる カードと かくりつ</summary>
+        <div class="rates-body" id="rates"></div>
+      </details>
     </section>
 
     <!-- ずかん -->
     <section class="screen" id="scZukan" hidden>
       <div class="zk-head">
-        <h2 class="h2">どうぶつずかん</h2>
-        <div class="zk-count" id="zkCount">0 / 20</div>
+        <h2 class="h2">ずかん</h2>
+        <div class="zk-count"><b id="zkCount">0 / 33</b><small id="zkSub"></small></div>
       </div>
       <div class="zk-grid" id="zkGrid"></div>
     </section>
@@ -87,28 +91,49 @@
     <button type="button" class="tab" data-tab="Zukan"><span class="tab-ico">📖</span><span class="tab-name">ずかん</span></button>
   </nav>
 
-  <!-- パックを開ける -->
-  <div id="reveal" hidden>
-    <div class="rv-pack" id="rvPack" role="button" tabindex="0" aria-label="パックをやぶる">
-      <div class="rv-pack-art" id="rvPackArt"></div>
-      <p class="rv-tip">タップして やぶろう！</p>
+  <!-- パックを開ける (opening.js) -->
+  <div id="open" hidden data-bg="day">
+    <div class="op-bg"><i class="b-day"></i><i class="b-night"></i><i class="b-pastel"></i><i class="b-gold"></i></div>
+    <div class="op-rays" id="opRays"></div>
+    <div class="op-stage" id="opStage">
+      <div class="op-pack" id="opPack"></div>
+      <div class="op-ring" id="opRing" hidden><svg viewBox="0 0 290 397" aria-hidden="true"><rect x="5" y="5" width="280" height="387" rx="16" pathLength="1"/></svg></div>
+      <div class="op-stack" id="opStack" hidden></div>
     </div>
-    <div class="rv-cards" id="rvCards" hidden></div>
-    <div class="rv-actions" id="rvActions" hidden>
-      <button type="button" class="btn btn-big" id="btnFlipAll"><span class="btn-label">ぜんぶめくる</span></button>
-      <button type="button" class="btn btn-big btn-done" id="btnClose" hidden><span class="btn-label">とじる</span></button>
+    <canvas id="opFx"></canvas>
+    <div class="op-black" id="opBlack"></div>
+    <svg class="op-crack" id="opCrack" viewBox="0 0 430 932" preserveAspectRatio="none" aria-hidden="true">
+      <path pathLength="1" d="M-10 440 L50 418 L92 452 L140 414 L176 446 L215 404 L250 448 L292 420 L330 456 L376 426 L440 446"/>
+    </svg>
+    <div class="op-banner" id="opBanner" hidden></div>
+    <div class="op-count" id="opCount"></div>
+    <button type="button" class="op-skip" id="opSkip">スキップ ▶▶</button>
+    <p class="op-hint" id="opHint" hidden></p>
+    <div class="op-result" id="opResult" hidden>
+      <h2>ゲット！</h2>
+      <div class="op-grid" id="opGrid"></div>
+      <div class="op-actions">
+        <button type="button" class="btn btn-big" id="opAgain"><span class="btn-label" id="opAgainLabel">もう1パック</span></button>
+        <button type="button" class="btn btn-big btn-done" id="opClose"><span class="btn-label">とじる</span></button>
+      </div>
     </div>
+    <div class="op-zoom" id="opZoom" hidden><div class="op-zoom-box" id="opZoomBox"></div></div>
+    <div class="op-flash" id="opFlash"></div>
   </div>
 
-  <!-- どうぶつの詳細 -->
+  <!-- カードを大きく見る -->
   <div id="detail" hidden>
     <div class="dt-box" id="dtBox"></div>
-    <p class="dt-tip">どこかを タップで とじる</p>
+    <p class="dt-tip">さわって かたむけてね ・ そとを タップで とじる</p>
   </div>
 </div>
 
+<script src="./cards.js"></script>
 <script src="./core.js"></script>
 <script src="./animals.js"></script>
+<script src="./card.js"></script>
+<script src="./fx.js"></script>
+<script src="./opening.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>
