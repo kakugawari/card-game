@@ -2,10 +2,10 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>アプリの雛形</title>
-<meta name="description" content="ビルドなしで動くアプリの雛形">
-<meta name="theme-color" content="#151a2e">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>どうぶつパック</title>
+<meta name="description" content="まいにち1パック。コインをためて、かわいいどうぶつカードをあつめよう">
+<meta name="theme-color" content="#fff3d6">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="./styles.css">
 </head>
@@ -13,23 +13,102 @@
 
 <div id="app">
   <header id="topbar">
-    <h1 class="title">アプリの雛形</h1>
-    <div class="topbar-actions">
-      <button type="button" id="btnAction" class="btn btn-primary">ためす</button>
+    <div class="money" id="money" aria-label="コイン">
+      <svg class="coin-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#ffc933" stroke="#c98a0b" stroke-width="1.6"/><circle cx="12" cy="12" r="7" fill="none" stroke="#e9a512" stroke-width="1.6"/><path d="M12 7.5v9M9.6 10h3.6a1.6 1.6 0 010 3.2H9.6" fill="none" stroke="#c98a0b" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span id="moneyNum">0</span>
     </div>
   </header>
 
   <main id="stage">
-    <p class="lead">ここにアプリを作る。</p>
-    <p class="result" id="result">—</p>
-    <p class="note">
-      ロジックは <code>src/core.js</code> に、画面は <code>src/app.js</code> に書く。<br>
-      <code>npm test</code> でロジックを、<code>npm run test:ui</code> で画面を確かめる。
-    </p>
+    <!-- ひろば: タップでコインをかせぐ -->
+    <section class="screen" id="scHome">
+      <div class="plaza" id="plaza">
+        <button type="button" class="tree-btn" id="tree" aria-label="コインのきをタップ">
+          <svg class="tree" viewBox="0 0 260 260" aria-hidden="true">
+            <ellipse cx="130" cy="244" rx="80" ry="10" fill="#000" opacity=".1"/>
+            <path d="M104 244 Q108 190 112 150 L148 150 Q152 190 156 244 Z" fill="#c68a53" stroke="#8a5a34" stroke-width="3" stroke-linejoin="round"/>
+            <g fill="#8fd96a" stroke="#4f9f35" stroke-width="3">
+              <circle cx="130" cy="64" r="46"/><circle cx="78" cy="104" r="42"/><circle cx="182" cy="104" r="42"/>
+              <circle cx="104" cy="124" r="38"/><circle cx="156" cy="124" r="38"/>
+            </g>
+            <g fill="#8fd96a"><circle cx="130" cy="64" r="43"/><circle cx="78" cy="104" r="39"/><circle cx="182" cy="104" r="39"/><circle cx="104" cy="124" r="35"/><circle cx="156" cy="124" r="35"/></g>
+            <g fill="#ffc933" stroke="#c98a0b" stroke-width="2.4">
+              <circle cx="104" cy="52" r="12"/><circle cx="150" cy="70" r="12"/><circle cx="66" cy="98" r="12"/>
+              <circle cx="196" cy="104" r="12"/><circle cx="128" cy="108" r="12"/><circle cx="92" cy="138" r="11"/><circle cx="168" cy="138" r="11"/>
+            </g>
+            <g fill="none" stroke="#e9a512" stroke-width="2"><circle cx="104" cy="52" r="7"/><circle cx="150" cy="70" r="7"/><circle cx="66" cy="98" r="7"/><circle cx="196" cy="104" r="7"/><circle cx="128" cy="108" r="7"/></g>
+            <ellipse cx="119" cy="190" rx="5" ry="7" fill="#4a3436"/><ellipse cx="141" cy="190" rx="5" ry="7" fill="#4a3436"/>
+            <circle cx="117" cy="187" r="2" fill="#fff"/><circle cx="139" cy="187" r="2" fill="#fff"/>
+            <ellipse cx="106" cy="203" rx="9" ry="5.5" fill="#ff9bb3" opacity=".6"/><ellipse cx="154" cy="203" rx="9" ry="5.5" fill="#ff9bb3" opacity=".6"/>
+            <path d="M122 202 Q126 209 130 202 Q134 209 138 202" fill="none" stroke="#4a3436" stroke-width="2.6" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <p class="tap-hint" id="tapHint">コインのきを タップ！</p>
+        <div class="ground" id="ground"></div>
+      </div>
+
+      <div class="upgrade" id="upgrade">
+        <div class="up-info">
+          <div class="up-name">ゆびのちから <b id="upLv">Lv.1</b></div>
+          <div class="up-sub" id="upSub">1かいで 1コイン</div>
+        </div>
+        <button type="button" class="btn btn-up" id="btnUp"><span class="btn-label" id="btnUpLabel">40</span></button>
+      </div>
+    </section>
+
+    <!-- パック -->
+    <section class="screen" id="scPacks" hidden>
+      <h2 class="h2">パックをあける</h2>
+      <div class="pack-free" id="packFree">
+        <div class="pack-art" id="artFree"></div>
+        <div class="pack-body">
+          <div class="pack-name">まいにちパック</div>
+          <div class="pack-sub">1にち1かい ただでひける！</div>
+          <button type="button" class="btn btn-big" id="btnFree"><span class="btn-label" id="btnFreeLabel">あける</span></button>
+        </div>
+      </div>
+      <div class="pack-row" id="packShop"></div>
+      <p class="note">コインのきを タップして ためよう。</p>
+    </section>
+
+    <!-- ずかん -->
+    <section class="screen" id="scZukan" hidden>
+      <div class="zk-head">
+        <h2 class="h2">どうぶつずかん</h2>
+        <div class="zk-count" id="zkCount">0 / 20</div>
+      </div>
+      <div class="zk-grid" id="zkGrid"></div>
+    </section>
   </main>
+
+  <nav id="tabbar" aria-label="メニュー">
+    <button type="button" class="tab on" data-tab="Home"><span class="tab-ico">🌳</span><span class="tab-name">ひろば</span></button>
+    <button type="button" class="tab" data-tab="Packs"><span class="tab-ico">🎁</span><span class="tab-name">パック</span><i class="dot" id="packDot" hidden></i></button>
+    <button type="button" class="tab" data-tab="Zukan"><span class="tab-ico">📖</span><span class="tab-name">ずかん</span></button>
+  </nav>
+
+  <!-- パックを開ける -->
+  <div id="reveal" hidden>
+    <div class="rv-pack" id="rvPack" role="button" tabindex="0" aria-label="パックをやぶる">
+      <div class="rv-pack-art" id="rvPackArt"></div>
+      <p class="rv-tip">タップして やぶろう！</p>
+    </div>
+    <div class="rv-cards" id="rvCards" hidden></div>
+    <div class="rv-actions" id="rvActions" hidden>
+      <button type="button" class="btn btn-big" id="btnFlipAll"><span class="btn-label">ぜんぶめくる</span></button>
+      <button type="button" class="btn btn-big btn-done" id="btnClose" hidden><span class="btn-label">とじる</span></button>
+    </div>
+  </div>
+
+  <!-- どうぶつの詳細 -->
+  <div id="detail" hidden>
+    <div class="dt-box" id="dtBox"></div>
+    <p class="dt-tip">どこかを タップで とじる</p>
+  </div>
 </div>
 
 <script src="./core.js"></script>
+<script src="./animals.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>
