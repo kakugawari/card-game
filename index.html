@@ -2,34 +2,206 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>アプリの雛形</title>
-<meta name="description" content="ビルドなしで動くアプリの雛形">
-<meta name="theme-color" content="#151a2e">
-<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>どうぶつパック</title>
+<meta name="description" content="まいにち1パック。コインをためて、かわいいどうぶつカードをあつめよう">
+<meta name="theme-color" content="#fff3d6">
+<link rel="icon" href="./icon-64.png" type="image/png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="./card.css">
+<link rel="stylesheet" href="./opening.css">
 </head>
 <body>
 
 <div id="app">
   <header id="topbar">
-    <h1 class="title">アプリの雛形</h1>
-    <div class="topbar-actions">
-      <button type="button" id="btnAction" class="btn btn-primary">ためす</button>
+    <div class="money" id="money" aria-label="コイン">
+      <svg class="coin-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#ffc933" stroke="#c98a0b" stroke-width="1.6"/><circle cx="12" cy="12" r="7" fill="none" stroke="#e9a512" stroke-width="1.6"/><path d="M12 7.5v9M9.6 10h3.6a1.6 1.6 0 010 3.2H9.6" fill="none" stroke="#c98a0b" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span id="moneyNum">0</span>
     </div>
+    <button type="button" class="mute" id="btnMute" aria-label="おと"><span id="muteIco">🔊</span></button>
   </header>
 
   <main id="stage">
-    <p class="lead">ここにアプリを作る。</p>
-    <p class="result" id="result">—</p>
-    <p class="note">
-      ロジックは <code>src/core.js</code> に、画面は <code>src/app.js</code> に書く。<br>
-      <code>npm test</code> でロジックを、<code>npm run test:ui</code> で画面を確かめる。
-    </p>
+    <!-- ひろば: タップでコインをかせぐ -->
+    <section class="screen" id="scHome">
+      <div class="plaza" id="plaza">
+        <button type="button" class="tree-btn" id="tree" aria-label="コインのきをタップ">
+          <svg class="tree" viewBox="0 0 260 260" aria-hidden="true">
+            <ellipse cx="130" cy="244" rx="80" ry="10" fill="#000" opacity=".1"/>
+            <path d="M104 244 Q108 190 112 150 L148 150 Q152 190 156 244 Z" fill="#c68a53" stroke="#8a5a34" stroke-width="3" stroke-linejoin="round"/>
+            <g fill="#8fd96a" stroke="#4f9f35" stroke-width="3">
+              <circle cx="130" cy="64" r="46"/><circle cx="78" cy="104" r="42"/><circle cx="182" cy="104" r="42"/>
+              <circle cx="104" cy="124" r="38"/><circle cx="156" cy="124" r="38"/>
+            </g>
+            <g fill="#8fd96a"><circle cx="130" cy="64" r="43"/><circle cx="78" cy="104" r="39"/><circle cx="182" cy="104" r="39"/><circle cx="104" cy="124" r="35"/><circle cx="156" cy="124" r="35"/></g>
+            <g fill="#ffc933" stroke="#c98a0b" stroke-width="2.4">
+              <circle cx="104" cy="52" r="12"/><circle cx="150" cy="70" r="12"/><circle cx="66" cy="98" r="12"/>
+              <circle cx="196" cy="104" r="12"/><circle cx="128" cy="108" r="12"/><circle cx="92" cy="138" r="11"/><circle cx="168" cy="138" r="11"/>
+            </g>
+            <g fill="none" stroke="#e9a512" stroke-width="2"><circle cx="104" cy="52" r="7"/><circle cx="150" cy="70" r="7"/><circle cx="66" cy="98" r="7"/><circle cx="196" cy="104" r="7"/><circle cx="128" cy="108" r="7"/></g>
+            <ellipse cx="119" cy="190" rx="5" ry="7" fill="#4a3436"/><ellipse cx="141" cy="190" rx="5" ry="7" fill="#4a3436"/>
+            <circle cx="117" cy="187" r="2" fill="#fff"/><circle cx="139" cy="187" r="2" fill="#fff"/>
+            <ellipse cx="106" cy="203" rx="9" ry="5.5" fill="#ff9bb3" opacity=".6"/><ellipse cx="154" cy="203" rx="9" ry="5.5" fill="#ff9bb3" opacity=".6"/>
+            <path d="M122 202 Q126 209 130 202 Q134 209 138 202" fill="none" stroke="#4a3436" stroke-width="2.6" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <p class="tap-hint" id="tapHint">コインのきを タップ！</p>
+        <div class="ground" id="ground"></div>
+      </div>
+
+      <div class="upgrade" id="upgrade">
+        <div class="up-info">
+          <div class="up-name">ゆびのちから <b id="upLv">Lv.1</b></div>
+          <div class="up-sub" id="upSub">1かいで 1コイン</div>
+        </div>
+        <button type="button" class="btn btn-up" id="btnUp"><span class="btn-label" id="btnUpLabel">40</span></button>
+      </div>
+    </section>
+
+    <!-- パック -->
+    <section class="screen" id="scPacks" hidden>
+      <!-- パックをえらぶ台: 大きいパックを ◀ ▶ (スワイプ) でめくる -->
+      <div class="stage" id="packStage">
+        <div class="stage-plaque"><i class="stage-paw" id="stageMark">🐾</i><b id="shopName">どうぶつパック</b></div>
+        <p class="stage-desc" id="stageDesc"></p>
+        <div class="stage-row" id="stageRow">
+          <button type="button" class="stage-arrow prev" id="btnPrev" aria-label="まえの パック"></button>
+          <div class="stage-pack-wrap"><div class="shop-pack" id="shopPack"></div><i class="stage-shadow"></i></div>
+          <button type="button" class="stage-arrow next" id="btnNext" aria-label="つぎの パック"></button>
+        </div>
+        <div class="stage-meta">
+          <span class="stage-have" id="stageHave">てもと 0</span>
+          <span class="stage-index" id="stageIndex">1 / 100</span>
+          <div class="set-pick" id="setPick"></div>
+        </div>
+      </div>
+      <div class="stage-btns">
+        <button type="button" class="btn btn-big btn-open" id="btnFree"><span class="btn-label" id="btnFreeLabel">きょうの むりょうパック！</span></button>
+        <button type="button" class="btn btn-mid btn-coin" id="btnBuy"><span class="btn-label" id="btnBuyLabel">500</span></button>
+        <div class="box-left" id="boxLeft"></div>
+      </div>
+      <div class="boxshop">
+        <div class="boxshop-row">
+          <div class="boxart" id="boxArt" aria-hidden="true"></div>
+          <div class="boxshop-info">
+            <div class="boxshop-title">BOX で かう</div>
+            <div class="boxshop-sub">30パック入り<br><b>SR いじょう 1まい かくてい！</b></div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-big btn-coin" id="btnBox"><span class="btn-label" id="btnBoxLabel">15,000</span></button>
+        <div class="mybox" id="myBox" hidden>
+          <div class="mybox-text"><b id="myBoxLeft">のこり 30パック</b><span id="myBoxSr"></span></div>
+          <div class="mybox-btns">
+            <button type="button" class="btn btn-mid btn-box" id="btnOpenBox"><span class="btn-label">1パック あける</span></button>
+            <button type="button" class="btn btn-mid btn-all" id="btnOpenAll"><span class="btn-label" id="btnOpenAllLabel">まとめて あける</span></button>
+          </div>
+        </div>
+      </div>
+      <details class="rates">
+        <summary>でる カードと かくりつ</summary>
+        <div class="rates-body" id="rates"></div>
+      </details>
+    </section>
+
+    <!-- ずかん -->
+    <section class="screen" id="scZukan" hidden>
+      <div class="set-pick" id="zkPick"></div>
+      <div class="zk-head">
+        <h2 class="h2" id="zkTitle">ずかん</h2>
+        <div class="zk-count"><b id="zkCount">0 / 33</b><small id="zkSub"></small></div>
+      </div>
+      <div class="zk-grid" id="zkGrid"></div>
+    </section>
   </main>
+
+  <nav id="tabbar" aria-label="メニュー">
+    <button type="button" class="tab on" data-tab="Home"><span class="tab-ico">🌳</span><span class="tab-name">ひろば</span></button>
+    <button type="button" class="tab" data-tab="Packs"><span class="tab-ico">🎁</span><span class="tab-name">パック</span><i class="dot" id="packDot" hidden></i></button>
+    <button type="button" class="tab" data-tab="Zukan"><span class="tab-ico">📖</span><span class="tab-name">ずかん</span></button>
+  </nav>
+
+  <!-- パックを開ける (opening.js) -->
+  <div id="open" hidden data-bg="day">
+    <div class="op-bg"><i class="b-day"></i><i class="b-night"></i><i class="b-pastel"></i><i class="b-gold"></i><i class="b-cosmos"></i></div>
+    <div class="op-rays" id="opRays"></div>
+    <div class="op-stage" id="opStage">
+      <div class="op-pack" id="opPack"></div>
+      <div class="op-ring" id="opRing" hidden><svg viewBox="0 0 290 397" aria-hidden="true"><rect x="5" y="5" width="280" height="387" rx="16" pathLength="1"/></svg></div>
+      <div class="op-stack" id="opStack" hidden></div>
+    </div>
+    <canvas id="opFx"></canvas>
+    <div class="op-black" id="opBlack"></div>
+    <svg class="op-crack" id="opCrack" viewBox="0 0 430 932" preserveAspectRatio="none" aria-hidden="true">
+      <path pathLength="1" d="M-10 440 L50 418 L92 452 L140 414 L176 446 L215 404 L250 448 L292 420 L330 456 L376 426 L440 446"/>
+    </svg>
+    <div class="op-bulk" id="opBulk" hidden>
+      <div class="ob-pack" id="obPack"></div>
+      <div class="ob-count" id="obCount"></div>
+      <div class="ob-text">まとめて あけているよ…</div>
+    </div>
+    <div class="op-banner" id="opBanner" hidden></div>
+    <div class="op-count" id="opCount"></div>
+    <button type="button" class="op-skip" id="opSkip">スキップ ▶▶</button>
+    <p class="op-hint" id="opHint" hidden></p>
+    <div class="op-result" id="opResult" hidden>
+      <h2 id="opResTitle">ゲット！</h2>
+      <div class="op-sum" id="opSum" hidden></div>
+      <div class="op-grid" id="opGrid"></div>
+      <div class="op-actions">
+        <button type="button" class="btn btn-big" id="opAgain"><span class="btn-label" id="opAgainLabel">もう1パック</span></button>
+        <button type="button" class="btn btn-big btn-done" id="opClose"><span class="btn-label">とじる</span></button>
+      </div>
+    </div>
+    <div class="op-zoom" id="opZoom" hidden><div class="op-zoom-box" id="opZoomBox"></div></div>
+    <div class="op-flash" id="opFlash"></div>
+  </div>
+
+  <!-- なかよしの子に おやつ -->
+  <!-- パックを えらぶ (100 しゅるい) -->
+  <div id="packSheet" hidden>
+    <div class="psh-panel">
+      <div class="psh-head"><b id="pshTitle">パックを えらぶ</b><button type="button" class="psh-close" id="pshClose" aria-label="とじる">×</button></div>
+      <div class="psh-body" id="pshBody"></div>
+    </div>
+  </div>
+
+  <div id="petSheet" hidden>
+    <div class="ps-panel">
+      <button type="button" class="ps-close" id="psClose" aria-label="とじる">×</button>
+      <div class="ps-stage">
+        <button type="button" class="ps-animal" id="psAnimal" aria-label="なでる"></button>
+        <div class="ps-fx" id="psFx"></div>
+        <div class="ps-levelup" id="psLevelUp" hidden></div>
+      </div>
+      <div class="ps-name" id="psName"></div>
+      <div class="ps-lv"><b id="psLv">なかよし Lv.1</b><div class="ps-bar"><i id="psBar"></i></div><small id="psNext"></small></div>
+      <div class="ps-tummy" id="psTummy"></div>
+      <div class="ps-snacks" id="psSnacks">
+        <button type="button" data-snack="apple"><span class="sn-ico"></span><span class="sn-name"></span><span class="sn-aff"></span><span class="sn-price"></span></button>
+        <button type="button" data-snack="cookie"><span class="sn-ico"></span><span class="sn-name"></span><span class="sn-aff"></span><span class="sn-price"></span></button>
+        <button type="button" data-snack="fav" class="sn-fav"><span class="sn-ico"></span><span class="sn-name"></span><span class="sn-aff"></span><span class="sn-price"></span></button>
+      </div>
+      <p class="ps-tip" id="psTip"></p>
+    </div>
+  </div>
+
+  <!-- カードを大きく見る -->
+  <div id="detail" hidden>
+    <div class="dt-box" id="dtBox"></div>
+    <p class="dt-tip">さわって かたむけてね ・ そとを タップで とじる</p>
+  </div>
 </div>
 
+<script src="./packs.js"></script>
+<script src="./cards.js"></script>
 <script src="./core.js"></script>
+<script src="./animals.js"></script>
+<script src="./scenery.js"></script>
+<script src="./card.js"></script>
+<script src="./fx.js"></script>
+<script src="./opening.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>

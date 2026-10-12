@@ -1,12 +1,13 @@
 {
-  "name": "app-template",
+  "name": "animal-packs",
   "version": "1.0.0",
-  "description": "ビルドなしで動くアプリの雛形 (進め方のルールつき)",
+  "description": "まいにち1パック、かわいい動物カードをあつめるゲーム (ビルドなし)",
   "private": true,
   "scripts": {
     "start": "node serve.js",
     "test": "node --test *.test.js",
-    "test:ui": "node browser-test.js"
+    "test:ui": "node browser-test.js",
+    "bundle": "node bundle.js"
   },
   "license": "MIT"
 }
