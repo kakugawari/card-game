@@ -7,6 +7,7 @@
 <meta name="description" content="まいにち1パック。コインをためて、かわいいどうぶつカードをあつめよう">
 <meta name="theme-color" content="#fff3d6">
 <link rel="icon" href="./icon-64.png" type="image/png">
+<link rel="preload" as="image" href="./title.jpg">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./card.css">
@@ -193,6 +194,15 @@
     <div class="dt-box" id="dtBox"></div>
     <p class="dt-tip">さわって かたむけてね ・ そとを タップで とじる</p>
   </div>
+</div>
+
+<!-- タイトル画面 (開くたびに はじめに出る。「あそぶ」で ひろば = 木をタップする画面へ) -->
+<div id="title">
+  <div class="tt-stage">
+    <img class="tt-img" src="./title.jpg" alt="どうぶつカードコレクション" draggable="false">
+    <i class="tt-sp s1">✦</i><i class="tt-sp s2">✦</i><i class="tt-sp s3">✦</i><i class="tt-sp s4">✦</i><i class="tt-sp s5">✦</i><i class="tt-sp s6">✦</i>
+  </div>
+  <button type="button" class="btn btn-big btn-open tt-play" id="btnPlay"><span class="btn-label">あそぶ</span></button>
 </div>
 
 <script src="./packs.js"></script>

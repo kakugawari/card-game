@@ -33,5 +33,7 @@ if (artifact) {
     html = html.replace('<script src="./' + f + '"></script>', () => '<script>\n' + read(f).replace(/<\/script>/g, '<\\/script>') + '\n</script>');
   });
 }
+// タイトルの絵は 1 枚の HTML の中へ埋め込む
+html = html.replace(/\.\/title\.jpg/g, () => 'data:image/jpeg;base64,' + fs.readFileSync(path.join(__dirname, 'title.jpg')).toString('base64'));
 fs.writeFileSync(out, html);
 console.log(out + ' (' + Math.round(html.length / 1024) + 'KB)');

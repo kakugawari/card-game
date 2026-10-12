@@ -56,11 +56,12 @@ function waitForServer() {
 }
 
 async function newGame(browser, errors, opts) {
-  const context = await browser.newContext({ ...PHONE, ...(opts || {}) });
+  const { title, ...ctxOpts } = opts || {};
+  const context = await browser.newContext({ ...PHONE, ...ctxOpts });
   const page = await context.newPage();
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  await page.goto(URL);
+  await page.goto(URL + (title ? '' : '?title=0'));   // タイトルを出さない (出すのは「タイトル」の試験だけ)
   await page.waitForFunction(() => window.__app);
   return { context, page };
 }
@@ -209,6 +210,48 @@ async function run() {
 
   try {
     let context, page;
+
+    // ------------------------------------------------ タイトル画面
+    if (want('タイトル')) {
+      section('タイトル: 開くたびに はじめに出る → 「あそぶ」で ひろば (木をタップする画面)');
+      ({ context, page } = await newGame(browser, errors, { title: true }));
+      await page.waitForFunction(() => document.querySelector('.tt-img').complete);
+      const t0 = await page.evaluate(() => {
+        const img = document.querySelector('.tt-img').getBoundingClientRect();
+        const btn = document.getElementById('btnPlay').getBoundingClientRect();
+        const hit = document.elementFromPoint(btn.left + btn.width / 2, btn.top + btn.height / 2);
+        return { open: window.__app.titleOpen(), ok: document.querySelector('.tt-img').naturalWidth > 0, w: img.width, h: img.height,
+          btnTop: btn.top, btnBottom: btn.bottom, btnL: btn.left, btnR: btn.right, hit: !!(hit && hit.closest('#btnPlay')),
+          covers: document.getElementById('title').getBoundingClientRect().height, sky: document.getElementById('title').hidden };
+      });
+      ok(t0.open && !t0.sky && t0.ok, '開くと タイトルが出ていて、絵が読み込めている');
+      ok(Math.abs(t0.w - 430) < 1 && Math.abs(t0.h - 931.5) < 2 && t0.covers >= 932, `絵は 幅いっぱい・縦も画面ぜんたい (${Math.round(t0.w)} x ${Math.round(t0.h)})`);
+      ok(t0.hit && t0.btnBottom <= 932 - 20 && t0.btnL >= 20 && t0.btnR <= 410, `「あそぶ」が 画面の中で押せる (${Math.round(t0.btnTop)}〜${Math.round(t0.btnBottom)})`);
+      const m0 = await money(page);
+      const tb = await box(page, '#tree');
+      await page.touchscreen.tap(tb.x + 100, tb.y + 100);   // 本物の指と同じ。うしろの木は、タイトルにさえぎられて受け取らない
+      await page.waitForTimeout(150);
+      ok((await money(page)) === m0, 'タイトルが出ている間は うしろの木を タップしても コインは増えない');
+      const pb = await box(page, '#btnPlay');   // ゆれて大きさが変わる ボタンは、Playwright の「止まるまで待つ」に合わないので、指でまんなかを押す
+      await page.touchscreen.tap(pb.x + pb.width / 2, pb.y + pb.height / 2);
+      await page.waitForFunction(() => document.getElementById('title').hidden, null, { timeout: 3000 });
+      ok(await page.locator('#scHome').isVisible() && !(await page.evaluate(() => window.__app.titleOpen())), '「あそぶ」で タイトルが消えて、ひろば (木の画面) になる');
+      for (let i = 0; i < 5; i++) await page.tap('#tree', { position: { x: 90 + i * 10, y: 90 } });
+      ok((await money(page)) >= 5, `そのまま 木をタップして コインがかせげる (${await money(page)})`);
+      await page.reload();
+      await page.waitForFunction(() => window.__app);
+      ok(await page.evaluate(() => window.__app.titleOpen() && !document.getElementById('title').hidden), '開き直すと、また タイトルから はじまる');
+      // 状態バーの下から始まる低い画面 (873) でも 「あそぶ」が見える・押せる
+      await page.setViewportSize({ width: 430, height: 873 });
+      await page.waitForTimeout(100);
+      const low = await page.evaluate(() => {
+        const btn = document.getElementById('btnPlay').getBoundingClientRect();
+        const hit = document.elementFromPoint(btn.left + btn.width / 2, btn.top + btn.height / 2);
+        return { bottom: btn.bottom, hit: !!(hit && hit.closest('#btnPlay')) };
+      });
+      ok(low.hit && low.bottom <= 873, `高さ 873 でも 「あそぶ」が画面の中 (下 ${Math.round(low.bottom)})`);
+      await context.close();
+    }
 
     // ------------------------------------------------ 開く・安全域
     if (want('画面')) {
