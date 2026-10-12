@@ -223,6 +223,19 @@ async function run() {
         document.documentElement.style.setProperty('--safe-top', '59px');
         document.documentElement.style.setProperty('--safe-bottom', '34px');
       });
+      // 渡された画面の高さ (innerHeight) にぴったり合い、タブが画面の外へ出ない。状態バーの下から始まる画面 (873) でも
+      for (const h of [932, 873]) {
+        await page.setViewportSize({ width: 430, height: h });
+        await page.waitForTimeout(100);
+        const fitH = await page.evaluate(() => ({
+          app: document.getElementById('app').getBoundingClientRect().height, win: window.innerHeight,
+          bar: document.getElementById('tabbar').getBoundingClientRect().bottom, root: document.documentElement.getBoundingClientRect().height,
+          diag: document.getElementById('diag').textContent
+        }));
+        ok(Math.abs(fitH.app - fitH.win) < 0.5 && fitH.bar <= fitH.win + 0.5 && Math.abs(fitH.root - fitH.win) < 0.5,
+          `高さ ${h}: 画面にぴったり (描ける ${Math.round(fitH.app)} / 窓 ${fitH.win} / タブの下 ${Math.round(fitH.bar)}) 診断「${fitH.diag}」`);
+      }
+      await page.setViewportSize({ width: 430, height: 932 });
       for (const tab of ['Home', 'Packs', 'Zukan']) {
         await goTab(page, tab);
         await page.waitForTimeout(100);

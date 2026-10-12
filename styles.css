@@ -20,9 +20,11 @@
 
 [hidden] { display: none !important; }
 
+/* 高さは % で決める (vh は使わない)。ホーム画面から開いたとき、状態バーの下から始まる画面 (描ける 873) でも vh は 932 を返し、
+   下が 59pt 切れた。% なら、渡された画面の高さにちょうど合う */
 html, body {
   margin: 0;
-  height: 100vh;
+  height: 100%;
   position: relative;
   overflow: hidden;
   overscroll-behavior: none;
@@ -772,6 +774,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   cursor: pointer;
 }
 #topbar { position: relative; }
+#diag { position: absolute; left: 10px; top: 2px; font-size: 9px; font-weight: 400; color: var(--muted); opacity: .55; pointer-events: none; white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) {
   .animal * { animation: none !important; }

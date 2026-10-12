@@ -730,8 +730,22 @@
     Sfx.unlock();
   });
 
+  // ---------------------------------------------------------------- 画面の大きさの診断 (実機の写真 1 枚で確かめるため)
+  // 版 / 描ける (#app の高さ) / 窓 (innerHeight) / vh。描ける = 窓 のとき、下が切れていない
+  const APP_VER = 'v12';
+  function renderDiag() {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;left:0;top:0;width:1px;height:100vh;visibility:hidden';
+    document.body.appendChild(probe);
+    const vh = probe.getBoundingClientRect().height;
+    probe.remove();
+    $('diag').textContent = APP_VER + ' 描ける' + Math.round($('app').getBoundingClientRect().height) + ' 窓' + Math.round(window.innerHeight) + ' vh' + Math.round(vh);
+  }
+
   // ---------------------------------------------------------------- 起動
   function main() {
+    renderDiag();
+    window.addEventListener('resize', renderDiag);
     buildShop();
     renderUpgrade();
     renderWalkers();
