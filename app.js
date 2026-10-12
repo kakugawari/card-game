@@ -730,6 +730,26 @@
     Sfx.unlock();
   });
 
+  // ---------------------------------------------------------------- タイトル画面
+  // 開くたびに はじめに出る。「あそぶ」を押すと ひろば (木をタップする画面) へ。?title=0 のときは出さない (自動テスト用)
+  const titleEl = $('title');
+  let titleOpen = true;
+  function closeTitle(instant) {
+    if (!titleOpen) return;
+    titleOpen = false;
+    titleEl.classList.add('leave');
+    const done = function () { titleEl.hidden = true; };
+    if (instant) { done(); return; }
+    window.setTimeout(done, 480);
+  }
+  $('btnPlay').addEventListener('click', function () {
+    Sfx.unlock();
+    Sfx.play('pop');
+    showTab('Home');
+    closeTitle(false);
+  });
+  if (/[?&]title=0\b/.test(window.location.search)) closeTitle(true);
+
   // ---------------------------------------------------------------- 画面の大きさの診断 (実機の写真 1 枚で確かめるため)
   // 版 / 描ける (#app の高さ) / 窓 (innerHeight) / vh。描ける = 窓 のとき、下が切れていない
   const APP_VER = 'v12';
@@ -774,6 +794,8 @@
         state.shop[st].packs[0] = { top: top, ar: !!ar };
         saveNow();
       },
+      closeTitle: function () { closeTitle(true); },
+      titleOpen: function () { return titleOpen; },
       flush: saveNow
     };
   }
