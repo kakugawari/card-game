@@ -13,7 +13,7 @@ const read = (f) => fs.readFileSync(path.join(__dirname, f), 'utf8');
 
 let html = read('index.html');
 const css = ['styles.css', 'card.css', 'opening.css'].map(read).join('\n');
-const scripts = ['packs.js', 'cards.js', 'core.js', 'animals.js', 'card.js', 'fx.js', 'opening.js', 'app.js'];
+const scripts = ['packs.js', 'cards.js', 'core.js', 'animals.js', 'scenery.js', 'card.js', 'fx.js', 'opening.js', 'app.js'];
 
 if (artifact) {
   const title = html.match(/<title>[^<]*<\/title>/)[0];

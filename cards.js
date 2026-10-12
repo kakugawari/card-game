@@ -323,7 +323,7 @@
   ];
 
   // ---------------------------------------------------------------- ふえたパック (packs.js)
-  // 1 パック = キャラ 3 人。a: C U AR / b: C R AR / c (スター): C RR SR SAR MUR LR の 12 まい
+  // なかまわけ = シリーズ (1 つにつき 1 パック)
   const CATS = [
     { id: 'mori', name: 'どうぶつ', mark: '🐾', code: 'A' },
     { id: 'umi', name: 'うみ', mark: '🐟', code: 'S' },
@@ -338,22 +338,89 @@
     { id: 'mahou', name: 'まほう・おとぎばなし', mark: '🪄', code: 'W' }
   ];
   const PACKS = typeof module === 'object' && module.exports ? require('./packs.js') : (typeof globalThis !== 'undefined' ? globalThis : this).Packs;
-  const PLAN = [[0, 'C', 0], [1, 'C', 0], [2, 'C', 0], [0, 'U', 1], [1, 'R', 1], [2, 'RR', 1], [0, 'AR', 2], [1, 'AR', 2],
-    [2, 'SR', 2], [2, 'SAR', 3], [2, 'MUR', 4], [2, 'LR', 5]];
+  const PACK_BY_ID = {};
+  (PACKS || []).forEach(function (pk) { PACK_BY_ID[pk.id] = pk; });
   const PREFIX = { MUR: 'おうごんの ', LR: 'でんせつの ' };
-  (PACKS || []).forEach(function (pk) {
-    const cat = CATS.find(function (c) { return c.id === pk.cat; });
-    const n = SETS.filter(function (st) { return st.cat === pk.cat; }).length + 1;
-    const ch = pk.charas;
-    const cards = PLAN.map(function (pl, i) {
-      const c = ch[pl[0]];
-      return { no: (i < 9 ? '00' : '0') + (i + 1), chara: c.id, name: (PREFIX[pl[1]] || '') + c.name, rarity: pl[1],
-        kind: c.kind, text: c.texts[pl[2]] };
+  const RANK = { C: 0, U: 1, R: 2, RR: 3, AR: 4, SR: 5, SAR: 6, MUR: 7, LR: 8 };
+
+  // ---------------------------------------------------------------- 11 のシリーズ
+  // 1 シリーズ = 34 まい (C 8・U 6・R 4・RR 2 / AR 6・SR 4・SAR 2・MUR 1・LR 1)。ふつう 20 まい + シークレット 14 まい
+  //   base  … 手で書いたパック (cards.js の上の方)。足りないぶんを extra の 3 パックから足す
+  //   full  … 手で書いたものが無いシリーズ。6 パックのキャラから 34 まいぜんぶを作る
+  // packs.js のキャラ 1 人は [a, b, c] の順。texts は a: C U AR / b: C R AR / c (スター): C RR SR SAR MUR LR
+  // [パックの番号, キャラ a=0 b=1 c=2, texts の番号, レア度]
+  const EXTRA_PLAN = [
+    [0, 2, 0, 'C'], [1, 2, 0, 'C'], [0, 1, 0, 'C'], [1, 1, 0, 'C'],
+    [0, 0, 1, 'U'], [1, 0, 1, 'U'], [2, 0, 1, 'U'],
+    [0, 1, 1, 'R'], [1, 1, 1, 'R'], [0, 2, 1, 'RR'],
+    [0, 0, 2, 'AR'], [1, 0, 2, 'AR'], [2, 0, 2, 'AR'],
+    [0, 2, 2, 'SR'], [1, 2, 2, 'SR'], [0, 2, 3, 'SAR']
+  ];
+  const FULL_PLAN = [].concat(
+    [0, 1, 2, 3].map(function (i) { return [i, 2, 0, 'C']; }),
+    [0, 1, 2, 3].map(function (i) { return [i, 1, 0, 'C']; }),
+    [0, 1, 2, 3, 4, 5].map(function (i) { return [i, 0, 1, 'U']; }),
+    [0, 1, 2, 3].map(function (i) { return [i, 1, 1, 'R']; }),
+    [[0, 2, 1, 'RR'], [1, 2, 1, 'RR']],
+    [0, 1, 2, 3, 4, 5].map(function (i) { return [i, 0, 2, 'AR']; }),
+    [0, 1, 2, 3].map(function (i) { return [i, 2, 2, 'SR']; }),
+    [[0, 2, 3, 'SAR'], [1, 2, 3, 'SAR'], [0, 2, 4, 'MUR'], [0, 2, 5, 'LR']]
+  );
+  const SERIES = {
+    mori: { base: 'animal' },
+    umi: { base: 'sea', extra: ['shinkai', 'sangosho', 'minamijima'] },
+    sora: { base: 'bird', extra: ['kumogumo', 'nijisora', 'kazekaze'] },
+    mukashi: { base: 'dino', extra: ['pbmammoth', 'pbkaseki', 'pbkazanjima'] },
+    yoru: { base: 'ghost', extra: ['pbyoimatsuri', 'pbyumenokuni', 'pbyashiki'] },
+    mirai: { base: 'future', extra: ['pbstation', 'pbwakusei', 'pbyuenchi'] },
+    okashi: { full: ['oskcake', 'oskcandy', 'oskchoco', 'oskice', 'oskdonut', 'oskwagashi'],
+      sid: 'okashi', name: 'おかしパック', title: 'あまい あまい おかしの くに', scene: 'candy', colors: ['#ffc2dc', '#ffe3a0', '#ff9ec8'] },
+    tabemono: { full: ['tbmfruit', 'tbmyasai', 'tbmonigiri', 'tbmsushi', 'tbmpasta', 'tbmnoodle'],
+      sid: 'tabemono', name: 'たべものパック', title: 'おいしい ごちそうの くに', scene: 'kitchen', colors: ['#ffd9a0', '#ffb870', '#ff9a8a'] },
+    kisetsu: { full: ['harusakura', 'natsumatsuri', 'akimomiji', 'fuyuyukiasobi', 'xmaskirakira', 'oshogatsu'],
+      sid: 'kisetsu', name: 'きせつパック', title: 'はる なつ あき ふゆ', scene: 'season', colors: ['#ffc2dc', '#ffe08a', '#ffa56a'] },
+    machi: { full: ['shoubousho', 'oishasan', 'panyasan', 'gakkoubi', 'denshagotou', 'yuubinkyoku'],
+      sid: 'machi', name: 'まちパック', title: 'にぎやかな まちの はたらきもの', scene: 'town', colors: ['#ffb0a0', '#ffd060', '#80c8ff'] },
+    mahou: { full: ['mahougakuen', 'yumenoshiro', 'youseinomori', 'yuushanotabi', 'kaizokusen', 'royalpalace'],
+      sid: 'mahou', name: 'まほうパック', title: 'ふしぎな まほうと おとぎばなし', scene: 'castle', colors: ['#c9a6ff', '#ff9ed2', '#ffe27a'] }
+  };
+
+  function cardFrom(pk, row) {
+    const c = pk.charas[row[1]];
+    return { chara: c.id, name: (PREFIX[row[3]] || '') + c.name, rarity: row[3], kind: c.kind, text: c.texts[row[2]] };
+  }
+  function packsOf(ids) {
+    return ids.map(function (id) {
+      if (!PACK_BY_ID[id]) throw new Error('packs.js に無いパック: ' + id);
+      return PACK_BY_ID[id];
     });
-    SETS.push({
-      id: pk.id, cat: pk.cat, scene: pk.scene, code: cat.code + n, name: pk.name, title: pk.title, mark: pk.mark,
-      colors: pk.colors, mascots: [ch[0].id, ch[1].id, ch[2].id], cards: cards
+  }
+
+  const BASE_SETS = SETS.splice(0, SETS.length);   // 手で書いた 6 パックを いったん取り出す
+  CATS.forEach(function (cat) {
+    const sp = SERIES[cat.id];
+    let set, extras = [];
+    if (sp.base) {
+      set = BASE_SETS.find(function (st) { return st.id === sp.base; });
+      if (sp.extra) {
+        const ps = packsOf(sp.extra);
+        extras = EXTRA_PLAN.map(function (row) { return cardFrom(ps[row[0]], row); });
+      }
+    } else {
+      const ps = packsOf(sp.full);
+      extras = FULL_PLAN.map(function (row) { return cardFrom(ps[row[0]], row); });
+      const first = ps[0].charas;
+      set = { id: sp.sid, cat: cat.id, scene: sp.scene, code: cat.code + '1', name: sp.name, title: sp.title, mark: cat.mark,
+        colors: sp.colors, mascots: [first[0].id, first[1].id, first[2].id], cards: [] };
+    }
+    // レア度の低い順に並べ (同じレア度は書いた順)、001 から振り直す。ふつう (C〜RR) が先、シークレットが後
+    const all = set.cards.concat(extras).map(function (c, i) { return { c: c, i: i }; });
+    all.sort(function (x, y) { return RANK[x.c.rarity] - RANK[y.c.rarity] || x.i - y.i; });
+    set.cards = all.map(function (x, i) {
+      x.c.no = String(i + 1).padStart(3, '0');
+      return x.c;
     });
+    SETS.push(set);
   });
 
   // カードに「どのパックか」を付け、ゲームの中で使う見分け (A1-001) を no にする。番号の見た目は num

@@ -183,7 +183,7 @@
   }
 
   // ---------------------------------------------------------------- 状態
-  const SAVE_VERSION = 3;
+  const SAVE_VERSION = 4;
 
   function newState() {
     return {
@@ -248,6 +248,13 @@
       const o3 = {};
       Object.keys(owned).forEach(function (k) { o3[/^\d{3}$/.test(k) ? SET.code + '-' + k : k] = owned[k]; });
       owned = o3;
+    }
+    if (!(raw.v >= 4)) {
+      // v3 までは 100 しゅるいのパックだった。シリーズ (11 パック) にまとめたとき、どうぶつパック (A1) のほかは
+      // 同じ番号が別のカードになったので、持ち物は どうぶつパックだけ引き継ぐ (コインや強化は そのまま)
+      const o4 = {};
+      Object.keys(owned).forEach(function (k) { if (k.indexOf(SET.code + '-') === 0) o4[k] = owned[k]; });
+      owned = o4;
     }
     CARDS.forEach(function (c) {
       const n = toCount(owned[c.no], 1e6);

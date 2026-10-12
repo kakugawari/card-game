@@ -29,6 +29,12 @@
       return '<img class="pc-img" src="' + esc(card.art) + '" alt="" draggable="false" decoding="async">';
     }
     const deco = full ? '<i class="pc-deco"></i>' : '';
+    // AR・SAR は けしき・小物まで描いた背景、SR は銀の幾何学もよう (scenery.js)。そのほかは CSS の背景
+    if (root.Scenery && (card.rarity === 'AR' || card.rarity === 'SAR' || card.rarity === 'SR')) {
+      const sc = root.Scenery.render(card.rarity === 'SR' ? 'geo' : sceneOf(card), card.rarity, card.chara);
+      return '<div class="pc-scene sc-' + card.rarity + ' scene-' + sceneOf(card) + '" style="background:' + sc.bg + '">' + sc.svg + '</div>' +
+        '<div class="pc-animal">' + A.svg(card.chara, { delay: -(Math.random() * 0.9).toFixed(2) }) + '</div>';
+    }
     return '<div class="pc-scene sc-' + card.rarity + ' scene-' + sceneOf(card) + '">' + deco + '</div>' +
       '<div class="pc-animal">' + A.svg(card.chara, { delay: -(Math.random() * 0.9).toFixed(2) }) + '</div>';
   }

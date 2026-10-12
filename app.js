@@ -365,19 +365,15 @@
       '<span class="sp-bar-go">ほかの パック ▸</span></button>';
   }
 
-  // ---- パックを えらぶ画面 (100 しゅるい。カテゴリごとに並べ、中で送る)
+  // ---- パックを えらぶ画面 (11 パックの一覧)
   let sheetMode = 'packs';
   let sheetBuilt = false;
 
   function buildSheet() {
-    els.pshBody.innerHTML = C.CATS.map(function (cat) {
-      const sets = C.SETS.filter(function (st) { return st.cat === cat.id; });
-      return '<h3 class="psh-cat">' + cat.mark + ' ' + cat.name + ' <small>' + sets.length + '</small></h3><div class="psh-grid">' +
-        sets.map(function (st) {
-          return '<button type="button" class="sp-btn" data-set="' + st.id + '">' + miniPack(st) +
-            '<span class="sp-name">' + shortName(st) + '</span><i class="sp-badge" hidden></i></button>';
-        }).join('') + '</div>';
-    }).join('');
+    els.pshBody.innerHTML = '<div class="psh-grid">' + C.SETS.map(function (st) {
+      return '<button type="button" class="sp-btn" data-set="' + st.id + '">' + miniPack(st) +
+        '<span class="sp-name">' + shortName(st) + '</span><i class="sp-badge" hidden></i></button>';
+    }).join('') + '</div>';
     sheetBuilt = true;
   }
 

@@ -16,36 +16,37 @@ function richState(money) {
 }
 
 // ------------------------------------------------------------ カードの一覧
-test('一覧: パックは 100 しゅるい。はじめの 6 つは手で書いたパック。記号・id は重ならず、どれも 11 のカテゴリのどれか', () => {
-  assert.strictEqual(Core.SETS.length, 100);
-  assert.deepStrictEqual(Core.SETS.slice(0, 6).map((st) => st.id), ['animal', 'sea', 'bird', 'dino', 'ghost', 'future']);
-  assert.strictEqual(new Set(Core.SETS.map((st) => st.code)).size, 100);
-  assert.strictEqual(new Set(Core.SETS.map((st) => st.id)).size, 100);
-  assert.strictEqual(new Set(Core.SETS.map((st) => st.name)).size, 100, 'パックの名前も重ならない');
-  const cats = Core.CATS.map((c) => c.id);
-  assert.strictEqual(cats.length, 11);
-  Core.SETS.forEach((st) => {
-    assert.ok(st.name && st.title && st.mark && st.colors.length === 3 && st.mascots.length === 3, st.id);
-    assert.ok(cats.includes(st.cat), st.id + ' ' + st.cat);
-  });
-  cats.forEach((c) => assert.ok(Core.SETS.filter((st) => st.cat === c).length >= 8, c));
+test('一覧: パックは 11 (シリーズ)。なかまわけ 1 つにつき 1 パック。記号・id・名前は重ならない', () => {
+  assert.strictEqual(Core.SETS.length, 11);
+  assert.deepStrictEqual(Core.SETS.map((st) => st.id), ['animal', 'sea', 'bird', 'dino', 'ghost', 'future', 'okashi', 'tabemono', 'kisetsu', 'machi', 'mahou']);
+  assert.deepStrictEqual(Core.SETS.map((st) => st.cat), Core.CATS.map((c) => c.id));
+  assert.strictEqual(new Set(Core.SETS.map((st) => st.code)).size, 11);
+  assert.strictEqual(new Set(Core.SETS.map((st) => st.name)).size, 11);
+  Core.SETS.forEach((st) => assert.ok(st.name && st.title && st.mark && st.colors.length === 3 && st.mascots.length === 3 && st.scene, st.id));
+  assert.strictEqual(Core.CARDS.length, 11 * 34);
 });
 
-test('一覧: どのパックにも C〜LR の 9 つのレア度がそろい、C は 3 まい以上 (1 パックの C 3 まいが重ならない)', () => {
+test('一覧: どのパックも 34 まい = C 8・U 6・R 4・RR 2 (ふつう 20) + AR 6・SR 4・SAR 2・MUR 1・LR 1 (シークレット 14)', () => {
+  const want = { C: 8, U: 6, R: 4, RR: 2, AR: 6, SR: 4, SAR: 2, MUR: 1, LR: 1 };
   Core.SETS.forEach((st) => {
-    Core.RARITY_ORDER.forEach((r) => assert.ok(Core.POOL[st.id][r].length >= 1, st.id + ' ' + r));
-    assert.ok(Core.POOL[st.id].C.length >= 3, st.id);
+    assert.strictEqual(st.mainCount, 20, st.id);
+    Core.RARITY_ORDER.forEach((r) => assert.strictEqual(Core.POOL[st.id][r].length, want[r], `${st.id} ${r}`));
   });
 });
 
-test('一覧: ふえたパックは 12 まい (a: C U AR / b: C R AR / スター: C RR SR SAR MUR LR)。MUR は「おうごんの」、LR は「でんせつの」', () => {
-  Core.SETS.slice(6).forEach((st) => {
-    assert.deepStrictEqual(st.cards.map((c) => c.rarity), ['C', 'C', 'C', 'U', 'R', 'RR', 'AR', 'AR', 'SR', 'SAR', 'MUR', 'LR'], st.id);
-    assert.strictEqual(st.mainCount, 6);
-    const star = st.cards[2].chara;
-    assert.ok(st.cards.slice(-2).every((c) => c.chara === star));
-    assert.ok(st.cards[10].name.startsWith('おうごんの ') && st.cards[11].name.startsWith('でんせつの '), st.id);
-    st.cards.forEach((c) => assert.ok(c.text && c.text.length >= 10, c.no));
+test('一覧: 同じ子が同じレア度で 2 まい入らない。MUR は「おうごんの」、LR は「でんせつの」。説明が全部ある', () => {
+  Core.SETS.forEach((st) => {
+    const seen = {};
+    st.cards.forEach((c) => {
+      const k = c.chara + c.rarity;
+      assert.ok(!seen[k], `${st.id} ${k}`);
+      seen[k] = 1;
+      assert.ok(c.text && c.text.length >= 10, c.no);
+      if (c.rarity === 'MUR') assert.ok(c.name.startsWith('おうごんの '), c.no);
+      if (c.rarity === 'LR') assert.ok(c.name.startsWith('でんせつの '), c.no);
+    });
+    // いちばんの スターは MUR と LR が同じ子
+    assert.strictEqual(Core.POOL[st.id].MUR[0].chara, Core.POOL[st.id].LR[0].chara, st.id);
   });
 });
 
@@ -91,16 +92,18 @@ test('一覧: 手で書いた表に、同じパックの中で同じ番号が 2 
   const blocks = src.split(/\n {6}id: '/).slice(1);
   assert.strictEqual(blocks.length, 6, '手で書いたパックは 6 つ');
   blocks.forEach((b, i) => {
+    // 手で書いた分 (001〜)。足したぶん (シリーズで広げた分) は含まない
     const nos = [...b.matchAll(/no: '(\d{3})'/g)].map((m) => m[1]);
     assert.strictEqual(new Set(nos).size, nos.length, Core.SETS[i].id);
-    assert.strictEqual(nos.length, Core.SETS[i].cards.length, Core.SETS[i].id);
+    assert.ok(nos.length <= Core.SETS[i].cards.length, Core.SETS[i].id);
   });
 });
 
 test('番号の表示はポケモンカードと同じ数え方 (021/020)。パックごとに数える', () => {
   assert.strictEqual(Core.numberLabel(Core.cardByNo('A1-001')), '001/020');
   assert.strictEqual(Core.numberLabel(Core.cardByNo('A1-033')), '033/020');
-  assert.strictEqual(Core.numberLabel(Core.cardByNo('S1-011')), '011/010');
+  assert.strictEqual(Core.numberLabel(Core.cardByNo('S1-021')), '021/020');
+  assert.strictEqual(Core.numberLabel(Core.cardByNo('W1-034')), '034/020');
 });
 
 // ------------------------------------------------------------ BOX の封入
@@ -592,11 +595,14 @@ test('保存: こわれたデータでも落ちず、まともな値に直る', 
     assert.ok(Array.isArray(s.boxes));
   });
   // なかよし度はこわれていても数に直る。知らないキャラは捨てる
-  const f = Core.normalize({ v: 3, pets: { neko: { aff: 'x', fed: 99, fedDay: 'きのう' }, nope: { aff: 3 } } });
+  const f = Core.normalize({ v: 4, pets: { neko: { aff: 'x', fed: 99, fedDay: 'きのう' }, nope: { aff: 3 } } });
   assert.deepStrictEqual(f.pets, { neko: { aff: 0, fedDay: '', fed: 3, pettedDay: '' } });
   assert.deepStrictEqual(Core.normalize({ v: 2, boxes: [null, 3, { packs: [] }] }).boxes, []);
   assert.deepStrictEqual(Core.normalize({ v: 2, owned: { '001': -1, '999': 3, '002': 2.9 } }).owned, { 'A1-002': 2 });
-  assert.deepStrictEqual(Core.normalize({ v: 3, owned: { 'S1-003': 2, 'X9-001': 1, '001': 1 } }).owned, { 'S1-003': 2 });
+  assert.deepStrictEqual(Core.normalize({ v: 4, owned: { 'S1-003': 2, 'X9-001': 1, '001': 1 } }).owned, { 'S1-003': 2 });
+  // v3 (100 パックのとき) のもちものは、どうぶつパック (A1) だけ引き継ぐ。ほかは同じ番号が別のカードになったので
+  assert.deepStrictEqual(Core.normalize({ v: 3, money: 9, owned: { 'A1-005': 2, 'S1-003': 2, 'K1-001': 1 } }).owned, { 'A1-005': 2 });
+  assert.strictEqual(Core.normalize({ v: 3, money: 9 }).money, 9);
 });
 
 test('保存: 前の版 (どうぶつの名前で持っていた図鑑) を引き継ぐ', () => {
@@ -604,7 +610,7 @@ test('保存: 前の版 (どうぶつの名前で持っていた図鑑) を引�
   assert.deepStrictEqual(s.owned, { 'A1-001': 3, 'A1-019': 2, 'A1-020': 1 });
   assert.strictEqual(s.money, 120);
   assert.strictEqual(s.lastFreeDay, '2026-10-11');
-  assert.strictEqual(s.v, 3);
+  assert.strictEqual(s.v, 4);
 });
 
 test('保存: その前の版 (v2: 番号で持つ図鑑・お店の BOX が 1 つ) を引き継ぐ', () => {

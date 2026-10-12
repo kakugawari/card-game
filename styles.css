@@ -841,7 +841,9 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .psh-body { flex: 1 1 auto; overflow-y: auto; padding: 0 12px calc(16px + var(--safe-bottom)); -webkit-overflow-scrolling: touch; }
 .psh-cat { margin: 14px 6px 8px; font-size: 15px; }
 .psh-cat small { color: var(--muted); font-size: 11px; }
-.psh-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 6px; }
+.psh-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 8px; margin-top: 6px; }
+.psh-grid .sp-mini { width: 76px; height: 106px; }
+.psh-grid .sp-name { font-size: 13px; }
 .sp-btn {
   position: relative;
   display: flex;

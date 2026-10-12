@@ -742,19 +742,19 @@ async function run() {
         const r = document.getElementById('shopPack').getBoundingClientRect();
         return { w: r.width, h: r.height, name: document.getElementById('shopName').textContent, idx: document.getElementById('stageIndex').textContent };
       });
-      ok(bar.w >= 230 && bar.h >= 330 && bar.name === 'どうぶつパック' && bar.idx === '1 / 100', `大きいパック (${Math.round(bar.w)}x${Math.round(bar.h)}) と名前・番号が出る (${bar.idx})`);
+      ok(bar.w >= 230 && bar.h >= 330 && bar.name === 'どうぶつパック' && bar.idx === '1 / 11', `大きいパック (${Math.round(bar.w)}x${Math.round(bar.h)}) と名前・番号が出る (${bar.idx})`);
       await page.tap('#btnNext');
       ok((await page.textContent('#shopName')) === 'さかなパック', '▶ で つぎの パックへ');
       await page.tap('#btnPrev');
       await page.tap('#btnPrev');
-      ok((await page.textContent('#stageIndex')) === '100 / 100', `◀ で まえへ。はじめの まえは さいご (${await page.textContent('#stageIndex')})`);
+      ok((await page.textContent('#stageIndex')) === '11 / 11', `◀ で まえへ。はじめの まえは さいご (${await page.textContent('#stageIndex')})`);
       await page.waitForTimeout(450);   // ◀ の すべりこみが 終わってから 位置を測る
       const pr = await box(page, '#shopPack');
       await page.mouse.move(pr.x + pr.width * 0.8, pr.y + pr.height / 2);
       await page.mouse.down();
       await page.mouse.move(pr.x + pr.width * 0.2, pr.y + pr.height / 2, { steps: 6 });
       await page.mouse.up();
-      ok((await page.textContent('#stageIndex')) === '1 / 100', 'パックを 左へ はらうと つぎへ');
+      ok((await page.textContent('#stageIndex')) === '1 / 11', 'パックを 左へ はらうと つぎへ');
       await page.evaluate(() => {
         document.documentElement.style.setProperty('--safe-top', '59px');
         document.documentElement.style.setProperty('--safe-bottom', '34px');
@@ -766,31 +766,31 @@ async function run() {
         const bs = [...document.querySelectorAll('#pshBody .sp-btn')];
         const panel = document.querySelector('.psh-panel').getBoundingClientRect();
         const body = document.getElementById('pshBody');
-        return { n: bs.length, cats: document.querySelectorAll('.psh-cat').length, top: panel.top, bottom: panel.bottom,
+        return { n: bs.length, top: panel.top, bottom: panel.bottom,
           left: Math.min(...bs.map((b) => b.getBoundingClientRect().left)), right: Math.max(...bs.map((b) => b.getBoundingClientRect().right)),
           scroll: body.scrollHeight > body.clientHeight, wide: body.scrollWidth - body.clientWidth,
           on: bs.filter((b) => b.classList.contains('on')).map((b) => b.dataset.set) };
       });
-      ok(sh.n === 100 && sh.cats === 11, `「ほかの パック」で 100 しゅるいが 11 の なかまわけで並ぶ (${Date.now() - t0}ms で開いた)`);
-      ok(sh.left >= 0 && sh.right <= 430 && sh.wide <= 0 && sh.top >= 59 && sh.bottom <= 932.5 && sh.scroll, `横には はみ出さず、縦に送れる (上 ${Math.round(sh.top)} / 下 ${Math.round(sh.bottom)})`);
+      ok(sh.n === 11, `「いちらん」で 11 パックが並ぶ (${Date.now() - t0}ms で開いた)`);
+      ok(sh.left >= 0 && sh.right <= 430 && sh.wide <= 0 && sh.top >= 59 && sh.bottom <= 932.5, `横には はみ出さず、画面の中に収まる (上 ${Math.round(sh.top)} / 下 ${Math.round(sh.bottom)})`);
       ok(sh.on.join() === 'animal', 'いま えらんでいる パックに印');
       await page.tap('#pshClose');
-      for (const [id, word] of [['sea', 'さかな'], ['oskcake', 'ケーキ'], ['tbmsushi', 'おすし'], ['bird', 'とり']]) {
+      for (const [id, word] of [['sea', 'さかな'], ['okashi', 'おかし'], ['tabemono', 'たべもの'], ['mahou', 'まほう']]) {
         await pickSet(page, 'setPick', id);
         const v = await page.evaluate(() => ({ name: document.getElementById('shopName').textContent, pack: document.querySelector('#shopPack .pk').className,
           bar: document.getElementById('stageIndex').textContent }));
-        ok(v.name.includes(word) && v.pack.includes('pk-' + id) && v.bar.includes('/ 100'), `${word}: お店のパックと名前が変わる (${v.name})`);
+        ok(v.name.includes(word) && v.pack.includes('pk-' + id) && v.bar.includes('/ 11'), `${word}: お店のパックと名前が変わる (${v.name})`);
       }
-      // ふえたパックも開けられる: ケーキパックの LR は スターの子
-      await pickSet(page, 'setPick', 'oskcake');
-      await page.evaluate(() => window.__app.rigNextPack('RR', true, 'oskcake'));
+      // packs.js から作ったシリーズも開けられる
+      await pickSet(page, 'setPick', 'okashi');
+      await page.evaluate(() => window.__app.rigNextPack('RR', true, 'okashi'));
       await page.tap('#btnFree');
       await page.waitForFunction(() => window.__app.opening.state().phase === 'pack');
       const cake = await page.evaluate(() => ({ pack: document.querySelector('#opPack .pk').className,
         sets: window.__app.opening.state().cards.map((c) => window.__app.core.cardByNo(c.no).set) }));
-      ok(cake.pack.includes('pk-oskcake') && cake.sets.every((x) => x === 'oskcake'), `ケーキパックを開けると、ケーキパックのカードだけ (${cake.sets.length} まい)`);
+      ok(cake.pack.includes('pk-okashi') && cake.sets.every((x) => x === 'okashi'), `おかしパックを開けると、おかしパックのカードだけ (${cake.sets.length} まい)`);
       const endCake = await playThrough(page);
-      ok(endCake.phase === 'result', 'ふえたパックも最後まで開けられる');
+      ok(endCake.phase === 'result', 'おかしパック (packs.js から作ったシリーズ) も最後まで開けられる');
       await page.tap('#opClose');
       await page.evaluate(() => { const s = window.__app.state(); s.lastFreeDay = ''; s.owned = {}; s.shop = {}; window.__app.renderFree(); });
       await pickSet(page, 'setPick', 'sea');
@@ -840,7 +840,7 @@ async function run() {
         n: document.querySelectorAll('.zk-cell').length, count: document.getElementById('zkCount').textContent,
         title: document.getElementById('zkTitle').textContent, first: document.querySelector('.zk-cell').dataset.no
       }));
-      ok(sea.n === 18 && sea.count === '1 / 18' && sea.title.includes('さかな') && sea.first === 'S1-001', `パックの種類を えらぶと、その図鑑に変わる (${sea.title} ${sea.count})`);
+      ok(sea.n === 34 && sea.count === '1 / 34' && sea.title.includes('さかな') && sea.first === 'S1-001', `パックの種類を えらぶと、その図鑑に変わる (${sea.title} ${sea.count})`);
       await pickSet(page, 'zkPick', 'animal');
       // どのカードも、名前がカードの中に収まる (ずかんの小さい表示と、大きい表示の両方。6 しゅるい全部)
       const names = await page.evaluate(() => {
