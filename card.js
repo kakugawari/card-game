@@ -112,8 +112,8 @@
       '<span class="pk-big' + (big.length > 5 ? ' long' : '') + '">' + esc(big) + '<small>パック</small></span><span class="pk-sub">' + esc(set.title) + '</span></div>' +
       '<div class="pk-mascots">' + mascots + '</div><div class="pk-count">1パック 5まい入り</div>';
     const bg = '--pk1:' + set.colors[0] + ';--pk2:' + set.colors[1] + ';--pk3:' + set.colors[2];
-    return '<div class="pk pk-' + set.id + '" style="' + bg + '"><div class="pk-body" style="clip-path:' + PACK_CLIP.body + '">' + body + '</div>' +
-      '<div class="pk-top" style="clip-path:' + PACK_CLIP.top + '"><div class="pk-shine"></div></div>' +
+    return '<div class="pk pk-' + set.id + '" style="' + bg + '"><div class="pk-body" style="clip-path:' + PACK_CLIP.body + '">' + body + '<i class="pk-real"></i></div>' +
+      '<div class="pk-top" style="clip-path:' + PACK_CLIP.top + '"><div class="pk-shine"></div><i class="pk-real"></i></div>' +
       '<div class="pk-guide"></div><div class="pk-leak"></div></div>';
   }
 

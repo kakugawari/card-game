@@ -125,6 +125,16 @@ async function holdTop(page, ms) {
 }
 
 /** 開封を最後まで進める: やぶる → めくる (特別なカードはタップ / 長押し) → 結果 */
+/** パック画面の中だけを縦に送って、ボタンをタブの上に出す (scrollIntoView は外側の入れ物まで送ってしまう) */
+async function scrollToBtn(page, id) {
+  await page.evaluate((i) => {
+    const b = document.getElementById(i);
+    const sc = b.closest('.screen');
+    const bar = document.getElementById('tabbar').getBoundingClientRect();
+    sc.scrollTop += b.getBoundingClientRect().bottom - bar.top + 12;
+  }, id);
+}
+
 /** パックの種類を えらぶ: 「ほかの パック」→ 一覧から 1 つ (where = setPick / zkPick) */
 async function pickSet(page, where, id) {
   await page.tap('#' + where + ' .sp-bar');
@@ -219,7 +229,7 @@ async function run() {
         const r = await page.evaluate((t) => {
           const bar = document.getElementById('tabbar').getBoundingClientRect();
           const scr = document.getElementById('sc' + t);
-          const inner = [...scr.querySelectorAll(t === 'Zukan' ? '.zk-head' : t === 'Packs' ? '.btn, .shop-pack, .sp-btn' : '.btn, .upgrade, .tree-btn')];
+          const inner = [...scr.querySelectorAll(t === 'Zukan' ? '.zk-head' : t === 'Packs' ? '.stage-arrow, .shop-pack, .sp-list, #btnFree' : '.btn, .upgrade, .tree-btn')];
           return {
             barBottom: bar.bottom, barTop: bar.top,
             worst: inner.reduce((m, e) => Math.max(m, e.getBoundingClientRect().bottom), 0),
@@ -497,13 +507,16 @@ async function run() {
       await page.evaluate((p) => window.__app.setMoney(p - 1), price);
       ok(await page.locator('#btnBox').isDisabled(), `${price - 1} コインでは BOX を買えない (${await page.textContent('#btnBoxLabel')})`);
       await page.evaluate((p) => window.__app.setMoney(p), price);
+      // BOX は大きいパックの台の下。縦に送れば、タブに隠れずに押せる
+      await scrollToBtn(page, 'btnBox');
       const vis = await page.evaluate(() => {
         const b = document.getElementById('btnBox').getBoundingClientRect();
         const bar = document.getElementById('tabbar').getBoundingClientRect();
         const sc = document.getElementById('scPacks');
-        return { bottom: b.bottom, barTop: bar.top, scrolled: sc.scrollTop };
+        const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+        return { bottom: b.bottom, barTop: bar.top, hit: !!(hit && hit.closest('#btnBox')) };
       });
-      ok(vis.bottom <= vis.barTop && vis.scrolled === 0, `BOX のボタンは、送らなくても見える (下 ${Math.round(vis.bottom)} / タブ ${Math.round(vis.barTop)})`);
+      ok(vis.bottom <= vis.barTop + 0.5 && vis.hit, `BOX のボタンは、縦に送るとタブに隠れずに押せる (下 ${Math.round(vis.bottom)} / タブ ${Math.round(vis.barTop)})`);
       await page.tap('#btnBox');
       const first = await page.evaluate(() => ({ money: window.__app.state().money, label: document.getElementById('btnBoxLabel').textContent }));
       ok(first.money === price && first.label.includes('ほんとうに'), `1 回目のタップは「ほんとうに かう？」だけで、まだ買わない (${first.label})`);
@@ -520,11 +533,13 @@ async function run() {
       ok(bought.money === 0 && bought.hand === 30, `2 回タップで買える: コイン ${bought.money}・手もとに ${bought.hand} パック`);
       ok(bought.shop === null, 'BOX を買っても、お店の BOX (1 パックずつの方) は進まない');
       ok(bought.text.includes('30') && bought.sr.includes('まだ'), `手もとの BOX の様子が出る (${bought.text} / ${bought.sr})`);
+      await scrollToBtn(page, 'btnOpenBox');
       const ob = await page.evaluate(() => {
         const b = document.getElementById('btnOpenBox').getBoundingClientRect();
-        return b.bottom <= document.getElementById('tabbar').getBoundingClientRect().top;
+        const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+        return b.bottom <= document.getElementById('tabbar').getBoundingClientRect().top + 0.5 && !!(hit && hit.closest('#btnOpenBox'));
       });
-      ok(ob, '「BOX から あける」も、送らなくても見える');
+      ok(ob, '「BOX から あける」も、縦に送るとタブに隠れずに押せる');
 
       await page.evaluate(() => { window.__app.state().lastFreeDay = window.__app.core.dayKey(Date.now()); });
       await page.tap('#btnOpenBox');
@@ -724,10 +739,22 @@ async function run() {
       ({ context, page } = await newGame(browser, errors));
       await goTab(page, 'Packs');
       const bar = await page.evaluate(() => {
-        const r = document.querySelector('#setPick .sp-bar').getBoundingClientRect();
-        return { left: r.left, right: r.right, text: document.querySelector('#setPick .sp-bar').textContent };
+        const r = document.getElementById('shopPack').getBoundingClientRect();
+        return { w: r.width, h: r.height, name: document.getElementById('shopName').textContent, idx: document.getElementById('stageIndex').textContent };
       });
-      ok(bar.left >= 0 && bar.right <= 430 && bar.text.includes('どうぶつパック') && bar.text.includes('100'), `いまのパックと「ほかの パック」が出る (${bar.text})`);
+      ok(bar.w >= 230 && bar.h >= 330 && bar.name === 'どうぶつパック' && bar.idx === '1 / 100', `大きいパック (${Math.round(bar.w)}x${Math.round(bar.h)}) と名前・番号が出る (${bar.idx})`);
+      await page.tap('#btnNext');
+      ok((await page.textContent('#shopName')) === 'さかなパック', '▶ で つぎの パックへ');
+      await page.tap('#btnPrev');
+      await page.tap('#btnPrev');
+      ok((await page.textContent('#stageIndex')) === '100 / 100', `◀ で まえへ。はじめの まえは さいご (${await page.textContent('#stageIndex')})`);
+      await page.waitForTimeout(450);   // ◀ の すべりこみが 終わってから 位置を測る
+      const pr = await box(page, '#shopPack');
+      await page.mouse.move(pr.x + pr.width * 0.8, pr.y + pr.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(pr.x + pr.width * 0.2, pr.y + pr.height / 2, { steps: 6 });
+      await page.mouse.up();
+      ok((await page.textContent('#stageIndex')) === '1 / 100', 'パックを 左へ はらうと つぎへ');
       await page.evaluate(() => {
         document.documentElement.style.setProperty('--safe-top', '59px');
         document.documentElement.style.setProperty('--safe-bottom', '34px');
@@ -751,8 +778,8 @@ async function run() {
       for (const [id, word] of [['sea', 'さかな'], ['oskcake', 'ケーキ'], ['tbmsushi', 'おすし'], ['bird', 'とり']]) {
         await pickSet(page, 'setPick', id);
         const v = await page.evaluate(() => ({ name: document.getElementById('shopName').textContent, pack: document.querySelector('#shopPack .pk').className,
-          bar: document.querySelector('#setPick .sp-bar').textContent }));
-        ok(v.name.includes(word) && v.pack.includes('pk-' + id) && v.bar.includes(word), `${word}: お店のパックと名前が変わる (${v.name})`);
+          bar: document.getElementById('stageIndex').textContent }));
+        ok(v.name.includes(word) && v.pack.includes('pk-' + id) && v.bar.includes('/ 100'), `${word}: お店のパックと名前が変わる (${v.name})`);
       }
       // ふえたパックも開けられる: ケーキパックの LR は スターの子
       await pickSet(page, 'setPick', 'oskcake');

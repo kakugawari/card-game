@@ -18,7 +18,7 @@
   const els = {
     moneyNum: $('moneyNum'), tree: $('tree'), plaza: $('plaza'), ground: $('ground'), tapHint: $('tapHint'),
     upLv: $('upLv'), upSub: $('upSub'), btnUp: $('btnUp'), btnUpLabel: $('btnUpLabel'),
-    shopPack: $('shopPack'), shopName: $('shopName'), btnFree: $('btnFree'), btnFreeLabel: $('btnFreeLabel'),
+    shopPack: $('shopPack'), shopName: $('shopName'), stage: $('packStage'), stageRow: $('stageRow'), stageDesc: $('stageDesc'), stageMark: $('stageMark'), stageHave: $('stageHave'), stageIndex: $('stageIndex'), btnPrev: $('btnPrev'), btnNext: $('btnNext'), btnFree: $('btnFree'), btnFreeLabel: $('btnFreeLabel'),
     btnBuy: $('btnBuy'), btnBuyLabel: $('btnBuyLabel'), btnBox: $('btnBox'), btnBoxLabel: $('btnBoxLabel'),
     boxArt: $('boxArt'), btnOpenAll: $('btnOpenAll'), btnOpenAllLabel: $('btnOpenAllLabel'), myBox: $('myBox'), myBoxLeft: $('myBoxLeft'), myBoxSr: $('myBoxSr'), btnOpenBox: $('btnOpenBox'), boxLeft: $('boxLeft'), rates: $('rates'), packDot: $('packDot'),
     setPick: $('setPick'), packSheet: $('packSheet'), pshBody: $('pshBody'), pshTitle: $('pshTitle'), pshClose: $('pshClose'), zkPick: $('zkPick'), zkTitle: $('zkTitle'),
@@ -514,8 +514,11 @@
   }
 
   function renderPicker() {
-    const hand = C.packsInHand(state);
-    els.setPick.innerHTML = barHTML(C.setById(curSet), C.SETS.length + 'しゅるい から えらべる' + (hand ? ' ・ てもとに 🎁' + hand : ''));
+    els.setPick.innerHTML = '<button type="button" class="sp-bar sp-list" data-open="1">📚 いちらん</button>';
+    const n = C.packsInHand(state, curSet);
+    els.stageHave.textContent = 'てもと 🎁' + n;
+    els.stageHave.classList.toggle('some', n > 0);
+    els.stageIndex.textContent = (C.SETS.findIndex(function (st) { return st.id === curSet; }) + 1) + ' / ' + C.SETS.length;
   }
 
   function renderPacks() {
@@ -534,7 +537,11 @@
     els.boxArt.style.cssText = '--pk1:' + set.colors[0] + ';--pk2:' + set.colors[1] + ';--pk3:' + set.colors[2];
     els.boxArt.innerHTML = '<i class="bx-pack"></i><i class="bx-pack"></i><i class="bx-pack"></i><i class="bx-pack"></i>' +
       '<div class="bx-front"><b>BOX</b><span>' + shortName(set) + '</span></div>';
-    els.shopName.textContent = set.mark + ' ' + set.name + '「' + set.title + '」';
+    els.shopName.textContent = set.name;
+    els.stageMark.textContent = set.mark;
+    const cat = C.CATS.find(function (c) { return c.id === set.cat; });
+    els.stageDesc.textContent = '「' + set.title + '」 ・ ' + (cat ? cat.name : '') + ' ・ ' + set.cards.length + 'まい';
+    els.stage.style.setProperty('--pk1', set.colors[0]);
     const rows = [
       ['C', '1パックに 3まい'], ['U', '1パックに 1まい'], ['R', 'レアわくに いちばん よく でる'],
       ['RR', '1BOX に 4まい くらい'], ['AR', '1BOX に 3まい くらい'], ['SR', '1BOX に 1まい くらい'],
@@ -552,14 +559,45 @@
     if (e.target.closest('.sp-bar')) openSheet('packs');
   });
 
-  function pickPackSet(id) {
+  /** dir: 1 = つぎ (右から入る) / -1 = まえ / 0 = 一覧から (上から落ちる) */
+  function pickPackSet(id, dir) {
     if (id === curSet) return;
     curSet = id;
     boxConfirmUntil = 0;
     buildShop();
     renderPacks();
-    els.shopPack.animate([{ transform: 'translateY(-16px) scale(.9)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: 'cubic-bezier(.3,1.4,.5,1)' });
+    els.shopPack.getAnimations().forEach(function (a) { if (a.id === 'slide') a.cancel(); });
+    const k = dir ? [{ transform: 'translateX(' + (dir * 70) + '%) rotate(' + (dir * 8) + 'deg)', opacity: 0 }, { transform: 'none', opacity: 1 }]
+      : [{ transform: 'translateY(-24px) scale(.9)', opacity: 0 }, { transform: 'none', opacity: 1 }];
+    const a = els.shopPack.animate(k, { duration: 320, easing: 'cubic-bezier(.25,1.3,.5,1)' });
+    a.id = 'slide';
   }
+
+  function stepSet(dir) {
+    const i = C.SETS.findIndex(function (st) { return st.id === curSet; });
+    const n = C.SETS.length;
+    pickPackSet(C.SETS[(i + dir + n) % n].id, dir);
+    Sfx.play('whoosh');
+  }
+
+  els.btnPrev.addEventListener('click', function () { stepSet(-1); });
+  els.btnNext.addEventListener('click', function () { stepSet(1); });
+
+  // パックを指で 左右に はらっても めくれる
+  (function () {
+    let x0 = null, y0 = 0, id = null;
+    els.stageRow.addEventListener('pointerdown', function (e) {
+      if (e.target.closest('.stage-arrow')) return;
+      x0 = e.clientX; y0 = e.clientY; id = e.pointerId;
+    });
+    els.stageRow.addEventListener('pointerup', function (e) {
+      if (x0 === null || e.pointerId !== id) return;
+      const dx = e.clientX - x0, dy = e.clientY - y0;
+      x0 = null;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) stepSet(dx < 0 ? 1 : -1);
+    });
+    els.stageRow.addEventListener('pointercancel', function () { x0 = null; });
+  })();
 
   /** 「もう1パック」で次に開けるもの: むりょう → 手もとの BOX → 1 パック買う */
   function nextKind(setId) {

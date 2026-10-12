@@ -366,6 +366,21 @@
   background: repeating-linear-gradient(115deg, rgba(255,255,255,.22) 0 10px, rgba(255,255,255,0) 10px 26px);
   pointer-events: none;
 }
+/* 本物の包みらしさ: 上下の圧着のギザギザ・ふちのふくらみの影・ホイルの照り (指の位置で少し動く) */
+.pk-real {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.38) 0 1.2cqw, rgba(0,0,0,.10) 1.2cqw 2.4cqw) 0 0 / 100% 7.5% no-repeat,
+    repeating-linear-gradient(90deg, rgba(255,255,255,.38) 0 1.2cqw, rgba(0,0,0,.10) 1.2cqw 2.4cqw) 0 100% / 100% 6.5% no-repeat,
+    linear-gradient(rgba(0,0,0,.16), rgba(0,0,0,0) 2%, rgba(0,0,0,0) 7%, rgba(0,0,0,.14) 7.6%, rgba(255,255,255,.35) 8.4%, rgba(255,255,255,0) 11%,
+      rgba(255,255,255,0) 89%, rgba(255,255,255,.3) 92.6%, rgba(0,0,0,.14) 93.4%, rgba(0,0,0,0) 94%, rgba(0,0,0,0) 98%, rgba(0,0,0,.16)),
+    linear-gradient(90deg, rgba(0,0,0,.22), rgba(0,0,0,0) 7%, rgba(255,255,255,.12) 12%, rgba(255,255,255,0) 20%,
+      rgba(255,255,255,0) 82%, rgba(0,0,0,.05) 90%, rgba(0,0,0,.24)),
+    linear-gradient(105deg, rgba(255,255,255,0) 18%, rgba(255,255,255,.5) 27%, rgba(255,255,255,0) 34%,
+      rgba(255,255,255,0) 58%, rgba(255,255,255,.28) 66%, rgba(255,255,255,0) 72%) calc(var(--sx, 50) * 1%) 0 / 220% 100% no-repeat;
+}
 .pk-logo {
   position: absolute;
   left: 0;

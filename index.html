@@ -61,15 +61,25 @@
 
     <!-- パック -->
     <section class="screen" id="scPacks" hidden>
-      <div class="set-pick" id="setPick"></div>
-      <div class="shop">
-        <div class="shop-pack" id="shopPack"></div>
-        <div class="shop-side">
-          <div class="shop-name" id="shopName">どうぶつパック</div>
-          <button type="button" class="btn btn-mid" id="btnFree"><span class="btn-label" id="btnFreeLabel">きょうの むりょうパック！</span></button>
-          <button type="button" class="btn btn-mid btn-coin" id="btnBuy"><span class="btn-label" id="btnBuyLabel">500</span></button>
-          <div class="box-left" id="boxLeft"></div>
+      <!-- パックをえらぶ台: 大きいパックを ◀ ▶ (スワイプ) でめくる -->
+      <div class="stage" id="packStage">
+        <div class="stage-plaque"><i class="stage-paw" id="stageMark">🐾</i><b id="shopName">どうぶつパック</b></div>
+        <p class="stage-desc" id="stageDesc"></p>
+        <div class="stage-row" id="stageRow">
+          <button type="button" class="stage-arrow prev" id="btnPrev" aria-label="まえの パック"></button>
+          <div class="stage-pack-wrap"><div class="shop-pack" id="shopPack"></div><i class="stage-shadow"></i></div>
+          <button type="button" class="stage-arrow next" id="btnNext" aria-label="つぎの パック"></button>
         </div>
+        <div class="stage-meta">
+          <span class="stage-have" id="stageHave">てもと 0</span>
+          <span class="stage-index" id="stageIndex">1 / 100</span>
+          <div class="set-pick" id="setPick"></div>
+        </div>
+      </div>
+      <div class="stage-btns">
+        <button type="button" class="btn btn-big btn-open" id="btnFree"><span class="btn-label" id="btnFreeLabel">きょうの むりょうパック！</span></button>
+        <button type="button" class="btn btn-mid btn-coin" id="btnBuy"><span class="btn-label" id="btnBuyLabel">500</span></button>
+        <div class="box-left" id="boxLeft"></div>
       </div>
       <div class="boxshop">
         <div class="boxshop-row">
