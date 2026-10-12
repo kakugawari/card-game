@@ -227,6 +227,12 @@ async function run() {
       ok(t0.open && !t0.sky && t0.ok, '開くと タイトルが出ていて、絵が読み込めている');
       ok(Math.abs(t0.w - 430) < 1 && Math.abs(t0.h - 931.5) < 2 && t0.covers >= 932, `絵は 幅いっぱい・縦も画面ぜんたい (${Math.round(t0.w)} x ${Math.round(t0.h)})`);
       ok(t0.hit && t0.btnBottom <= 932 - 20 && t0.btnL >= 20 && t0.btnR <= 410, `「あそぶ」が 画面の中で押せる (${Math.round(t0.btnTop)}〜${Math.round(t0.btnBottom)})`);
+      const dg = await page.evaluate(() => {
+        const d = document.getElementById('diag'), r = d.getBoundingClientRect();
+        return { inTitle: !!d.closest('#title'), inTop: !!d.closest('#topbar'), text: d.textContent, l: r.left, t: r.top, r: r.right, b: r.bottom, vis: getComputedStyle(d).display !== 'none' };
+      });
+      ok(dg.inTitle && !dg.inTop && dg.vis && /^v\d+ 描ける\d+ 窓\d+ vh\d+$/.test(dg.text) && dg.l >= 0 && dg.r <= 430 && dg.t >= 0 && dg.b <= 80,
+        `バージョンの診断は タイトル画面の左上に出る (「${dg.text}」)`);
       const m0 = await money(page);
       const tb = await box(page, '#tree');
       await page.touchscreen.tap(tb.x + 100, tb.y + 100);   // 本物の指と同じ。うしろの木は、タイトルにさえぎられて受け取らない
