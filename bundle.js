@@ -26,8 +26,9 @@ if (artifact) {
 } else {
   html = html.replace(/<link rel="stylesheet" href="\.\/styles\.css">/, () => '<style>\n' + css + '\n</style>');
   html = html.replace(/<link rel="stylesheet" href="\.\/(card|opening)\.css">\n?/g, '');
-  html = html.replace(/<link rel="icon"[^>]*>/, () =>
-    '<link rel="icon" href="data:image/svg+xml;base64,' + Buffer.from(read('icon.svg')).toString('base64') + '">');
+  const png = (f) => 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, f)).toString('base64');
+  html = html.replace(/<link rel="icon"[^>]*>/, () => '<link rel="icon" href="' + png('icon-64.png') + '">');
+  html = html.replace(/<link rel="apple-touch-icon"[^>]*>/, () => '<link rel="apple-touch-icon" href="' + png('apple-touch-icon.png') + '">');
   scripts.forEach((f) => {
     html = html.replace('<script src="./' + f + '"></script>', () => '<script>\n' + read(f).replace(/<\/script>/g, '<\\/script>') + '\n</script>');
   });

@@ -637,3 +637,17 @@ test('保存: 書き出して読み直しても同じ (BOX の残りも、手も
 test('表示: コイン数は 3 けたごとにカンマ', () => {
   assert.strictEqual(Core.formatMoney(1234567), '1,234,567');
 });
+
+test('アイコン: iPhone のホーム画面用は PNG で 180x180 (iOS は SVG を使えない)。タブ用も PNG', () => {
+  const html = fs.readFileSync(require.resolve('./index.html'), 'utf8');
+  const touch = html.match(/<link rel="apple-touch-icon" href="\.\/([^"]+)"/);
+  const icon = html.match(/<link rel="icon" href="\.\/([^"]+)"/);
+  assert.ok(touch && /\.png$/.test(touch[1]) && icon && /\.png$/.test(icon[1]));
+  const size = (f) => {
+    const b = fs.readFileSync(require.resolve('./' + f));
+    assert.strictEqual(b.toString('latin1', 1, 4), 'PNG', f);
+    return [b.readUInt32BE(16), b.readUInt32BE(20)];
+  };
+  assert.deepStrictEqual(size(touch[1]), [180, 180]);
+  assert.deepStrictEqual(size(icon[1]), [64, 64]);
+});
