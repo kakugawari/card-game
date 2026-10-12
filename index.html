@@ -113,7 +113,7 @@
 
   <!-- パックを開ける (opening.js) -->
   <div id="open" hidden data-bg="day">
-    <div class="op-bg"><i class="b-day"></i><i class="b-night"></i><i class="b-pastel"></i><i class="b-gold"></i></div>
+    <div class="op-bg"><i class="b-day"></i><i class="b-night"></i><i class="b-pastel"></i><i class="b-gold"></i><i class="b-cosmos"></i></div>
     <div class="op-rays" id="opRays"></div>
     <div class="op-stage" id="opStage">
       <div class="op-pack" id="opPack"></div>
@@ -148,6 +148,14 @@
   </div>
 
   <!-- なかよしの子に おやつ -->
+  <!-- パックを えらぶ (100 しゅるい) -->
+  <div id="packSheet" hidden>
+    <div class="psh-panel">
+      <div class="psh-head"><b id="pshTitle">パックを えらぶ</b><button type="button" class="psh-close" id="pshClose" aria-label="とじる">×</button></div>
+      <div class="psh-body" id="pshBody"></div>
+    </div>
+  </div>
+
   <div id="petSheet" hidden>
     <div class="ps-panel">
       <button type="button" class="ps-close" id="psClose" aria-label="とじる">×</button>
@@ -175,6 +183,7 @@
   </div>
 </div>
 
+<script src="./packs.js"></script>
 <script src="./cards.js"></script>
 <script src="./core.js"></script>
 <script src="./animals.js"></script>

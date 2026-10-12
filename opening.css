@@ -12,7 +12,7 @@
 }
 
 /* ---------------------------------------------------------------- 背景 (重ねて、見せる 1 枚だけ濃くする) */
-.op-bg { position: absolute; inset: 0; }
+.op-bg { position: absolute; inset: 0; background: #2a1f4e; }   /* 切りかえの途中で 下の画面が すけないように */
 .op-bg > i { position: absolute; inset: 0; opacity: 0; transition: opacity .6s ease; }
 .b-day { background: radial-gradient(circle at 50% 42%, #fffdf4, #ffe6c2 70%, #ffd2c8); }
 .b-night { background: radial-gradient(circle at 50% 44%, #3b3f8f 0, #1a1d4a 55%, #0b0c22); }
@@ -35,7 +35,28 @@
 #open[data-bg="day"] .b-day,
 #open[data-bg="night"] .b-night,
 #open[data-bg="pastel"] .b-pastel,
-#open[data-bg="gold"] .b-gold { opacity: 1; }
+#open[data-bg="gold"] .b-gold,
+#open[data-bg="cosmos"] .b-cosmos { opacity: 1; }
+/* LR: 宇宙。星雲と星 */
+.b-cosmos { background:
+    radial-gradient(ellipse 60% 40% at 30% 35%, rgba(255,120,200,.45), rgba(255,120,200,0) 70%),
+    radial-gradient(ellipse 55% 45% at 72% 62%, rgba(110,180,255,.5), rgba(110,180,255,0) 70%),
+    radial-gradient(ellipse 40% 30% at 55% 30%, rgba(190,140,255,.45), rgba(190,140,255,0) 70%),
+    radial-gradient(circle at 50% 46%, #2a1f6e 0, #120c3a 55%, #05031a); }
+.b-cosmos::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 18%, #fff 0 1.2px, rgba(255,255,255,0) 2.2px),
+    radial-gradient(circle at 78% 12%, #ffe680 0 1px, rgba(255,255,255,0) 2px),
+    radial-gradient(circle at 88% 64%, #fff 0 1.4px, rgba(255,255,255,0) 2.6px),
+    radial-gradient(circle at 22% 80%, #9fe0ff 0 1px, rgba(255,255,255,0) 2px),
+    radial-gradient(circle at 60% 88%, #fff 0 .8px, rgba(255,255,255,0) 1.8px),
+    radial-gradient(circle at 40% 30%, #ff9ecb 0 1px, rgba(255,255,255,0) 2px),
+    radial-gradient(circle at 52% 58%, #fff 0 .7px, rgba(255,255,255,0) 1.6px);
+  background-size: 140px 140px;
+}
 
 /* ---------------------------------------------------------------- 光の筋 (くるくる回る) */
 .op-rays {
@@ -59,6 +80,7 @@
 .ray-blue { background: repeating-conic-gradient(rgba(150,210,255,.85) 0 6deg, rgba(150,210,255,0) 6deg 16deg); }
 .ray-pastel { background: repeating-conic-gradient(rgba(255,190,220,.8) 0 6deg, rgba(255,255,255,0) 6deg 14deg, rgba(200,180,255,.7) 14deg 20deg, rgba(255,255,255,0) 20deg 28deg); }
 .ray-gold { background: repeating-conic-gradient(rgba(255,220,100,.95) 0 6deg, rgba(255,220,100,0) 6deg 15deg); }
+.ray-legend { background: repeating-conic-gradient(rgba(255,158,203,.8) 0 4deg, rgba(0,0,0,0) 4deg 10deg, rgba(159,224,255,.8) 10deg 14deg, rgba(0,0,0,0) 14deg 20deg, rgba(255,230,128,.85) 20deg 24deg, rgba(0,0,0,0) 24deg 30deg); }
 .ray-rainbow { background: repeating-conic-gradient(#ff7eb3 0 5deg, rgba(0,0,0,0) 5deg 12deg, #ffd36b 12deg 17deg, rgba(0,0,0,0) 17deg 24deg,
   #8fe3b0 24deg 29deg, rgba(0,0,0,0) 29deg 36deg, #7ec8ff 36deg 41deg, rgba(0,0,0,0) 41deg 48deg, #c39bff 48deg 53deg, rgba(0,0,0,0) 53deg 60deg); }
 .ray-gold-faint { background: repeating-conic-gradient(rgba(255,220,100,.45) 0 5deg, rgba(255,220,100,0) 5deg 18deg); }
@@ -92,6 +114,23 @@
   opacity: 1;
   background: conic-gradient(#ff7eb3, #ffd36b, #8fe3b0, #7ec8ff, #c39bff, #ff7eb3);
   animation: op-pulse 1.2s ease-in-out infinite;
+}
+.op-pack.aura-cosmos::before {
+  opacity: 1;
+  background: conic-gradient(#ff9ecb, #9fe0ff, #c39bff, #ffe680, #8ff0c0, #ff9ecb);
+  animation: op-pulse .7s ease-in-out infinite;
+}
+/* 流れ星 (LR の予兆) */
+.op-meteor {
+  position: absolute;
+  width: 120px;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #fff, rgba(200,170,255,.8) 20%, rgba(150,200,255,0));
+  box-shadow: 0 0 8px #fff;
+  transform-origin: 0 50%;
+  pointer-events: none;
+  z-index: 2;
 }
 .op-pack.aura-gold::before {
   opacity: 1;
@@ -277,6 +316,11 @@
 }
 .bn-MUR .bn-name { background: linear-gradient(90deg, #b37400, #e9a512, #b37400); }
 .bn-SAR .bn-name { background: linear-gradient(90deg, #ff7eb3, #c39bff, #7ec8ff); }
+.bn-LR .bn-name { background: linear-gradient(90deg, #2a1f6e, #6a4bc4, #2a1f6e); border-color: #ffe680; }
+.bn-LR .bn-code span {
+  background-image: linear-gradient(100deg, #ff9ecb 0%, #fff 22%, #9fe0ff 40%, #c39bff 60%, #fff 78%, #ffe680 100%);
+  filter: drop-shadow(0 0 1.5px #2a1f6e) drop-shadow(0 0 1.5px #2a1f6e) drop-shadow(0 0 16px rgba(200,170,255,.9));
+}
 
 .op-hint {
   position: absolute;

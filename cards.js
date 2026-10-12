@@ -4,7 +4,7 @@
  * ★ 絵を差し替えるとき
  *   art に画像の場所を書く (例: 'art/001.png')。空なら仮の絵 (animals.js) が出る。
  *   ・ふつうの枠 (C U R RR)        … イラストの窓は 横4:縦3   (おすすめ 800 x 600)
- *   ・全面イラスト (AR SR SAR MUR) … カード全体   横63:縦88 (おすすめ 750 x 1048)
+ *   ・全面イラスト (AR SR SAR MUR LR) … カード全体   横63:縦88 (おすすめ 750 x 1048)
  *     下 1/3 に説明の帯が重なるので、顔は上の方に
  *   illus に描いた人の名前を書くと、カードの右下に出る
  *
@@ -29,7 +29,7 @@
 
   const SETS = [
     {
-      id: 'animal', code: 'A1', name: 'どうぶつパック', title: 'はじめましての もり', mark: '🐾',
+      id: 'animal', cat: 'mori', scene: 'forest', code: 'A1', name: 'どうぶつパック', title: 'はじめましての もり', mark: '🐾',
       colors: ['#ff9fc6', '#ffb27a', '#ffe27a'], mascots: ['usagi', 'neko', 'dragon'],
       cards: [
       // ---------------------------------------------------- C コモン
@@ -105,11 +105,13 @@
         text: 'ほしの うみで ねむる ちびりゅう。だいじな なかまの ゆめを ひとつずつ ほしに かえている。' },
       // ---------------------------------------------------- MUR メガウルトラレア
       { no: '033', chara: 'dragon', name: 'おうごんの ちびりゅう', rarity: 'MUR', kind: 'でんせつの どうぶつ',
-        text: '1000ねんに いちど、ながれぼしの よるに だけ あらわれる。みた ひとの ねがいが ひとつ かなう。' }
+        text: '1000ねんに いちど、ながれぼしの よるに だけ あらわれる。みた ひとの ねがいが ひとつ かなう。' },
+      { no: '034', chara: 'dragon', name: 'でんせつの ちびりゅう', rarity: 'LR', kind: 'レジェンドの どうぶつ',
+        text: 'ほしの うみを こえて かえってきた ちびりゅう。つばさを ひろげると よぞらが にじいろに なる。' }
       ]
     },
     {
-      id: 'sea', code: 'S1', name: 'さかなパック', title: 'うみの なかまたち', mark: '🐟',
+      id: 'sea', cat: 'umi', scene: 'sea', code: 'S1', name: 'さかなパック', title: 'うみの なかまたち', mark: '🐟',
       colors: ['#8fe0ff', '#4fa8e8', '#7fe3c8'], mascots: ['kumanomi', 'tako', 'iruka'],
       cards: [
       { no: '001', chara: 'kingyo', name: 'きんぎょ', rarity: 'C', kind: 'おまつり さかな',
@@ -145,11 +147,13 @@
       { no: '016', chara: 'nijiuo', name: 'にじいろうお', rarity: 'SAR', kind: 'ひかりの さかな',
         text: 'うみの なかまたちが あつまって、にじいろの パレードが はじまった。' },
       { no: '017', chara: 'nijiuo', name: 'おうごんの にじいろうお', rarity: 'MUR', kind: 'でんせつの さかな',
-        text: '100ねんに いちど、きんいろの うろこを ひとつだけ うみに おとしていく。' }
+        text: '100ねんに いちど、きんいろの うろこを ひとつだけ うみに おとしていく。' },
+      { no: '018', chara: 'nijiuo', name: 'でんせつの にじいろうお', rarity: 'LR', kind: 'レジェンドの さかな',
+        text: 'うみの いちばん ふかい ところで ねむる でんせつ。めを さますと うみが ほしぞらに かわる。' }
       ]
     },
     {
-      id: 'bird', code: 'B1', name: 'とりパック', title: 'そらの なかまたち', mark: '🐦',
+      id: 'bird', cat: 'sora', scene: 'sky', code: 'B1', name: 'とりパック', title: 'そらの なかまたち', mark: '🐦',
       colors: ['#c8f5a8', '#7fd8a0', '#fff2a0'], mascots: ['inko', 'fukurou', 'hinotori'],
       cards: [
       { no: '001', chara: 'suzume', name: 'すずめ', rarity: 'C', kind: 'ちゅんちゅん とり',
@@ -185,11 +189,13 @@
       { no: '016', chara: 'hinotori', name: 'ひのとり', rarity: 'SAR', kind: 'ほのおの とり',
         text: 'そらの とりたちが みんなで ひのとりを かこんで、おいわいの ダンス。' },
       { no: '017', chara: 'hinotori', name: 'おうごんの ひのとり', rarity: 'MUR', kind: 'でんせつの とり',
-        text: 'きんいろの はねが いちまい おちてきたら、それは ひのとりの おくりもの。' }
+        text: 'きんいろの はねが いちまい おちてきたら、それは ひのとりの おくりもの。' },
+      { no: '018', chara: 'hinotori', name: 'でんせつの ひのとり', rarity: 'LR', kind: 'レジェンドの とり',
+        text: 'ひと はばたきで よるが あけて、ふた はばたきで にじが かかる。' }
       ]
     },
     {
-      id: 'dino', code: 'D1', name: 'きょうりゅうパック', title: 'むかしむかしの なかま', mark: '🦖',
+      id: 'dino', cat: 'mukashi', scene: 'dino', code: 'D1', name: 'きょうりゅうパック', title: 'むかしむかしの なかま', mark: '🦖',
       colors: ['#b8e88a', '#e0b060', '#ff9a5a'], mascots: ['tirano', 'torikera', 'putera'],
       cards: [
       { no: '001', chara: 'tirano', name: 'ちびティラノ', rarity: 'C', kind: 'がおー きょうりゅう',
@@ -225,11 +231,13 @@
       { no: '016', chara: 'kohaku', name: 'こはくりゅう', rarity: 'SAR', kind: 'たからもの きょうりゅう',
         text: 'むかしむかしの もりで、きょうりゅうたちと いっしょに おひるね。' },
       { no: '017', chara: 'kohaku', name: 'おうごんの こはくりゅう', rarity: 'MUR', kind: 'でんせつの きょうりゅう',
-        text: '1おくねん ねむっていた たからもの。きんいろの こはくに ねがいが とじこめてある。' }
+        text: '1おくねん ねむっていた たからもの。きんいろの こはくに ねがいが とじこめてある。' },
+      { no: '018', chara: 'kohaku', name: 'でんせつの こはくりゅう', rarity: 'LR', kind: 'レジェンドの きょうりゅう',
+        text: '1おくねんの ひかりを とじこめた こはくから めざめた。しっぽで ながれぼしを うつ。' }
       ]
     },
     {
-      id: 'ghost', code: 'G1', name: 'おばけパック', title: 'よるの なかまたち', mark: '👻',
+      id: 'ghost', cat: 'yoru', scene: 'night', code: 'G1', name: 'おばけパック', title: 'よるの なかまたち', mark: '👻',
       colors: ['#9a8ae8', '#4a3a8a', '#c39bff'], mascots: ['shiroobake', 'kabocha', 'majoneko'],
       cards: [
       { no: '001', chara: 'shiroobake', name: 'しろおばけ', rarity: 'C', kind: 'ふわふわ おばけ',
@@ -265,11 +273,13 @@
       { no: '016', chara: 'obakeou', name: 'おばけのおうさま', rarity: 'SAR', kind: 'おうさま おばけ',
         text: 'おばけの おしろで だいパーティー。こんやは みんなが しゅやく。' },
       { no: '017', chara: 'obakeou', name: 'おうごんの おばけのおうさま', rarity: 'MUR', kind: 'でんせつの おばけ',
-        text: '100ねんに いちどの かぼちゃの つきよに、きんいろの かんむりが ひかる。' }
+        text: '100ねんに いちどの かぼちゃの つきよに、きんいろの かんむりが ひかる。' },
+      { no: '018', chara: 'obakeou', name: 'でんせつの おばけのおうさま', rarity: 'LR', kind: 'レジェンドの おばけ',
+        text: 'つきよの ばんに だけ あらわれる。おうかんの ほうせきに うちゅうが うつっている。' }
       ]
     },
     {
-      id: 'future', code: 'F1', name: 'みらいの どうぶつパック', title: 'ロボと うちゅうの なかま', mark: '🤖',
+      id: 'future', cat: 'mirai', scene: 'future', code: 'F1', name: 'みらいの どうぶつパック', title: 'ロボと うちゅうの なかま', mark: '🤖',
       colors: ['#9fe8ff', '#8e9bb5', '#c9b3ff'], mascots: ['robon', 'jetpen', 'galaxyuni'],
       cards: [
       { no: '001', chara: 'robon', name: 'ロボねこ', rarity: 'C', kind: 'ロボ どうぶつ',
@@ -305,10 +315,46 @@
       { no: '016', chara: 'galaxyuni', name: 'ギャラクシーユニコーン', rarity: 'SAR', kind: 'うちゅう どうぶつ',
         text: 'みらいの どうぶつたちを のせて、うちゅうの ゆうえんちへ しゅっぱつ。' },
       { no: '017', chara: 'galaxyuni', name: 'おうごんの ギャラクシーユニコーン', rarity: 'MUR', kind: 'でんせつの どうぶつ',
-        text: 'みらいから きた きんいろの ユニコーン。あえた ひとには みらいが ひかる。' }
+        text: 'みらいから きた きんいろの ユニコーン。あえた ひとには みらいが ひかる。' },
+      { no: '018', chara: 'galaxyuni', name: 'でんせつの ギャラクシーユニコーン', rarity: 'LR', kind: 'レジェンドの どうぶつ',
+        text: 'ぎんがを ひとまわり して かえってきた。とおった あとに あたらしい ほしが うまれる。' }
       ]
     }
   ];
+
+  // ---------------------------------------------------------------- ふえたパック (packs.js)
+  // 1 パック = キャラ 3 人。a: C U AR / b: C R AR / c (スター): C RR SR SAR MUR LR の 12 まい
+  const CATS = [
+    { id: 'mori', name: 'どうぶつ', mark: '🐾', code: 'A' },
+    { id: 'umi', name: 'うみ', mark: '🐟', code: 'S' },
+    { id: 'sora', name: 'そら', mark: '🐦', code: 'B' },
+    { id: 'mukashi', name: 'むかし', mark: '🦖', code: 'D' },
+    { id: 'yoru', name: 'よる・おばけ', mark: '👻', code: 'G' },
+    { id: 'mirai', name: 'みらい・うちゅう', mark: '🤖', code: 'F' },
+    { id: 'okashi', name: 'おかし', mark: '🍰', code: 'K' },
+    { id: 'tabemono', name: 'たべもの', mark: '🍙', code: 'T' },
+    { id: 'kisetsu', name: 'きせつ・おまつり', mark: '🌸', code: 'Q' },
+    { id: 'machi', name: 'まち・おしごと', mark: '🚒', code: 'M' },
+    { id: 'mahou', name: 'まほう・おとぎばなし', mark: '🪄', code: 'W' }
+  ];
+  const PACKS = typeof module === 'object' && module.exports ? require('./packs.js') : (typeof globalThis !== 'undefined' ? globalThis : this).Packs;
+  const PLAN = [[0, 'C', 0], [1, 'C', 0], [2, 'C', 0], [0, 'U', 1], [1, 'R', 1], [2, 'RR', 1], [0, 'AR', 2], [1, 'AR', 2],
+    [2, 'SR', 2], [2, 'SAR', 3], [2, 'MUR', 4], [2, 'LR', 5]];
+  const PREFIX = { MUR: 'おうごんの ', LR: 'でんせつの ' };
+  (PACKS || []).forEach(function (pk) {
+    const cat = CATS.find(function (c) { return c.id === pk.cat; });
+    const n = SETS.filter(function (st) { return st.cat === pk.cat; }).length + 1;
+    const ch = pk.charas;
+    const cards = PLAN.map(function (pl, i) {
+      const c = ch[pl[0]];
+      return { no: (i < 9 ? '00' : '0') + (i + 1), chara: c.id, name: (PREFIX[pl[1]] || '') + c.name, rarity: pl[1],
+        kind: c.kind, text: c.texts[pl[2]] };
+    });
+    SETS.push({
+      id: pk.id, cat: pk.cat, scene: pk.scene, code: cat.code + n, name: pk.name, title: pk.title, mark: pk.mark,
+      colors: pk.colors, mascots: [ch[0].id, ch[1].id, ch[2].id], cards: cards
+    });
+  });
 
   // カードに「どのパックか」を付け、ゲームの中で使う見分け (A1-001) を no にする。番号の見た目は num
   const MAIN = { C: 1, U: 1, R: 1, RR: 1 };
@@ -399,5 +445,9 @@
     galaxyuni: { food: '🪐', foodName: 'ほしのキャンディ' }
   };
 
-  return { SETS: SETS, SET: SETS[0], CARDS: CARDS, CHARAS: CHARAS };
+  (PACKS || []).forEach(function (pk) {
+    pk.charas.forEach(function (c) { CHARAS[c.id] = { food: c.food, foodName: c.foodName }; });
+  });
+
+  return { SETS: SETS, SET: SETS[0], CARDS: CARDS, CHARAS: CHARAS, CATS: CATS };
 });

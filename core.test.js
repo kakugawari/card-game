@@ -16,10 +16,37 @@ function richState(money) {
 }
 
 // ------------------------------------------------------------ カードの一覧
-test('一覧: パックは 6 しゅるい (どうぶつ・さかな・とり・きょうりゅう・おばけ・みらい)', () => {
-  assert.deepStrictEqual(Core.SETS.map((st) => st.id), ['animal', 'sea', 'bird', 'dino', 'ghost', 'future']);
-  assert.strictEqual(new Set(Core.SETS.map((st) => st.code)).size, 6);
-  Core.SETS.forEach((st) => assert.ok(st.name && st.title && st.mark && st.colors.length === 3 && st.mascots.length === 3, st.id));
+test('一覧: パックは 100 しゅるい。はじめの 6 つは手で書いたパック。記号・id は重ならず、どれも 11 のカテゴリのどれか', () => {
+  assert.strictEqual(Core.SETS.length, 100);
+  assert.deepStrictEqual(Core.SETS.slice(0, 6).map((st) => st.id), ['animal', 'sea', 'bird', 'dino', 'ghost', 'future']);
+  assert.strictEqual(new Set(Core.SETS.map((st) => st.code)).size, 100);
+  assert.strictEqual(new Set(Core.SETS.map((st) => st.id)).size, 100);
+  assert.strictEqual(new Set(Core.SETS.map((st) => st.name)).size, 100, 'パックの名前も重ならない');
+  const cats = Core.CATS.map((c) => c.id);
+  assert.strictEqual(cats.length, 11);
+  Core.SETS.forEach((st) => {
+    assert.ok(st.name && st.title && st.mark && st.colors.length === 3 && st.mascots.length === 3, st.id);
+    assert.ok(cats.includes(st.cat), st.id + ' ' + st.cat);
+  });
+  cats.forEach((c) => assert.ok(Core.SETS.filter((st) => st.cat === c).length >= 8, c));
+});
+
+test('一覧: どのパックにも C〜LR の 9 つのレア度がそろい、C は 3 まい以上 (1 パックの C 3 まいが重ならない)', () => {
+  Core.SETS.forEach((st) => {
+    Core.RARITY_ORDER.forEach((r) => assert.ok(Core.POOL[st.id][r].length >= 1, st.id + ' ' + r));
+    assert.ok(Core.POOL[st.id].C.length >= 3, st.id);
+  });
+});
+
+test('一覧: ふえたパックは 12 まい (a: C U AR / b: C R AR / スター: C RR SR SAR MUR LR)。MUR は「おうごんの」、LR は「でんせつの」', () => {
+  Core.SETS.slice(6).forEach((st) => {
+    assert.deepStrictEqual(st.cards.map((c) => c.rarity), ['C', 'C', 'C', 'U', 'R', 'RR', 'AR', 'AR', 'SR', 'SAR', 'MUR', 'LR'], st.id);
+    assert.strictEqual(st.mainCount, 6);
+    const star = st.cards[2].chara;
+    assert.ok(st.cards.slice(-2).every((c) => c.chara === star));
+    assert.ok(st.cards[10].name.startsWith('おうごんの ') && st.cards[11].name.startsWith('でんせつの '), st.id);
+    st.cards.forEach((c) => assert.ok(c.text && c.text.length >= 10, c.no));
+  });
 });
 
 test('一覧: パックごとに番号は 001 から順。見分け (A1-001) は全部で重ならない', () => {
@@ -62,7 +89,7 @@ test('一覧: 名前・分類・説明が全部ある。仮の絵・だいこう
 test('一覧: 手で書いた表に、同じパックの中で同じ番号が 2 回書かれていない (あとの方だけ残る事故よけ)', () => {
   const src = fs.readFileSync(require.resolve('./cards.js'), 'utf8');
   const blocks = src.split(/\n {6}id: '/).slice(1);
-  assert.strictEqual(blocks.length, Core.SETS.length);
+  assert.strictEqual(blocks.length, 6, '手で書いたパックは 6 つ');
   blocks.forEach((b, i) => {
     const nos = [...b.matchAll(/no: '(\d{3})'/g)].map((m) => m[1]);
     assert.strictEqual(new Set(nos).size, nos.length, Core.SETS[i].id);
@@ -85,18 +112,19 @@ test('BOX: 30 パックに、SR 以上が 1・RR が 4・R が 25・AR が 3 (BO
     box.packs.forEach((p) => { tops[p.top] = (tops[p.top] || 0) + 1; });
     assert.strictEqual(tops.RR, 4);
     assert.strictEqual(tops.R, 25);
-    assert.strictEqual((tops.SR || 0) + (tops.SAR || 0) + (tops.MUR || 0), 1);
+    assert.strictEqual((tops.SR || 0) + (tops.SAR || 0) + (tops.MUR || 0) + (tops.LR || 0), 1);
     assert.strictEqual(box.packs.filter((p) => p.ar).length, 3);
   }
 });
 
-test('BOX: SR 以上の 1 まいは、SAR が約 5 BOX に 1、MUR が約 50 BOX に 1', () => {
-  const N = 50000;
+test('BOX: SR 以上の 1 まいは、SAR が約 5 BOX に 1、MUR が約 50 BOX に 1、LR が約 150 BOX に 1', () => {
+  const N = 150000;
   const rng = Core.mulberry32(77);
-  const n = { SR: 0, SAR: 0, MUR: 0 };
+  const n = { SR: 0, SAR: 0, MUR: 0, LR: 0 };
   for (let i = 0; i < N; i++) n[Core.newBox(rng).packs.find((p) => p.top !== 'R' && p.top !== 'RR').top]++;
   assert.ok(Math.abs(n.SAR / N - 0.2) < 0.01, `SAR ${n.SAR / N}`);
-  assert.ok(Math.abs(n.MUR / N - 0.02) < 0.003, `MUR ${n.MUR / N}`);
+  assert.ok(Math.abs(n.MUR / N - 0.02) < 0.002, `MUR ${n.MUR / N}`);
+  assert.ok(Math.abs(n.LR / N - 1 / 150) < 0.001, `LR ${n.LR / N}`);
 });
 
 test('パック: 5 まいで、1〜3 まいめ C・4 まいめ U か AR・5 まいめ R 以上。中で同じカードは出ない。そのパックのカードだけ', () => {
@@ -210,7 +238,7 @@ test('BOX 買い: 買った BOX を 30 パック開けると、SR 以上 1・RR 
       assert.strictEqual(r.boxLeft, 29 - i);
       r.cards.forEach((c) => { const k = rarityOf(c.no); n[k] = (n[k] || 0) + 1; });
     }
-    assert.strictEqual((n.SR || 0) + (n.SAR || 0) + (n.MUR || 0), 1, `箱 ${b}`);
+    assert.strictEqual((n.SR || 0) + (n.SAR || 0) + (n.MUR || 0) + (n.LR || 0), 1, `箱 ${b}`);
     assert.strictEqual(n.RR || 0, 4);
     assert.strictEqual(n.AR || 0, 3);
     assert.strictEqual(Core.packsInHand(s), 0);
@@ -312,14 +340,15 @@ test('演出: いちばん上のレア度 (tier) は、パックの中のいち�
 
 test('演出: 光の色は、本当のレア度より上に絶対に上がらない (がっかりさせない)', () => {
   const rng = Core.mulberry32(2);
-  const tops = ['R', 'RR', 'SR', 'SAR', 'MUR'];
+  const tops = ['R', 'RR', 'SR', 'SAR', 'MUR', 'LR'];
   for (let i = 0; i < 20000; i++) {
     const r = ['C', 'C', 'C', rng() < 0.1 ? 'AR' : 'U', tops[Math.floor(rng() * tops.length)]];
     const sh = Core.makeShow(r, rng);
     const tierLadder = Core.LADDER.indexOf(Core.RARITIES[sh.tier].color);
     assert.ok(Core.LADDER.indexOf(sh.tearLight) <= tierLadder, `あける光 ${sh.tearLight} / ${sh.tier}`);
     if (sh.omen === 'rainbow') assert.ok(Core.rank(sh.tier) >= Core.rank('SAR'), `虹の予兆は SAR 以上だけ (${sh.tier})`);
-    if (sh.omen === 'gold') assert.strictEqual(sh.tier, 'MUR', '金の予兆は MUR だけ');
+    if (sh.omen === 'gold') assert.ok(Core.rank(sh.tier) >= Core.rank('MUR'), '金の予兆は MUR 以上だけ');
+    if (sh.omen === 'cosmos') assert.strictEqual(sh.tier, 'LR', '流れ星の予兆は LR だけ');
     sh.specials.forEach((sp) => {
       const top = Core.LADDER.indexOf(Core.RARITIES[sp.rarity].color);
       sp.stages.forEach((c) => assert.ok(Core.LADDER.indexOf(c) <= top));
@@ -335,6 +364,7 @@ test('演出: 虹と MUR は、あけた時の光ではまだ見せない (長�
   const rng = Core.mulberry32(3);
   assert.strictEqual(Core.makeShow(['C', 'C', 'C', 'U', 'SAR'], rng).tearLight, 'gold');
   assert.strictEqual(Core.makeShow(['C', 'C', 'C', 'U', 'MUR'], rng).tearLight, 'gold');
+  assert.strictEqual(Core.makeShow(['C', 'C', 'C', 'U', 'LR'], rng).tearLight, 'gold');
   assert.strictEqual(Core.makeShow(['C', 'C', 'C', 'U', 'RR'], rng).tearLight, 'blue');
   assert.strictEqual(Core.makeShow(['C', 'C', 'C', 'U', 'R'], rng).tearLight, 'white');
 });
@@ -345,6 +375,7 @@ test('演出: RR・AR はタップでめくる / SR 以上は長押し。段は 
   assert.deepStrictEqual(sh.specials.map((s) => [s.index, s.mode, s.stages.length]), [[3, 'tap', 1], [4, 'hold', 4]]);
   assert.deepStrictEqual(Core.makeShow(['C', 'C', 'C', 'U', 'SR'], rng).specials[0].stages, ['blue', 'gold']);
   assert.deepStrictEqual(Core.makeShow(['C', 'C', 'C', 'U', 'SAR'], rng).specials[0].stages, ['blue', 'gold', 'rainbow']);
+  assert.deepStrictEqual(Core.makeShow(['C', 'C', 'C', 'U', 'LR'], rng).specials[0].stages, ['blue', 'gold', 'rainbow', 'mega', 'legend']);
   assert.deepStrictEqual(Core.makeShow(['C', 'C', 'C', 'U', 'R'], rng).specials, []);
 });
 
@@ -359,6 +390,7 @@ test('演出: 予兆の出かた (揺れは外れのこともある / 虹・金�
   assert.ok(Math.abs(rate('SR', 'shake') - 0.5) < 0.02);
   assert.ok(Math.abs(rate('SAR', 'rainbow') - 0.6) < 0.02);
   assert.ok(Math.abs(rate('MUR', 'gold') - 0.7) < 0.02);
+  assert.ok(Math.abs(rate('LR', 'cosmos') - 0.7) < 0.02);
   assert.ok(ORDER.includes(Core.makeShow(['C', 'C', 'C', 'U', 'R'], Math.random).omen));
 });
 

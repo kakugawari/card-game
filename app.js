@@ -21,7 +21,7 @@
     shopPack: $('shopPack'), shopName: $('shopName'), btnFree: $('btnFree'), btnFreeLabel: $('btnFreeLabel'),
     btnBuy: $('btnBuy'), btnBuyLabel: $('btnBuyLabel'), btnBox: $('btnBox'), btnBoxLabel: $('btnBoxLabel'),
     boxArt: $('boxArt'), btnOpenAll: $('btnOpenAll'), btnOpenAllLabel: $('btnOpenAllLabel'), myBox: $('myBox'), myBoxLeft: $('myBoxLeft'), myBoxSr: $('myBoxSr'), btnOpenBox: $('btnOpenBox'), boxLeft: $('boxLeft'), rates: $('rates'), packDot: $('packDot'),
-    setPick: $('setPick'), zkPick: $('zkPick'), zkTitle: $('zkTitle'),
+    setPick: $('setPick'), packSheet: $('packSheet'), pshBody: $('pshBody'), pshTitle: $('pshTitle'), pshClose: $('pshClose'), zkPick: $('zkPick'), zkTitle: $('zkTitle'),
     zkCount: $('zkCount'), zkSub: $('zkSub'), zkGrid: $('zkGrid'),
     detail: $('detail'), dtBox: $('dtBox'),
     petSheet: $('petSheet'), psClose: $('psClose'), psAnimal: $('psAnimal'), psFx: $('psFx'), psName: $('psName'), psLv: $('psLv'),
@@ -352,14 +352,75 @@
 
   function shortName(set) { return set.name.replace(/パック$/, '').replace('みらいの どうぶつ', 'みらい'); }
 
-  /** パックの種類をえらぶ並び (6 つ。横に送らずに全部見える) */
-  function pickerHTML(selected, badge) {
-    return C.SETS.map(function (st) {
-      return '<button type="button" class="sp-btn' + (st.id === selected ? ' on' : '') + '" data-set="' + st.id + '">' +
-        '<span class="sp-pack">' + V.packHTML(st.id) + '</span><span class="sp-name">' + shortName(st) + '</span>' +
-        (badge && badge(st) ? '<i class="sp-badge">' + badge(st) + '</i>' : '') + '</button>';
-    }).join('');
+  /** パックの小さい絵 (えらぶ画面用。スターの子 1 人だけ描いて軽くする) */
+  function miniPack(st) {
+    return '<span class="sp-mini" style="--pk1:' + st.colors[0] + ';--pk2:' + st.colors[1] + ';--pk3:' + st.colors[2] + '">' +
+      A.svg(st.mascots[2], { walk: false }) + '<i>' + st.mark + '</i></span>';
   }
+
+  /** いまのパックを出して「えらぶ」を開くボタン */
+  function barHTML(st, sub) {
+    return '<button type="button" class="sp-bar" data-open="1">' + miniPack(st) +
+      '<span class="sp-bar-text"><b>' + st.mark + ' ' + st.name + '</b><small>' + sub + '</small></span>' +
+      '<span class="sp-bar-go">ほかの パック ▸</span></button>';
+  }
+
+  // ---- パックを えらぶ画面 (100 しゅるい。カテゴリごとに並べ、中で送る)
+  let sheetMode = 'packs';
+  let sheetBuilt = false;
+
+  function buildSheet() {
+    els.pshBody.innerHTML = C.CATS.map(function (cat) {
+      const sets = C.SETS.filter(function (st) { return st.cat === cat.id; });
+      return '<h3 class="psh-cat">' + cat.mark + ' ' + cat.name + ' <small>' + sets.length + '</small></h3><div class="psh-grid">' +
+        sets.map(function (st) {
+          return '<button type="button" class="sp-btn" data-set="' + st.id + '">' + miniPack(st) +
+            '<span class="sp-name">' + shortName(st) + '</span><i class="sp-badge" hidden></i></button>';
+        }).join('') + '</div>';
+    }).join('');
+    sheetBuilt = true;
+  }
+
+  function openSheet(mode) {
+    if (!sheetBuilt) buildSheet();
+    sheetMode = mode;
+    const sel = mode === 'packs' ? curSet : zkSet;
+    els.pshTitle.textContent = mode === 'packs' ? 'あける パックを えらぶ' : 'ずかんの パックを えらぶ';
+    els.pshBody.querySelectorAll('.sp-btn').forEach(function (b) {
+      const id = b.dataset.set;
+      b.classList.toggle('on', id === sel);
+      let t = '', done = false;
+      if (mode === 'packs') {
+        const n = C.packsInHand(state, id);
+        t = n ? '🎁' + n : '';
+      } else {
+        const st = C.setById(id);
+        const n = C.collectedCount(state, function (c) { return c.set === id; });
+        done = n === st.cards.length;
+        t = n ? (done ? '★' : n + '/' + st.cards.length) : '';
+      }
+      const badge = b.querySelector('.sp-badge');
+      badge.hidden = !t;
+      badge.textContent = t;
+      b.classList.toggle('done', done);
+    });
+    els.packSheet.hidden = false;
+    els.packSheet.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160 });
+    const on = els.pshBody.querySelector('.sp-btn.on');
+    if (on) on.scrollIntoView({ block: 'center' });
+  }
+
+  function closeSheet() { els.packSheet.hidden = true; }
+
+  els.pshClose.addEventListener('click', closeSheet);
+  els.packSheet.addEventListener('click', function (e) {
+    if (e.target === els.packSheet) { closeSheet(); return; }
+    const b = e.target.closest('.sp-btn');
+    if (!b) return;
+    closeSheet();
+    if (sheetMode === 'packs') pickPackSet(b.dataset.set);
+    else pickZukanSet(b.dataset.set);
+  });
 
   // ---- BOX ごと買う。高い買い物なので、1 回目のタップは「ほんとうに？」に変わるだけ
   let boxConfirmUntil = 0;
@@ -453,7 +514,8 @@
   }
 
   function renderPicker() {
-    els.setPick.innerHTML = pickerHTML(curSet, function (st) { const n = C.packsInHand(state, st.id); return n ? String(n) : ''; });
+    const hand = C.packsInHand(state);
+    els.setPick.innerHTML = barHTML(C.setById(curSet), C.SETS.length + 'しゅるい から えらべる' + (hand ? ' ・ てもとに 🎁' + hand : ''));
   }
 
   function renderPacks() {
@@ -476,25 +538,28 @@
     const rows = [
       ['C', '1パックに 3まい'], ['U', '1パックに 1まい'], ['R', 'レアわくに いちばん よく でる'],
       ['RR', '1BOX に 4まい くらい'], ['AR', '1BOX に 3まい くらい'], ['SR', '1BOX に 1まい くらい'],
-      ['SAR', '5BOX に 1まい くらい'], ['MUR', '50BOX に 1まい くらい']
+      ['SAR', '5BOX に 1まい くらい'], ['MUR', '50BOX に 1まい くらい'], ['LR', '150BOX に 1まい くらい']
     ];
     els.rates.innerHTML = '<table>' + rows.map(function (r) {
       return '<tr><td><span class="rmark rm-' + r[0] + '">' + r[0] + '</span></td><td>' + C.RARITIES[r[0]].label +
         '</td><td>' + r[1] + '</td><td>' + C.POOL[curSet][r[0]].length + 'しゅ</td></tr>';
     }).join('') + '</table><p class="note">1BOX = 30パック。ポケモンカードの かくだいパックと おなじ くみあわせで でてくるよ。' +
-      'むりょうパックは 1にち 1かい、すきな パックを えらべる。1パックずつ かうと、おみせの おなじ BOX から じゅんばんに でる。' +
+      'むりょうパックは 1にち 1かい、' + C.SETS.length + 'しゅるいの なかから すきな パックを えらべる。1パックずつ かうと、おみせの おなじ BOX から じゅんばんに でる。' +
       'BOX ごと かうと、じぶんだけの あたらしい BOX が もらえて、SR いじょうが かならず 1まい はいっている。</p>';
   }
 
   els.setPick.addEventListener('click', function (e) {
-    const b = e.target.closest('.sp-btn');
-    if (!b || b.dataset.set === curSet) return;
-    curSet = b.dataset.set;
+    if (e.target.closest('.sp-bar')) openSheet('packs');
+  });
+
+  function pickPackSet(id) {
+    if (id === curSet) return;
+    curSet = id;
     boxConfirmUntil = 0;
     buildShop();
     renderPacks();
     els.shopPack.animate([{ transform: 'translateY(-16px) scale(.9)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: 'cubic-bezier(.3,1.4,.5,1)' });
-  });
+  }
 
   /** 「もう1パック」で次に開けるもの: むりょう → 手もとの BOX → 1 パック買う */
   function nextKind(setId) {
@@ -547,11 +612,9 @@
   // ---------------------------------------------------------------- ずかん
   function renderZukan() {
     const set = C.setById(zkSet);
-    els.zkPick.innerHTML = pickerHTML(zkSet, function (st) {
-      const n = C.collectedCount(state, function (c) { return c.set === st.id; });
-      return n ? n + '/' + st.cards.length : '';
-    });
     const all = C.collectedCount(state, function (c) { return c.set === zkSet; });
+    const total = C.collectedCount(state, function () { return true; });
+    els.zkPick.innerHTML = barHTML(set, 'ぜんぶで ' + total + ' / ' + C.CARDS.length + ' まい');
     const main = C.collectedCount(state, function (c) { return c.set === zkSet && Number(c.num) <= set.mainCount; });
     els.zkTitle.textContent = set.mark + ' ' + set.name;
     els.zkCount.textContent = all + ' / ' + set.cards.length;
@@ -568,12 +631,15 @@
   }
 
   els.zkPick.addEventListener('click', function (e) {
-    const b = e.target.closest('.sp-btn');
-    if (!b || b.dataset.set === zkSet) return;
-    zkSet = b.dataset.set;
+    if (e.target.closest('.sp-bar')) openSheet('zukan');
+  });
+
+  function pickZukanSet(id) {
+    if (id === zkSet) return;
+    zkSet = id;
     renderZukan();
     $('scZukan').scrollTop = 0;
-  });
+  }
 
   let detailTilt = null;
   els.zkGrid.addEventListener('click', function (e) {
@@ -652,7 +718,7 @@
       setMoney: function (n) { state.money = n; saveNow(); renderMoney(); },
       renderFree: renderFree,
       curSet: function () { return curSet; },
-      /** テスト用: 次の BOX の 1 パック目の中身を決める (top: R/RR/SR/SAR/MUR, ar: true/false) */
+      /** テスト用: 次の BOX の 1 パック目の中身を決める (top: R/RR/SR/SAR/MUR/LR, ar: true/false) */
       setBoxConfirmed: function () { boxConfirmUntil = performance.now() + 3000; },
       rigNextPack: function (top, ar, set) {
         const st = set || curSet;

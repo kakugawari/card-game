@@ -22,12 +22,14 @@
   }
 
   /** 絵: 用意されていれば画像、無ければ仮の絵 (背景 + どうぶつ) */
+  function sceneOf(card) { const st = C.setById(card.set); return (st && st.scene) || 'forest'; }
+
   function artHTML(card, full) {
     if (card.art) {
       return '<img class="pc-img" src="' + esc(card.art) + '" alt="" draggable="false" decoding="async">';
     }
     const deco = full ? '<i class="pc-deco"></i>' : '';
-    return '<div class="pc-scene sc-' + card.rarity + ' set-' + card.set + '">' + deco + '</div>' +
+    return '<div class="pc-scene sc-' + card.rarity + ' scene-' + sceneOf(card) + '">' + deco + '</div>' +
       '<div class="pc-animal">' + A.svg(card.chara, { delay: -(Math.random() * 0.9).toFixed(2) }) + '</div>';
   }
 

@@ -8,7 +8,7 @@
  *   1 BOX = 30 パック、1 パック = 5 まい。
  *   1〜3 まいめ C / 4 まいめ U (BOX に 3 パックだけ AR) / 5 まいめ レア枠
  *   レア枠は BOX ごとに R 25・RR 4・SR 以上 1 を混ぜて配る (BOX 確定)。
- *   SR 以上の 1 まいは SR / SAR (約 5 BOX に 1) / MUR (約 50 BOX に 1)。
+ *   SR 以上の 1 まいは SR / SAR (約 5 BOX に 1) / MUR (約 50 BOX に 1) / LR (約 150 BOX に 1)。
  *   公式は確率を出していないので、開封の集計から広く言われている目安に合わせた。
  *   むりょうパックも、1 パックずつ買うパックも、お店の同じ BOX から 1 パックずつ出てくる。
  *   BOX ごと買う (buyBox) と、自分だけの新しい BOX が手もとに入る。30 パック開ければ必ず SR 以上が 1 まい。
@@ -59,11 +59,12 @@
     AR: { label: 'アートレア', rank: 4, full: true, color: 'blue' },
     SR: { label: 'スーパーレア', rank: 5, full: true, color: 'gold' },
     SAR: { label: 'スペシャルアートレア', rank: 6, full: true, color: 'rainbow' },
-    MUR: { label: 'メガウルトラレア', rank: 7, full: true, color: 'mega' }
+    MUR: { label: 'メガウルトラレア', rank: 7, full: true, color: 'mega' },
+    LR: { label: 'レジェンドレア', rank: 8, full: true, color: 'legend' }
   };
-  const RARITY_ORDER = ['C', 'U', 'R', 'RR', 'AR', 'SR', 'SAR', 'MUR'];
+  const RARITY_ORDER = ['C', 'U', 'R', 'RR', 'AR', 'SR', 'SAR', 'MUR', 'LR'];
   /** 光の色の段。左ほど弱い。演出はこの順にしか上がらない */
-  const LADDER = ['white', 'blue', 'gold', 'rainbow', 'mega'];
+  const LADDER = ['white', 'blue', 'gold', 'rainbow', 'mega', 'legend'];
 
   function rank(r) { return RARITIES[r].rank; }
   function ladderOf(r) { return LADDER.indexOf(RARITIES[r].color); }
@@ -90,12 +91,13 @@
   const BOX_PACKS = 30;
   const PACK_SIZE = 5;
   const BOX = { RR: 4, SR_UP: 1, AR: 3 };             // 1 BOX あたり
-  const SR_UP_SPLIT = { MUR: 1 / 50, SAR: 1 / 5 };     // 「SR 以上」の 1 まいが何になるか (BOX あたり)
+  const SR_UP_SPLIT = { LR: 1 / 150, MUR: 1 / 50, SAR: 1 / 5 };     // 「SR 以上」の 1 まいが何になるか (BOX あたり)
 
   /** 新しい BOX。30 パックぶんの「レア枠」と「AR が入るか」を先に決めて混ぜる */
   function newBox(rng, setId) {
     const r = rng();
-    const top = r < SR_UP_SPLIT.MUR ? 'MUR' : r < SR_UP_SPLIT.MUR + SR_UP_SPLIT.SAR ? 'SAR' : 'SR';
+    const lr = SR_UP_SPLIT.LR, mur = lr + SR_UP_SPLIT.MUR, sar = mur + SR_UP_SPLIT.SAR;
+    const top = r < lr ? 'LR' : r < mur ? 'MUR' : r < sar ? 'SAR' : 'SR';
     const tops = [top];
     for (let i = 0; i < BOX.RR; i++) tops.push('RR');
     while (tops.length < BOX_PACKS) tops.push('R');
@@ -131,7 +133,7 @@
   /**
    * 出たカードの並びから、開封の見せ方を決める。
    *   tier      パックでいちばん上のレア度 (R 未満は R)
-   *   omen      パックが出てきたときの予兆: none / shake / rainbow / gold
+   *   omen      パックが出てきたときの予兆: none / shake / rainbow / gold / cosmos (流れ星。LR だけ)
    *   tearLight あけたときに漏れる光: white / blue / gold (虹と MUR はここでは見せない)
    *   specials  裏向きで出して、特別にめくるカード
    *             mode tap = タップでめくる / hold = 長押しで力をためる
@@ -143,7 +145,8 @@
 
     const x = rng();
     let omen = 'none';
-    if (tier === 'MUR') omen = x < 0.7 ? 'gold' : 'rainbow';
+    if (tier === 'LR') omen = x < 0.7 ? 'cosmos' : x < 0.9 ? 'gold' : 'rainbow';   // 流れ星は LR だけ
+    else if (tier === 'MUR') omen = x < 0.7 ? 'gold' : 'rainbow';
     else if (tier === 'SAR') omen = x < 0.6 ? 'rainbow' : x < 0.9 ? 'shake' : 'none';
     else if (tier === 'SR') omen = x < 0.5 ? 'shake' : 'none';
     else if (tier === 'RR' || tier === 'AR') omen = x < 0.12 ? 'shake' : 'none';
@@ -198,7 +201,7 @@
   function validBox(b) {
     if (!b || typeof b !== 'object' || !Array.isArray(b.packs) || b.packs.length !== BOX_PACKS) return null;
     const ok = b.packs.every(function (p) {
-      return p && (p.top === 'R' || p.top === 'RR' || p.top === 'SR' || p.top === 'SAR' || p.top === 'MUR') &&
+      return p && (p.top === 'R' || p.top === 'RR' || p.top === 'SR' || p.top === 'SAR' || p.top === 'MUR' || p.top === 'LR') &&
         typeof p.ar === 'boolean';
     });
     const next = toCount(b.next, BOX_PACKS);
@@ -549,6 +552,7 @@
     canOpenFree: canOpenFree,
     openPack: openPack,
     collectedCount: collectedCount,
+    CATS: Cards.CATS,
     formatMoney: formatMoney,
     formatWait: formatWait,
     numberLabel: numberLabel,

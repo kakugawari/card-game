@@ -16,6 +16,7 @@
     gold: ['#fff6c2', '#ffd84a', '#ffbf1f', '#ffffff'],
     rainbow: ['#ff7eb3', '#ffd36b', '#8fe3b0', '#7ec8ff', '#c39bff', '#ffffff'],
     mega: ['#fff3a8', '#ffd84a', '#f5b52e', '#ffffff', '#ffe9a0'],
+    legend: ['#ffffff', '#ff9ecb', '#9fe0ff', '#c39bff', '#ffe680', '#8ff0c0', '#ffffff'],
     pastel: ['#ffc2dc', '#ffe3b3', '#c9f0ff', '#e3d1ff', '#ffffff']
   };
 
@@ -337,6 +338,31 @@
         const o = { type: 'sawtooth', vol: 0.05, attack: 0.05, hold: 1.2 };
         [0, 7, -7].forEach(function (d) { chord(c, out, t + 0.15, [48, 55, 60, 64, 67, 72, 76], 3.2, Object.assign({}, o, { detune: d })); });
         for (let i = 0; i < 16; i++) tone(c, out, t + 0.4 + i * 0.07, NOTE(84 + [0, 4, 7, 12][i % 4] + 12 * Math.floor(i / 8)), 0.7, { vol: 0.07 });
+      },
+      // LR: どーん + 大きな和音を 2 だん (下から上へ) + 星がふるような高い音
+      fanfareLR: function (c, out, buf, t) {
+        tone(c, out, t, 44, 3.0, { vol: 0.5, hold: 0.4 });
+        noise(c, out, buf, t, 3, { f0: 260, filter: 'lowpass', vol: 0.35, hold: 0.3 });
+        const o = { type: 'sawtooth', vol: 0.045, attack: 0.06, hold: 1.4 };
+        [0, 7, -7].forEach(function (d) {
+          chord(c, out, t + 0.12, [45, 52, 57, 61, 64, 69], 1.2, Object.assign({}, o, { detune: d, hold: 0.8 }));
+          chord(c, out, t + 1.0, [50, 57, 62, 66, 69, 74, 78], 2.7, Object.assign({}, o, { detune: d, hold: 1.0 }));
+        });
+        for (let i = 0; i < 24; i++) tone(c, out, t + 0.5 + i * 0.09, NOTE(86 + [0, 2, 4, 7, 9, 12][i % 6] + 12 * Math.floor(i / 12)), 0.8, { vol: 0.06 });
+      },
+      // 宇宙へぬける音: ひゅーっと上がる
+      warp: function (c, out, buf, t) {
+        const o = c.createOscillator();
+        const g = c.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(120, t);
+        o.frequency.exponentialRampToValueAtTime(1800, t + 1.4);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.22, t + 0.5);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
+        o.connect(g); g.connect(out);
+        o.start(t); o.stop(t + 1.7);
+        noise(c, out, buf, t, 1.5, { f0: 1200, f1: 4000, filter: 'bandpass', vol: 0.18, attack: 0.6, hold: 0.6 });
       }
     };
 

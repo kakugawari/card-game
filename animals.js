@@ -475,6 +475,106 @@
       keepBehind: true, keepFront: true, under2: ci(30, 34, 1.2, '#fff') + ci(66, 30, 1, '#fff') + ci(60, 62, 1.3, '#fff') + ci(40, 66, 1, '#fff') })
   });
 
+  // ------------------------------------------------------------ かざり (packs.js のなかまに付ける)
+  // ACC[名前](色) → { front, behind }。あたまは 中心 (50,46)・てっぺん y=20 あたり
+  const heartD = function (x, y, r) {
+    return 'M' + x + ' ' + (y + r) + ' C' + (x - r * 1.6) + ' ' + (y - r * 0.2) + ' ' + (x - r * 0.7) + ' ' + (y - r * 1.4) + ' ' + x + ' ' + (y - r * 0.4) +
+      ' C' + (x + r * 0.7) + ' ' + (y - r * 1.4) + ' ' + (x + r * 1.6) + ' ' + (y - r * 0.2) + ' ' + x + ' ' + (y + r) + ' Z';
+  };
+  const starD = function (cx, cy, r) {
+    let d = '';
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r;
+      d += (i ? ' L' : 'M') + (cx + Math.cos(a) * rr).toFixed(1) + ' ' + (cy + Math.sin(a) * rr).toFixed(1);
+    }
+    return d + ' Z';
+  };
+  const O1 = O.replace('1.5', '1.1');
+  const ACC = {
+    crown: function (c) { return { front: pg('37,23 36,9 43.5,16 50,6 56.5,16 64,9 63,23', c || '#ffd84a', O) + ci(50, 17, 2, '#ff5d8a') + ci(42, 19, 1.4, '#5dc8ff') + ci(58, 19, 1.4, '#7be07b') }; },
+    tiara: function (c) { return { front: pa('M35 24 Q50 12 65 24 Q50 18 35 24 Z', c || '#e9eef8', O1) + pa('M50 9 L54 16 L50 21 L46 16 Z', '#9fe0ff', O1) }; },
+    tophat: function (c) { return { front: el(50, 21, 17, 3.6, c || '#3d3a4a', O) + '<rect x="40" y="2" width="20" height="18" rx="2" fill="' + (c || '#3d3a4a') + '" ' + O + '/>' + '<rect x="40.8" y="14" width="18.4" height="3.6" fill="#ff6b8a"/>' }; },
+    ribbon: function (c) { const k = c || '#ff6b9a'; return { front: pa('M66 22 L56 14 L57 30 Z', k, O) + pa('M66 22 L77 14 L76 30 Z', k, O) + ci(66, 22, 3.2, k, O) }; },
+    flower: function (c) { const k = c || '#ff9ecb'; let f = ''; for (let i = 0; i < 5; i++) { const a = i * 1.2566 - 1.57; f += ci(69 + Math.cos(a) * 4.6, 21 + Math.sin(a) * 4.6, 3.6, k, O1); } return { front: f + ci(69, 21, 2.8, '#ffd84a', O1) }; },
+    leaf: function (c) { return { front: pa('M50 22 Q38 10 50 2 Q62 10 50 22 Z', c || '#7ed957', O) + line('M50 21 L50 6', '#4f9f35', 1.2) }; },
+    sprout: function (c) { const k = c || '#7ed957'; return { front: line('M50 21 L50 11', '#5aa83c', 2) + pa('M50 12 Q40 4 36 10 Q42 16 50 12 Z', k, O1) + pa('M50 12 Q60 4 64 10 Q58 16 50 12 Z', k, O1) }; },
+    star: function (c) { return { front: pa(starD(50, 12, 8.5), c || '#ffd84a', O) }; },
+    heart: function (c) { return { front: pa(heartD(69, 22, 5.5), c || '#ff6b8a', O) }; },
+    glasses: function (c) { const k = c || '#5b4040'; return { front: '<circle cx="38.5" cy="48" r="6.4" fill="rgba(255,255,255,.25)" stroke="' + k + '" stroke-width="1.8"/><circle cx="61.5" cy="48" r="6.4" fill="rgba(255,255,255,.25)" stroke="' + k + '" stroke-width="1.8"/>' + line('M44.9 47 Q50 44.5 55.1 47', k, 1.6) }; },
+    sunglasses: function (c) { const k = c || '#2c2a3a'; return { front: pa('M30 43 H47 Q47 53 39 53 Q30 53 30 43 Z', k, O1) + pa('M53 43 H70 Q70 53 61 53 Q53 53 53 43 Z', k, O1) + line('M47 45 L53 45', k, 1.6) + line('M33 45 L37 47', '#fff', 1, 0.7) + line('M56 45 L60 47', '#fff', 1, 0.7) }; },
+    scarf: function (c) { const k = c || '#ff6b6b'; return { front: pa('M29 65 Q50 80 71 65 L70 72 Q50 87 30 72 Z', k, O) + pa('M58 78 L65 92 L54 89 Z', k, O) }; },
+    bowtie: function (c) { const k = c || '#ff5d73'; return { front: pa('M50 70 L41 65 L41 75 Z', k, O1) + pa('M50 70 L59 65 L59 75 Z', k, O1) + ci(50, 70, 2.2, k, O1) }; },
+    cap: function (c) { const k = c || '#4d8dff'; return { front: pa('M28 27 Q30 8 50 8 Q70 8 72 27 Z', k, O) + pa('M50 27 Q66 22 82 27 Q70 31 50 29 Z', k, O) + ci(50, 9, 2, '#fff', O1) }; },
+    beret: function (c) { return { front: '<g transform="rotate(-10 50 18)">' + el(50, 18, 19, 7, c || '#e0475b', O) + '</g>' + line('M50 11 L51 6', '#5b4040', 2) }; },
+    witchhat: function (c) { const k = c || '#6a4bc4'; return { front: el(50, 22, 22, 4.5, k, O) + pa('M37 21 Q46 12 50 -2 Q58 4 63 21 Z', k, O) + '<rect x="38" y="16.5" width="24" height="3.6" fill="#ffd84a"/>' }; },
+    halo: function (c) { return { front: '<ellipse cx="50" cy="8" rx="13" ry="4" fill="none" stroke="' + LINE + '" stroke-width="5"/><ellipse cx="50" cy="8" rx="13" ry="4" fill="none" stroke="' + (c || '#ffe680') + '" stroke-width="3"/>' }; },
+    horns: function (c) { const k = c || '#fff1c9'; return { front: pa('M36 25 Q30 14 36 6 Q38 16 43 22 Z', k, O) + pa('M64 25 Q70 14 64 6 Q62 16 57 22 Z', k, O) }; },
+    antenna: function (c) { const k = c || '#ff7fb0'; return { front: line('M43 21 Q38 12 34 6', LINE, 1.8) + line('M57 21 Q62 12 66 6', LINE, 1.8) + ci(34, 6, 3.4, k, O1) + ci(66, 6, 3.4, k, O1) }; },
+    headphones: function (c) { const k = c || '#ff5d73'; return { front: line('M21 46 Q20 12 50 12 Q80 12 79 46', LINE, 4.6) + line('M21 46 Q20 12 50 12 Q80 12 79 46', '#5d5d70', 2.6) + el(20, 48, 5.5, 8, k, O) + el(80, 48, 5.5, 8, k, O) }; },
+    chefhat: function (c) { const k = c || '#ffffff'; return { front: ci(41, 12, 7.5, k, O) + ci(59, 12, 7.5, k, O) + ci(50, 8, 8.5, k, O) + '<rect x="38" y="13" width="24" height="10" rx="2" fill="' + k + '" ' + O + '/>' }; },
+    helmet: function (c) { const k = c || '#ff5d5d'; return { front: pa('M23 36 Q24 10 50 10 Q76 10 77 36 Q50 28 23 36 Z', k, O) + line('M50 11 L50 30', '#fff', 2.4, 0.8) }; },
+    hardhat: function (c) { const k = c || '#ffd23f'; return { front: pa('M27 27 Q28 8 50 8 Q72 8 73 27 Z', k, O) + el(50, 27, 26, 3.5, k, O) + line('M50 9 L50 25', '#e8b800', 2.2) }; },
+    strawhat: function (c) { const k = c || '#f3d28a'; return { front: el(50, 22, 28, 6, k, O) + pa('M36 22 Q36 6 50 6 Q64 6 64 22 Z', k, O) + '<rect x="36" y="15.5" width="28" height="4.4" fill="#ff5d5d"/>' }; },
+    piratehat: function (c) { const k = c || '#33303d'; return { front: pa('M22 24 Q28 4 50 10 Q72 4 78 24 Q50 16 22 24 Z', k, O) + ci(50, 15, 3, '#fff') + line('M47 19 L53 19', '#fff', 1.4) }; },
+    headband: function (c) { const k = c || '#ff5d5d'; return { front: pa('M22 30 Q50 22 78 30 L78 35 Q50 27 22 35 Z', k, O1) + pa('M78 31 L90 26 L88 34 Z', k, O1) + pa('M78 33 L91 37 L86 41 Z', k, O1) }; },
+    santahat: function (c) { const k = c || '#e8434f'; return { front: pa('M30 23 Q40 0 66 4 Q80 8 82 22 Q74 14 70 23 Z', k, O) + el(50, 23, 21, 4.5, '#fff', O) + ci(83, 22, 4.5, '#fff', O) }; },
+    knitcap: function (c) { const k = c || '#5db8ff'; return { front: pa('M26 28 Q27 6 50 6 Q73 6 74 28 Z', k, O) + '<rect x="25" y="23" width="50" height="7" rx="3.5" fill="' + k + '" ' + O + '/>' + ci(50, 5, 5, '#fff', O) + line('M38 10 L38 22 M50 7 L50 22 M62 10 L62 22', '#fff', 1, 0.45) }; },
+    earmuffs: function (c) { const k = c || '#ff9ecb'; return { front: line('M22 44 Q22 14 50 14 Q78 14 78 44', LINE, 3.8) + line('M22 44 Q22 14 50 14 Q78 14 78 44', '#c9a0ff', 2) + ci(20, 46, 7.5, k, O) + ci(80, 46, 7.5, k, O) }; },
+    cherry: function (c) { const k = c || '#e8334a'; return { front: line('M64 22 Q68 10 74 6 Q76 12 74 22', '#4f9f35', 1.4) + ci(64, 23, 4.2, k, O1) + ci(74, 23, 4.2, k, O1) + ci(63, 21.8, 1.1, '#fff') + ci(73, 21.8, 1.1, '#fff') }; },
+    strawberry: function (c) { return { front: pa('M50 26 Q38 14 44 6 Q50 3 56 6 Q62 14 50 26 Z', c || '#ff4f66', O) + pa('M43 7 L50 3 L57 7 L53 9 L50 5 L47 9 Z', '#5dbb4a', O1) + ci(47, 12, 0.8, '#fff3b0') + ci(53, 12, 0.8, '#fff3b0') + ci(50, 17, 0.8, '#fff3b0') }; },
+    apple: function (c) { return { front: pa('M50 22 Q38 22 39 12 Q41 5 50 8 Q59 5 61 12 Q62 22 50 22 Z', c || '#ff5050', O) + line('M50 8 L51 3', '#7a5030', 1.6) + pa('M51 5 Q57 1 59 4 Q55 7 51 5 Z', '#7ed957', O1) }; },
+    cake: function (c) { return { front: '<rect x="39" y="10" width="22" height="12" rx="2" fill="#fff4e0" ' + O + '/>' + pa('M39 13 Q42 17 45 13 Q48 17 51 13 Q54 17 57 13 Q59 16 61 13 L61 11 Q61 10 60 10 L40 10 Q39 10 39 11 Z', c || '#ff9ecb') + ci(50, 7, 3.2, '#ff3b5c', O1) }; },
+    donut: function (c) { return { front: ci(50, 13, 9, '#e8b36b', O) + ci(50, 13, 7.2, c || '#ff8fc7') + ci(50, 13, 3, '#fff', O1) + line('M44 9 L45 11 M55 9 L54 11 M47 18 L49 18 M56 15 L57 17', '#fff', 1.2) }; },
+    icecream: function (c) { return { front: pg('43,14 57,14 50,28', '#f2c27a', O) + ci(50, 10, 7.5, c || '#ffd1e8', O) + ci(50, 3, 2.4, '#ff3b5c', O1) }; },
+    candy: function (c) { const k = c || '#ff6b9a'; return { front: pa('M60 22 L54 17 L54 27 Z', k, O1) + pa('M78 22 L84 17 L84 27 Z', k, O1) + el(69, 22, 9, 6, '#fff', O) + line('M64 17.5 L66 26.5 M70 16.5 L72 27 M75 18 L76 25', k, 2) }; },
+    mushroom: function (c) { return { front: '<rect x="45.5" y="12" width="9" height="10" rx="3" fill="#fff4e0" ' + O + '/>' + pa('M34 15 Q36 1 50 1 Q64 1 66 15 Z', c || '#ff5050', O) + ci(44, 8, 2.2, '#fff') + ci(56, 7, 2.6, '#fff') + ci(50, 12, 1.6, '#fff') }; },
+    flame: function (c) { return { front: pa('M50 24 Q38 18 44 6 Q46 12 50 10 Q48 2 54 -2 Q56 8 60 10 Q64 18 50 24 Z', c || '#ff8a3d', O) + pa('M50 22 Q45 18 48 12 Q50 15 53 13 Q56 18 50 22 Z', '#ffe066') }; },
+    bubble: function (c) { const k = c || '#9fe0ff'; return { front: '<circle cx="84" cy="30" r="6" fill="rgba(255,255,255,.35)" stroke="' + k + '" stroke-width="1.6"/><circle cx="90" cy="18" r="3.6" fill="rgba(255,255,255,.35)" stroke="' + k + '" stroke-width="1.4"/><circle cx="82" cy="12" r="2.2" fill="none" stroke="' + k + '" stroke-width="1.2"/>' + ci(82, 28, 1.4, '#fff') }; },
+    note: function (c) { const k = c || '#6a8bff'; return { front: '<g class="twinkle t2">' + line('M86 30 L86 14 L93 12', k, 2) + el(83.5, 30.5, 3.2, 2.5, k) + '</g>' }; },
+    bolt: function (c) { return { front: pg('84,6 76,22 83,22 78,34 92,16 85,16 90,6', c || '#ffd23f', O1) }; },
+    cloud: function (c) { const k = c || '#ffffff'; return { front: '<g class="twinkle t3">' + ci(80, 22, 5.5, k, O1) + ci(87, 20, 6.5, k, O1) + ci(93, 24, 4.5, k, O1) + el(86, 26, 9, 3.5, k) + '</g>' }; },
+    sun: function (c) { const k = c || '#ffc93c'; let r = ''; for (let i = 0; i < 8; i++) { const a = i * 0.785; r += line('M' + (84 + Math.cos(a) * 8).toFixed(1) + ' ' + (18 + Math.sin(a) * 8).toFixed(1) + ' L' + (84 + Math.cos(a) * 11).toFixed(1) + ' ' + (18 + Math.sin(a) * 11).toFixed(1), k, 1.8); } return { front: r + ci(84, 18, 6, k, O1) }; },
+    moon: function (c) { return { front: pa('M84 8 Q74 14 78 24 Q82 32 92 28 Q80 26 80 18 Q80 11 84 8 Z', c || '#ffe680', O1) }; },
+    snowflake: function (c) { const k = c || '#bfe6ff'; return { front: '<g class="twinkle">' + line('M84 10 L84 30 M75.3 15 L92.7 25 M75.3 25 L92.7 15', k, 2) + ci(84, 20, 2, '#fff') + '</g>' }; },
+    shell: function (c) { const k = c || '#ffb3c8'; return { front: pa('M60 26 Q60 12 69 10 Q78 12 78 26 Q69 30 60 26 Z', k, O1) + line('M69 12 L69 27 M64 14 L65 27 M74 14 L73 27', '#fff', 1, 0.7) }; },
+    cape: function (c) { const k = c || '#e0475b'; return { behind: pa('M30 64 Q16 82 20 96 L80 96 Q84 82 70 64 Z', k, O) }; },
+    wand: function (c) { return { front: line('M72 80 L86 60', '#7a5030', 2.4) + pa(starD(87, 58, 6), c || '#ffd84a', O1) }; },
+    gem: function (c) { return { front: pg('50,24 55,29 50,35 45,29', c || '#5dc8ff', O1) + pg('50,25.5 52.5,29 50,30', '#fff') }; },
+    bell: function (c) { return { front: pa('M30 66 Q50 76 70 66', 'none', 'stroke="#ff5d73" stroke-width="3.2" stroke-linecap="round"') + ci(50, 73, 4.6, c || '#ffd23f', O1) + line('M47 73 L53 73', LINE, 1) }; },
+    acorn: function (c) { return { front: el(50, 14, 7, 8.5, c || '#c98f5a', O) + pa('M42 12 Q42 4 50 4 Q58 4 58 12 Z', '#8a5a34', O) + line('M50 4 L51 1', '#5b4040', 1.6) }; }
+  };
+  const ACC_NAMES = Object.keys(ACC);
+
+  /** もとの絵 (base) の色をかえて、かざりを足した新しい子 */
+  function variant(base, pal, acc) {
+    const b = SPECS[base];
+    if (!b) throw new Error('もとの絵が無い: ' + base);
+    const r = Object.assign({}, b, pal || {});
+    if (pal && pal.body && !pal.head && b.head === undefined) r.head = pal.body;
+    if (pal && pal.body && b.arm === undefined && !pal.arm) r.arm = pal.body;
+    let behind = '', front = '';
+    (acc || []).forEach(function (a) {
+      const parts = String(a).split(':');
+      const f = ACC[parts[0]];
+      if (!f) throw new Error('かざりが無い: ' + a);
+      const g = f(parts[1]);
+      behind += g.behind || '';
+      front += g.front || '';
+    });
+    r.behind = (b.behind || '') + behind;
+    r.front = (b.front || '') + front;
+    return r;
+  }
+
+  // packs.js のなかま (ブラウザでは先に packs.js を読む)
+  const PACKS = typeof module === 'object' && module.exports ? require('./packs.js') : (typeof globalThis !== 'undefined' ? globalThis : this).Packs;
+  (PACKS || []).forEach(function (pk) {
+    pk.charas.forEach(function (ch) {
+      if (SPECS[ch.id]) throw new Error('同じ id の絵がもうある: ' + ch.id);
+      SPECS[ch.id] = variant(ch.base, ch.pal, ch.acc);
+    });
+  });
+
   /**
    * どうぶつの SVG 文字列。
    * opts.walk=false で止まった絵 / opts.locked で影絵 / opts.delay で歩きのずれ (秒)
@@ -490,5 +590,13 @@
       '<g class="sway"><g class="bob">' + render(s) + '</g></g></svg>';
   }
 
-  return { svg: svg, ids: Object.keys(SPECS) };
+  /** 見本用: base にかざりを 1 つ付けた止まった絵 */
+  function preview(base, acc, pal) {
+    SPECS.__preview = variant(base, pal, [acc]);
+    const out = svg('__preview', { walk: false });
+    delete SPECS.__preview;
+    return out;
+  }
+
+  return { svg: svg, ids: Object.keys(SPECS), ACC_NAMES: ACC_NAMES, preview: preview };
 });

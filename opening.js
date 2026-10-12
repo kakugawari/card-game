@@ -25,9 +25,9 @@
   let fx = null;
   let run = null;
 
-  const CHARGE_TIME = { SR: 2.4, SAR: 3.4, MUR: 4.6 };     // 押しっぱなしで満タンになるまでの秒数
+  const CHARGE_TIME = { SR: 2.4, SAR: 3.4, MUR: 4.6, LR: 4.6 };     // 押しっぱなしで満タンになるまでの秒数
   const STAGE_TALK = ['…！？', 'きた！？', 'まだ あがる…！', 'えっ…！？'];
-  const RAY = { blue: 'blue', gold: 'gold', rainbow: 'rainbow', mega: 'gold' };
+  const RAY = { blue: 'blue', gold: 'gold', rainbow: 'rainbow', mega: 'gold', legend: 'legend' };
 
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   function alive(r) { return run === r; }
@@ -80,11 +80,11 @@
   }
 
   // ================================================================ バナー
-  const BANNER_COLOR = { RR: '#7ab8ff', AR: '#ff9cc8', SR: '#ffcf40', SAR: '#c39bff', MUR: '#ffcf40' };
+  const BANNER_COLOR = { RR: '#7ab8ff', AR: '#ff9cc8', SR: '#ffcf40', SAR: '#c39bff', MUR: '#ffcf40', LR: '#c39bff' };
 
   function banner(rarity) {
     const label = C.RARITIES[rarity].label;
-    const bang = { RR: '！', AR: '！', SR: '！！', SAR: '！！！', MUR: '！！！！' }[rarity] || '！';
+    const bang = { RR: '！', AR: '！', SR: '！！', SAR: '！！！', MUR: '！！！！', LR: '！！！！！' }[rarity] || '！';
     const code = rarity.split('').map(function (ch, i) { return '<span style="--i:' + i + '">' + ch + '</span>'; }).join('');
     els.banner.innerHTML = '<div class="bn bn-' + rarity + '"><div class="bn-code">' + code + '</div>' +
       '<div class="bn-name">' + label + bang + '</div></div>';
@@ -170,6 +170,7 @@
     const c = center(els.pack);
     if (o === 'rainbow') els.pack.classList.add('aura-rainbow');
     if (o === 'gold') els.pack.classList.add('aura-gold');
+    if (o === 'cosmos') els.pack.classList.add('aura-cosmos');
     S.play('omen');
     els.pack.animate(
       [{ transform: 'none' }, { transform: 'rotate(-4deg) translateX(-6px)' }, { transform: 'rotate(4deg) translateX(6px)' },
@@ -177,6 +178,7 @@
       { duration: 620, delay: 120 }
     );
     if (o === 'shake') return;
+    if (o === 'cosmos') { shootingStars(r); return; }
     const color = o === 'gold' ? 'gold' : 'rainbow';
     const t = setInterval(function () {
       if (!alive(r) || r.phase !== 'pack') { clearInterval(t); return; }
@@ -184,6 +186,27 @@
       fx.burst(c.x + Math.cos(a) * c.w * 0.55, c.y + Math.sin(a) * c.h * 0.5,
         { color: color, count: o === 'gold' ? 4 : 3, shape: 'star', speed: 90, size: 9, gravity: o === 'gold' ? 120 : -40, life: 1.1, add: true });
     }, 140);
+    r.timers.push(t);
+  }
+
+  /** LR の予兆: パックのうしろを 流れ星が ななめに 横切る (LR のときしか出ない) */
+  function shootingStars(r) {
+    const t = setInterval(function () {
+      if (!alive(r) || r.phase !== 'pack') { clearInterval(t); return; }
+      const o = els.open.getBoundingClientRect();
+      const s = document.createElement('i');
+      s.className = 'op-meteor';
+      const x = o.width * (0.2 + Math.random() * 0.9);
+      s.style.left = x + 'px';
+      s.style.top = (Math.random() * o.height * 0.4) + 'px';
+      els.open.appendChild(s);
+      s.animate([{ transform: 'rotate(-35deg) translateX(0)', opacity: 0 }, { opacity: 1, offset: 0.2 },
+        { transform: 'rotate(-35deg) translateX(-' + (o.width * 0.9).toFixed(0) + 'px)', opacity: 0 }],
+      { duration: 900, easing: 'ease-in' }).onfinish = function () { s.remove(); };
+      const c = center(els.pack);
+      fx.burst(c.x + (Math.random() * 2 - 1) * c.w * 0.5, c.y + (Math.random() * 2 - 1) * c.h * 0.45,
+        { color: 'legend', count: 3, shape: 'star', speed: 70, size: 8, gravity: -30, life: 1.1, add: true });
+    }, 260);
     r.timers.push(t);
   }
 
@@ -654,6 +677,55 @@
     els.black.animate([{ opacity: 0.9 }, { opacity: 0 }], { duration: 500, fill: 'forwards' });
     els.crack.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
     setBg('gold');
+    if (ch.sp.rarity === 'LR') { legendSequence(r); return; }
+    chargeReveal(r, true);
+  }
+
+  /**
+   * LR だけ: 金の世界で おわらない。金が ひびわれて 宇宙へ ぬける → 星が すいこまれる → 虹の輪 → めくれる
+   * (MUR までの演出を ぜんぶ通ってから、さらに 1 だん上がる)
+   */
+  async function legendSequence(r) {
+    const ch = r.charge;
+    rays('gold');
+    const shake = r.slots[ch.i].querySelector('.shake');
+    shake.animate([{ transform: 'none' }, { transform: 'scale(1.06)' }, { transform: 'none' }], { duration: 500, iterations: 3 });
+    hint('……！？ まだ ひかりが とまらない！');
+    await wait(1300);
+    if (!alive(r)) return;
+    // 金の世界に もういちど ひび → 宇宙へ
+    S.play('crack');
+    els.crack.style.opacity = 1;
+    els.crack.querySelector('path').animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 300, easing: 'ease-out', fill: 'forwards' });
+    shakeScreen(14, 500);
+    await wait(450);
+    if (!alive(r)) return;
+    flash('#ffffff', 1, 700);
+    els.crack.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' });
+    setBg('cosmos');
+    rays(null);
+    hint('');
+    S.play('warp');
+    const c = center(els.stack);
+    const t0 = performance.now();
+    await new Promise(function (res) {
+      (function loop(now) {
+        if (!alive(r)) { res(); return; }
+        const k = Math.min(1, (now - t0) / 1600);
+        fx.inward(c.x, c.y, { color: 'legend', count: 3, r0: 160, r1: 420, size: 4 + k * 5 });
+        shake.style.transform = 'translate(' + ((Math.random() * 2 - 1) * k * 7).toFixed(1) + 'px,' + ((Math.random() * 2 - 1) * k * 7).toFixed(1) + 'px)';
+        if (k < 1) requestAnimationFrame(loop); else res();
+      })(t0);
+    });
+    if (!alive(r)) return;
+    shake.style.transform = 'none';
+    shock('#ff9ecb', 1);
+    shock('#9fe0ff', 1);
+    shock('#ffe680', 1);
+    rays('legend');
+    hint('レジェンド……！');
+    await wait(700);
+    if (!alive(r)) return;
     chargeReveal(r, true);
   }
 
@@ -672,14 +744,15 @@
     const shake = slot.querySelector('.shake');
     shake.style.transform = 'none';
     slot.classList.remove('waiting', 'charging', 'aura-white', 'aura-blue', 'aura-gold', 'aura-rainbow');
-    const color = { SR: 'gold', SAR: 'rainbow', MUR: 'mega' }[rar];
+    const color = { SR: 'gold', SAR: 'rainbow', MUR: 'mega', LR: 'legend' }[rar];
 
     flash(rar === 'MUR' ? '#ffe27a' : '#ffffff', 1, rar === 'SR' ? 650 : 900);
     if (rar === 'SAR') setBg('night');
+    if (rar === 'LR') setBg('cosmos');
     rays(RAY[color]);
     S.play('fanfare' + rar);
     shakeScreen(rar === 'SR' ? 10 : 16, 520);
-    shock(rar === 'MUR' ? '#ffd84a' : rar === 'SAR' ? '#ffffff' : '#ffe58a', rar === 'SR' ? 2 : 3);
+    shock(rar === 'LR' ? '#c39bff' : rar === 'MUR' ? '#ffd84a' : rar === 'SAR' ? '#ffffff' : '#ffe58a', rar === 'SR' ? 2 : rar === 'LR' ? 4 : 3);
     shake.animate([{ transform: 'scale(1.3)' }, { transform: 'scale(.96)', offset: 0.6 }, { transform: 'none' }],
       { duration: rar === 'SR' ? 600 : 1100, easing: 'ease-out' });
     const p = center(slot);
@@ -691,6 +764,13 @@
       fx.burst(p.x, p.y, { color: 'rainbow', count: 60, shape: 'confetti', speed: 640, size: 13, gravity: 300, life: 2.6 });
       fx.rain({ shape: 'confetti', color: 'rainbow', rate: 38, dur: 5, size: 13, speed: 170, life: 6 });
       fx.rain({ shape: 'star', color: 'rainbow', rate: 10, dur: 5, size: 10, speed: 90, gravity: 10, life: 6, add: true });
+    } else if (rar === 'LR') {
+      // 粒の数は MUR と同じくらいにおさえる (遅い端末で 1 コマ 16.7ms を守るため。色と星の量で LR らしさを出す)
+      fx.burst(p.x, p.y, { color: 'legend', count: 140, shape: 'star', speed: 820, size: 15, gravity: 60, life: 2.2 });
+      fx.burst(p.x, p.y, { color: 'gold', count: 30, shape: 'coin', speed: 700, size: 11, gravity: 520, life: 2.8, lift: 260 });
+      fx.rain({ shape: 'star', color: 'legend', rate: 14, dur: 7, size: 11, speed: 110, gravity: 10, life: 6, add: true });
+      fx.rain({ shape: 'confetti', color: 'rainbow', rate: 24, dur: 7, size: 12, speed: 170, life: 6 });
+      fx.rain({ shape: 'coin', color: 'gold', rate: 10, dur: 7, size: 11, speed: 220, gravity: 120, life: 6 });
     } else {
       fx.burst(p.x, p.y, { color: 'mega', count: 140, shape: 'star', speed: 760, size: 14, gravity: 120, life: 2 });
       fx.burst(p.x, p.y, { color: 'gold', count: 50, shape: 'coin', speed: 680, size: 11, gravity: 520, life: 2.8, lift: 260 });

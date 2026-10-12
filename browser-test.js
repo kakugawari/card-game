@@ -125,6 +125,16 @@ async function holdTop(page, ms) {
 }
 
 /** 開封を最後まで進める: やぶる → めくる (特別なカードはタップ / 長押し) → 結果 */
+/** パックの種類を えらぶ: 「ほかの パック」→ 一覧から 1 つ (where = setPick / zkPick) */
+async function pickSet(page, where, id) {
+  await page.tap('#' + where + ' .sp-bar');
+  await page.waitForSelector('#packSheet:not([hidden])');
+  const b = page.locator('#pshBody .sp-btn[data-set="' + id + '"]');
+  await b.scrollIntoViewIfNeeded();
+  await b.tap();
+  await page.waitForSelector('#packSheet', { state: 'hidden' });
+}
+
 async function playThrough(page, log) {
   await page.waitForFunction(() => window.__app.opening.state().phase === 'pack');
   await page.waitForTimeout(800);
@@ -138,10 +148,10 @@ async function playThrough(page, log) {
     if (sp && !s.revealed.includes(s.index)) {
       if (sp.mode === 'tap') await tapTop(page);
       else {
-        const rec = await holdTop(page, { SR: 2900, SAR: 4000, MUR: 5200 }[sp.rarity]);
+        const rec = await holdTop(page, { SR: 2900, SAR: 4000, MUR: 5200, LR: 5200 }[sp.rarity]);
         if (log) log.push({ rarity: sp.rarity, rec });
       }
-      await page.waitForFunction((i) => window.__app.opening.state().revealed.includes(i), s.index, { timeout: 9000 });
+      await page.waitForFunction((i) => window.__app.opening.state().revealed.includes(i), s.index, { timeout: 14000 });
       await page.waitForTimeout(1500);
       await tapTop(page);
       await page.waitForTimeout(400);
@@ -346,7 +356,7 @@ async function run() {
 
     // ------------------------------------------------ レア演出
     if (want('レア')) {
-      for (const [top, ar] of [['RR', false], ['R', true], ['SR', false], ['SAR', true], ['MUR', false]]) {
+      for (const [top, ar] of [['RR', false], ['R', true], ['SR', false], ['SAR', true], ['MUR', false], ['LR', false]]) {
         section(`レア演出: ${top}${ar ? ' + AR' : ''}`);
         ({ context, page } = await newGame(browser, errors));
         await page.evaluate(() => window.__app.setMoney(500));
@@ -367,18 +377,28 @@ async function run() {
         await page.evaluate(() => window.__app.opening.close());
         await page.evaluate(([t, a]) => { window.__app.setMoney(500); window.__app.rigNextPack(t, a); }, [top, ar]);
         await page.tap('#btnBuy');
+        // 背景の移り変わりを記録する (宇宙 = LR だけ)
+        await page.evaluate(() => {
+          window.__bgs = [];
+          const o = document.getElementById('open');
+          new MutationObserver(() => { const b = o.dataset.bg; if (window.__bgs[window.__bgs.length - 1] !== b) window.__bgs.push(b); })
+            .observe(o, { attributes: true, attributeFilter: ['data-bg'] });
+        });
         const end = await playThrough(page, log);
+        const bgs = await page.evaluate(() => window.__bgs);
+        ok(bgs.includes('cosmos') === (top === 'LR'), `宇宙の背景は LR のときだけ (${bgs.join(' → ')})`);
+        if (top === 'LR') ok(bgs.indexOf('gold') >= 0 && bgs.indexOf('gold') < bgs.indexOf('cosmos'), 'LR: 金の世界を通ってから 宇宙へ');
         ok(end.phase === 'result' && end.revealed.length === show.specials.length, `最後まで進んで、特別なカードを全部めくった (${end.revealed.length})`);
         for (const { rarity, rec } of log) {
           const colors = [];
           rec.forEach((x) => { if (x.aura && colors[colors.length - 1] !== x.aura) colors.push(x.aura); });
-          const ladder = ['white', 'blue', 'gold', 'rainbow', 'mega'];
+          const ladder = ['white', 'blue', 'gold', 'rainbow', 'mega', 'legend'];
           const up = colors.every((c, i) => i === 0 || ladder.indexOf(c) > ladder.indexOf(colors[i - 1]));
-          const want = { SR: ['white', 'blue', 'gold'], SAR: ['white', 'blue', 'gold', 'rainbow'], MUR: ['white', 'blue', 'gold', 'rainbow'] }[rarity];
+          const want = { SR: ['white', 'blue', 'gold'], SAR: ['white', 'blue', 'gold', 'rainbow'], MUR: ['white', 'blue', 'gold', 'rainbow'], LR: ['white', 'blue', 'gold', 'rainbow'] }[rarity];
           ok(up && JSON.stringify(colors) === JSON.stringify(want), `${rarity}: 押している間に光が ${colors.join(' → ')} と上がる (下がらない)`);
-          if (rarity === 'MUR') {
+          if (rarity === 'MUR' || rarity === 'LR') {
             const black = Math.max(...rec.map((x) => x.black));
-            ok(black >= 0.85, `MUR: 虹のあと まっ暗になる (幕の濃さ ${black.toFixed(2)})`);
+            ok(black >= 0.85, `${rarity}: 虹のあと まっ暗になる (幕の濃さ ${black.toFixed(2)})`);
           }
         }
         const bannerSeen = await page.evaluate(() => document.querySelectorAll('.op-cell').length);
@@ -615,20 +635,43 @@ async function run() {
       ok(field.inside && field.bottom <= field.upTop + 0.5 && field.top >= field.gTop - 30, `歩く範囲が草原の中に収まる (下 ${Math.round(field.bottom)} / 強化の上 ${Math.round(field.upTop)})`);
 
       // 歩いている子を そのまま タップ (止まらない)
-      await page.locator('.walker[data-ch="neko"]').tap({ force: true });
-      ok(await page.locator('#petSheet').isVisible(), '歩いている子をタップすると、おやつの画面が出る');
+      // 7 人いると重なることがある。指の下でいちばん手前にいる子をタップする (指で押したときと同じ)
+      const tapWalker = async (want) => {
+        let hit = null;
+        // 指の下で手前に出てくるまで待つ (重なっていても、歩いているうちに見える)
+        for (let k = 0; k < 30 && !hit; k++) {
+          if (k) await page.waitForTimeout(300);
+          hit = await page.evaluate((w) => {
+          for (const el of document.querySelectorAll('.walker')) {
+            if (w && el.dataset.ch !== w) continue;
+            const r = el.getBoundingClientRect();
+            for (const [fx, fy] of [[0.5, 0.6], [0.35, 0.7], [0.65, 0.7], [0.5, 0.4]]) {
+              const x = r.left + r.width * fx, y = r.top + r.height * fy;
+              const top = document.elementFromPoint(x, y);
+              if (top && top.closest('.walker') === el) return { ch: el.dataset.ch, x, y };
+            }
+          }
+          return null;
+          }, want || null);
+        }
+        await page.touchscreen.tap(hit.x, hit.y);
+        return hit.ch;
+      };
+      const ch = await tapWalker();
+      ok(await page.locator('#petSheet').isVisible(), `歩いている子をタップすると、おやつの画面が出る (${ch})`);
       const snackNames = await page.evaluate(() => [...document.querySelectorAll('#psSnacks .sn-name')].map((e) => e.textContent));
-      ok(snackNames[2] === 'おさかな', `3 つめは その子の だいこうぶつ (${snackNames.join('・')})`);
+      const fav = await page.evaluate((c) => window.__app.core.CHARAS[c].foodName, ch);
+      ok(snackNames[2] === fav, `3 つめは その子の だいこうぶつ (${snackNames.join('・')})`);
       await page.tap('[data-snack="cookie"]');
       await page.waitForTimeout(900);
-      let st = await page.evaluate(() => ({ money: window.__app.state().money, aff: window.__app.state().pets.neko.aff, coin: document.getElementById('moneyNum').textContent }));
+      let st = await page.evaluate((c) => ({ money: window.__app.state().money, aff: window.__app.state().pets[c].aff, coin: document.getElementById('moneyNum').textContent }), ch);
       ok(st.money === 920 && st.aff === 3 && st.coin === '920', `クッキーで 80 コイン減り、なかよし度 +3 (${st.money} / ♥${st.aff})`);
       ok((await page.locator('.ps-heart').count()) > 0, 'ハートが出る');
       await page.tap('#psAnimal');
       await page.waitForTimeout(300);
       await page.tap('#psAnimal');
       await page.waitForTimeout(300);
-      st = await page.evaluate(() => ({ aff: window.__app.state().pets.neko.aff, tip: document.getElementById('psTip').textContent }));
+      st = await page.evaluate((c) => ({ aff: window.__app.state().pets[c].aff, tip: document.getElementById('psTip').textContent }), ch);
       ok(st.aff === 4 && st.tip.includes('もう'), `なでるのは 1 日 1 回だけ ♥+1 (${st.aff} / ${st.tip})`);
       await page.tap('[data-snack="fav"]');
       await page.waitForTimeout(900);
@@ -643,16 +686,16 @@ async function run() {
       ok(fullTummy.dis && fullTummy.txt.includes('いっぱい'), '3 こ食べると「おなか いっぱい」で、おやつボタンが押せない');
       await page.tap('#psClose');
       ok(await page.locator('#petSheet').isHidden(), '× で閉じる');
-      const after = await page.evaluate(() => {
-        const w = document.querySelector('.walker[data-ch="neko"]');
+      const after = await page.evaluate((c) => {
+        const w = document.querySelector('.walker[data-ch="' + c + '"]');
         return { badge: w && w.querySelector('.wk-lv') ? w.querySelector('.wk-lv').textContent : '', first: document.querySelector('.walker').dataset.ch,
           hint: !!document.querySelector('.wk-hint') };
-      });
+      }, ch);
       ok(after.badge.includes('2') && !after.hint, `歩いている子に ♥ のレベルが付き、案内は消える (${after.badge})`);
 
       // ずかんからも おやつを あげられる (歩いていない子にも)
       await goTab(page, 'Zukan');
-      await page.tap('#zkPick [data-set="ghost"]');
+      await pickSet(page, 'zkPick', 'ghost');
       await page.tap('.zk-cell[data-no="G1-001"]');
       await page.waitForTimeout(150);
       await page.tap('.dt-feed');
@@ -665,11 +708,12 @@ async function run() {
       await page.waitForTimeout(1100);
       await page.reload();
       await page.waitForFunction(() => window.__app);
-      const kept = await page.evaluate(() => ({ aff: window.__app.state().pets.neko.aff, favs: window.__app.state().favs }));
+      const kept = await page.evaluate((c) => ({ aff: window.__app.state().pets[c].aff, favs: window.__app.state().favs }), ch);
       ok(kept.aff === 11 && kept.favs === undefined, `開き直しても なかよし度が残る (♥${kept.aff})`);
       const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(9, 0, 0, 0);
       await page.clock.setFixedTime(tomorrow);
-      await page.locator('.walker[data-ch="neko"]').tap({ force: true });
+      await page.waitForTimeout(500);
+      await tapWalker(ch);
       ok(await page.locator('[data-snack="apple"]').isEnabled(), '次の日になると、また おやつを あげられる');
       await context.close();
     }
@@ -679,19 +723,50 @@ async function run() {
       section('しゅるい: パックの種類を えらんで、その種類のパックを開ける');
       ({ context, page } = await newGame(browser, errors));
       await goTab(page, 'Packs');
-      const pk = await page.evaluate(() => {
-        const bs = [...document.querySelectorAll('#setPick .sp-btn')];
-        return { n: bs.length, right: Math.max(...bs.map((b) => b.getBoundingClientRect().right)), left: Math.min(...bs.map((b) => b.getBoundingClientRect().left)),
-          wide: document.documentElement.scrollWidth - document.documentElement.clientWidth, on: bs.filter((b) => b.classList.contains('on')).map((b) => b.dataset.set) };
+      const bar = await page.evaluate(() => {
+        const r = document.querySelector('#setPick .sp-bar').getBoundingClientRect();
+        return { left: r.left, right: r.right, text: document.querySelector('#setPick .sp-bar').textContent };
       });
-      ok(pk.n === 6 && pk.left >= 0 && pk.right <= 430 && pk.wide <= 0, `6 しゅるいが 横に送らずに全部見える (${Math.round(pk.left)}〜${Math.round(pk.right)})`);
-      ok(pk.on.join() === 'animal', 'はじめは どうぶつパック');
-      for (const [id, word] of [['sea', 'さかな'], ['bird', 'とり'], ['dino', 'きょうりゅう'], ['ghost', 'おばけ'], ['future', 'みらい']]) {
-        await page.tap(`#setPick [data-set="${id}"]`);
-        const v = await page.evaluate(() => ({ name: document.getElementById('shopName').textContent, pack: document.querySelector('#shopPack .pk').className }));
-        ok(v.name.includes(word) && v.pack.includes('pk-' + id), `${word}: お店のパックと名前が変わる (${v.name})`);
+      ok(bar.left >= 0 && bar.right <= 430 && bar.text.includes('どうぶつパック') && bar.text.includes('100'), `いまのパックと「ほかの パック」が出る (${bar.text})`);
+      await page.evaluate(() => {
+        document.documentElement.style.setProperty('--safe-top', '59px');
+        document.documentElement.style.setProperty('--safe-bottom', '34px');
+      });
+      const t0 = Date.now();
+      await page.tap('#setPick .sp-bar');
+      await page.waitForSelector('#packSheet:not([hidden])');
+      const sh = await page.evaluate(() => {
+        const bs = [...document.querySelectorAll('#pshBody .sp-btn')];
+        const panel = document.querySelector('.psh-panel').getBoundingClientRect();
+        const body = document.getElementById('pshBody');
+        return { n: bs.length, cats: document.querySelectorAll('.psh-cat').length, top: panel.top, bottom: panel.bottom,
+          left: Math.min(...bs.map((b) => b.getBoundingClientRect().left)), right: Math.max(...bs.map((b) => b.getBoundingClientRect().right)),
+          scroll: body.scrollHeight > body.clientHeight, wide: body.scrollWidth - body.clientWidth,
+          on: bs.filter((b) => b.classList.contains('on')).map((b) => b.dataset.set) };
+      });
+      ok(sh.n === 100 && sh.cats === 11, `「ほかの パック」で 100 しゅるいが 11 の なかまわけで並ぶ (${Date.now() - t0}ms で開いた)`);
+      ok(sh.left >= 0 && sh.right <= 430 && sh.wide <= 0 && sh.top >= 59 && sh.bottom <= 932.5 && sh.scroll, `横には はみ出さず、縦に送れる (上 ${Math.round(sh.top)} / 下 ${Math.round(sh.bottom)})`);
+      ok(sh.on.join() === 'animal', 'いま えらんでいる パックに印');
+      await page.tap('#pshClose');
+      for (const [id, word] of [['sea', 'さかな'], ['oskcake', 'ケーキ'], ['tbmsushi', 'おすし'], ['bird', 'とり']]) {
+        await pickSet(page, 'setPick', id);
+        const v = await page.evaluate(() => ({ name: document.getElementById('shopName').textContent, pack: document.querySelector('#shopPack .pk').className,
+          bar: document.querySelector('#setPick .sp-bar').textContent }));
+        ok(v.name.includes(word) && v.pack.includes('pk-' + id) && v.bar.includes(word), `${word}: お店のパックと名前が変わる (${v.name})`);
       }
-      await page.tap('#setPick [data-set="sea"]');
+      // ふえたパックも開けられる: ケーキパックの LR は スターの子
+      await pickSet(page, 'setPick', 'oskcake');
+      await page.evaluate(() => window.__app.rigNextPack('RR', true, 'oskcake'));
+      await page.tap('#btnFree');
+      await page.waitForFunction(() => window.__app.opening.state().phase === 'pack');
+      const cake = await page.evaluate(() => ({ pack: document.querySelector('#opPack .pk').className,
+        sets: window.__app.opening.state().cards.map((c) => window.__app.core.cardByNo(c.no).set) }));
+      ok(cake.pack.includes('pk-oskcake') && cake.sets.every((x) => x === 'oskcake'), `ケーキパックを開けると、ケーキパックのカードだけ (${cake.sets.length} まい)`);
+      const endCake = await playThrough(page);
+      ok(endCake.phase === 'result', 'ふえたパックも最後まで開けられる');
+      await page.tap('#opClose');
+      await page.evaluate(() => { const s = window.__app.state(); s.lastFreeDay = ''; s.owned = {}; s.shop = {}; window.__app.renderFree(); });
+      await pickSet(page, 'setPick', 'sea');
       await page.evaluate(() => window.__app.rigNextPack('RR', false, 'sea'));
       await page.tap('#btnFree');
       await page.waitForFunction(() => window.__app.opening.state().phase === 'pack');
@@ -730,16 +805,16 @@ async function run() {
           sub: document.getElementById('zkSub').textContent, leaked: names.filter((n) => lockedText.includes(n))
         };
       });
-      ok(zk.n === 33 && zk.locked === 30, `33 まいの枠、もっていない 30 まいは押せない (${zk.locked})`);
-      ok(zk.count === '3 / 33' && zk.sub.includes('ふつう 1/20') && zk.sub.includes('シークレット 2/13'), `数の表示 (${zk.count} ${zk.sub})`);
+      ok(zk.n === 34 && zk.locked === 31, `34 まいの枠、もっていない 31 まいは押せない (${zk.locked})`);
+      ok(zk.count === '3 / 34' && zk.sub.includes('ふつう 1/20') && zk.sub.includes('シークレット 2/14'), `数の表示 (${zk.count} ${zk.sub})`);
       ok(zk.leaked.length === 0, 'もっていないカードの名前は出ない');
-      await page.tap('#zkPick [data-set="sea"]');
+      await pickSet(page, 'zkPick', 'sea');
       const sea = await page.evaluate(() => ({
         n: document.querySelectorAll('.zk-cell').length, count: document.getElementById('zkCount').textContent,
         title: document.getElementById('zkTitle').textContent, first: document.querySelector('.zk-cell').dataset.no
       }));
-      ok(sea.n === 17 && sea.count === '1 / 17' && sea.title.includes('さかな') && sea.first === 'S1-001', `パックの種類を えらぶと、その図鑑に変わる (${sea.title} ${sea.count})`);
-      await page.tap('#zkPick [data-set="animal"]');
+      ok(sea.n === 18 && sea.count === '1 / 18' && sea.title.includes('さかな') && sea.first === 'S1-001', `パックの種類を えらぶと、その図鑑に変わる (${sea.title} ${sea.count})`);
+      await pickSet(page, 'zkPick', 'animal');
       // どのカードも、名前がカードの中に収まる (ずかんの小さい表示と、大きい表示の両方。6 しゅるい全部)
       const names = await page.evaluate(() => {
         const out = [];
@@ -866,7 +941,7 @@ async function run() {
         t.sort((a, b) => a - b);
         return { median: t[Math.floor(t.length / 2)], p90: t[Math.floor(t.length * 0.9)], n: t.length };
       }, ms);
-      for (const top of ['SAR', 'MUR']) {
+      for (const top of ['SAR', 'MUR', 'LR']) {
         await page.evaluate(([t]) => { window.__app.setMoney(500); window.__app.rigNextPack(t, true); }, [top]);
         await goTab(page, 'Packs');
         await page.tap('#btnBuy');
@@ -887,10 +962,16 @@ async function run() {
         const charging = await frames(1500);
         await page.waitForFunction(() => window.__app.opening.state().phase === 'reveal', null, { timeout: 12000 });
         await page.mouse.up();
-        await page.waitForFunction(() => window.__app.opening.state().phase === 'stack', null, { timeout: 8000 });
+        let cosmos = null;
+        if (top === 'LR') {
+          await page.waitForFunction(() => document.getElementById('open').dataset.bg === 'cosmos', null, { timeout: 16000 });
+          cosmos = await frames(1500);   // 宇宙へ ぬけて 星が すいこまれる ところ
+        }
+        await page.waitForFunction(() => window.__app.opening.state().phase === 'stack', null, { timeout: 20000 });
         const reveal = await frames(2000);
         await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
         ok(charging.median <= 20, `${top} ためている最中: 1 コマ ${charging.median.toFixed(1)}ms (90%点 ${charging.p90.toFixed(1)})`);
+        if (cosmos) ok(cosmos.median <= 20, `LR 宇宙へ ぬける ところ: 1 コマ ${cosmos.median.toFixed(1)}ms (90%点 ${cosmos.p90.toFixed(1)})`);
         ok(reveal.median <= 20, `${top} 出た直後 (紙ふぶき・キラ): 1 コマ ${reveal.median.toFixed(1)}ms (90%点 ${reveal.p90.toFixed(1)})`);
         await page.evaluate(() => window.__app.opening.close());
       }
