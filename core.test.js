@@ -657,3 +657,11 @@ test('アイコン: iPhone のホーム画面用は PNG で 180x180 (iOS は SVG
   assert.deepStrictEqual(size(touch[1]), [180, 180]);
   assert.deepStrictEqual(size(icon[1]), [64, 64]);
 });
+
+test('画面の高さ: 根っこ (html, body) の高さに vh を使わない (状態バーの下から始まる画面で、下が切れる)', () => {
+  const css = fs.readFileSync(require.resolve('./styles.css'), 'utf8');
+  const rule = css.match(/html,\s*body\s*\{[^}]*\}/);
+  assert.ok(rule, 'html, body の規則');
+  assert.ok(/height:\s*100%/.test(rule[0]), rule[0]);
+  assert.ok(!/\b\d+d?v?s?vh\b/.test(rule[0].replace(/\/\*[\s\S]*?\*\//g, '')), 'vh / dvh / svh を使わない');
+});
