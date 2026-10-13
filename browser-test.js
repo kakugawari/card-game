@@ -233,6 +233,7 @@ async function run() {
       });
       ok(dg.inTitle && !dg.inTop && dg.vis && /^v\d+ 描ける\d+ 窓\d+ vh\d+$/.test(dg.text) && dg.l >= 0 && dg.r <= 430 && dg.t >= 0 && dg.b <= 80,
         `バージョンの診断は タイトル画面の左上に出る (「${dg.text}」)`);
+      ok(await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content) === '#9ed4f8', 'タイトルのあいだは 状態バーの色が タイトルの空に近い色');
       const m0 = await money(page);
       const tb = await box(page, '#tree');
       await page.touchscreen.tap(tb.x + 100, tb.y + 100);   // 本物の指と同じ。うしろの木は、タイトルにさえぎられて受け取らない
@@ -242,6 +243,7 @@ async function run() {
       await page.touchscreen.tap(pb.x + pb.width / 2, pb.y + pb.height / 2);
       await page.waitForFunction(() => document.getElementById('title').hidden, null, { timeout: 3000 });
       ok(await page.locator('#scHome').isVisible() && !(await page.evaluate(() => window.__app.titleOpen())), '「あそぶ」で タイトルが消えて、ひろば (木の画面) になる');
+      ok(await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content) === '#fff3d6', '「あそぶ」のあとは 状態バーの色が もとのクリーム色にもどる');
       for (let i = 0; i < 5; i++) await page.tap('#tree', { position: { x: 90 + i * 10, y: 90 } });
       ok((await money(page)) >= 5, `そのまま 木をタップして コインがかせげる (${await money(page)})`);
       await page.reload();
