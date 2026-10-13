@@ -474,7 +474,8 @@ test('タップ: 1 かいで「ゆびのちから」ぶん増える / 強化は�
   assert.strictEqual(Core.buyUpgrade(s), true);
   assert.strictEqual(s.money, 0);
   assert.strictEqual(Core.tap(s), 3);
-  assert.deepStrictEqual([0, 1, 2, 3, 4, 5, 6, 7, 8].map(Core.tapPowerAt), [2, 3, 5, 6, 8, 9, 11, 12, 14]);
+  assert.deepStrictEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(Core.tapPowerAt), [2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18, 20]);
+  assert.strictEqual(Core.tapPowerAt(Core.MAX_LEVEL), 20);   // いちばん強くて 1 かいで 20 コイン
   for (let l = 1; l < Core.MAX_LEVEL; l++) assert.ok(Core.upgradeCost(l) > Core.upgradeCost(l - 1));
   assert.strictEqual(Core.upgradeCost(Core.MAX_LEVEL), null);
 });

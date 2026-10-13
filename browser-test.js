@@ -322,6 +322,14 @@ async function run() {
         for (let i = 0; i < 30; i++) t.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, clientX: 200, clientY: 300, pointerId: 1 + (i % 2) }));
       });
       ok((await money(page)) === 80, `連打 30 回も 1 回も取りこぼさない (${await money(page)})`);
+      const mu = await page.evaluate(() => {
+        const bt = document.getElementById('btnMute'), sl = bt.querySelector('.mu-slash');
+        return { emoji: /[🔊🔇]/.test(bt.textContent), svg: !!bt.querySelector('svg'), slash: getComputedStyle(sl).display, w: bt.getBoundingClientRect().width };
+      });
+      await page.tap('#btnMute');
+      const mu2 = await page.evaluate(() => ({ off: document.getElementById('btnMute').classList.contains('off'), slash: getComputedStyle(document.querySelector('.mu-slash')).display }));
+      await page.tap('#btnMute');
+      ok(!mu.emoji && mu.svg && mu.slash === 'none' && mu2.off && mu2.slash !== 'none' && mu.w >= 44, '音のボタンは 絵文字ではなく おんぷの絵。止めると斜めの線が出る');
       const cost = await page.evaluate(() => window.__app.core.upgradeCost(0));
       await page.evaluate((c) => window.__app.setMoney(c - 1), cost);
       ok(await page.locator('#btnUp').isDisabled(), `強化: ${cost - 1} コインでは押せない`);

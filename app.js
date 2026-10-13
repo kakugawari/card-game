@@ -729,7 +729,7 @@
   });
 
   function renderMute() {
-    els.muteIco.textContent = state.muted ? '🔇' : '🔊';
+    els.btnMute.classList.toggle('off', !!state.muted);   // 音がきれているときは おんぷに 斜めの線
     Sfx.setMuted(state.muted);
   }
   els.btnMute.addEventListener('click', function () {

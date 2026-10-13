@@ -280,7 +280,7 @@
   }
 
   // ---------------------------------------------------------------- タップで稼ぐ
-  const MAX_LEVEL = 8;
+  const MAX_LEVEL = 12;
   const PACK_PRICE = 500;
   const BOX_PRICE = PACK_PRICE * BOX_PACKS;   // BOX は 30 パックぶんの値段 (おまけは「SR 以上 確定」)
   const MAX_BOXES = 20;

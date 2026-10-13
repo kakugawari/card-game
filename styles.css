@@ -767,14 +767,23 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .mute {
   position: absolute;
   right: 14px;
-  width: 42px;
-  height: 42px;
-  border: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: var(--panel);
+  border: 3px solid var(--line);
   border-radius: 50%;
-  background: rgba(255,255,255,.7);
-  font-size: 20px;
+  box-shadow: 0 3px 0 var(--line);
   cursor: pointer;
 }
+.mute:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+#muteIco { width: 26px; height: 26px; display: block; }
+#muteIco .mu-slash { display: none; }
+.mute.off #muteIco .mu-slash { display: inline; }
+.mute.off .mu-head { fill: #d9cbb8; }
+.mute.off .mu-note:nth-of-type(2) { stroke: #eadfce; }
 #topbar { position: relative; }
 #diag { position: absolute; left: 10px; top: calc(var(--safe-top) + 4px); z-index: 5; font-size: 9px; font-weight: 400; color: #fff; text-shadow: 0 0 3px rgba(0,0,0,.6); opacity: .8; pointer-events: none; white-space: nowrap; }
 
