@@ -696,7 +696,7 @@ async function run() {
 
     // ------------------------------------------------ ミニゲーム
     if (want('ミニゲーム')) {
-      section('ミニゲーム: どうぶつ めくり・おやつキャッチ (1 日 3 回ずつ・ゆびのちからぶんのコイン)');
+      section('ミニゲーム: どうぶつ めくり・おやつキャッチ (1 日 3 回ずつ・さいだい 5,000 コイン)');
       ({ context, page } = await newGame(browser, errors));
       await page.evaluate(() => {
         document.documentElement.style.setProperty('--safe-top', '59px');
@@ -712,8 +712,8 @@ async function run() {
       await page.tap('#btnGames');
       const mn = await page.evaluate(() => ({ cards: document.querySelectorAll('.gm-card').length, txt: document.getElementById('gmList').textContent,
         inside: [...document.querySelectorAll('.gm-card, .gm-go')].every((e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= 430 && r.bottom <= 932 - 34; }) }));
-      ok(mn.cards === 2 && /どうぶつ めくり/.test(mn.txt) && /おやつキャッチ/.test(mn.txt) && /さいだい 600 コイン/.test(mn.txt) && /あと 3 かい/.test(mn.txt) && mn.inside,
-        'メニューに 2 つのゲーム・さいだいのコイン (600)・のこり 3 かい。画面の中に収まる');
+      ok(mn.cards === 2 && /どうぶつ めくり/.test(mn.txt) && /おやつキャッチ/.test(mn.txt) && /さいだい 5,000 コイン/.test(mn.txt) && /あと 3 かい/.test(mn.txt) && mn.inside,
+        'メニューに 2 つのゲーム・さいだいのコイン (5,000)・のこり 3 かい。画面の中に収まる');
 
       // --- どうぶつ めくり
       const memStart = async () => { await page.tap('.gm-go[data-game=memory]'); await page.waitForSelector('.mm-card'); };
@@ -740,7 +740,7 @@ async function run() {
       for (const k of Object.keys(pairs)) { for (const i of pairs[k]) await page.tap(`.mm-card[data-i="${i}"]`); await page.waitForTimeout(80); }
       await page.waitForSelector('#gmResult:not([hidden])', { timeout: 4000 });
       const turns = Number(await page.textContent('#mmTurns'));
-      const want1 = await page.evaluate((t) => window.__app.core.miniReward('memory', { turns: t }, 0), turns);
+      const want1 = await page.evaluate((t) => window.__app.core.miniReward('memory', { turns: t }), turns);
       ok((await money(page)) === m0 + want1 && turns === 6 && /^\+/.test(await page.textContent('#gmResCoins')), `めくり: ぜんぶ そろうと コインが入る (${turns} かい → +${want1})`);
       ok((await page.textContent('#gmAgainLabel')).includes('あと 2 かい') && await page.locator('#gmAgain').isEnabled(), '1 回あそぶと のこり 2 かい');
       // 完璧に (4 かい) そろえる = 600 コイン
@@ -751,7 +751,7 @@ async function run() {
       const m1 = await money(page);
       for (const k of Object.keys(pr2)) { for (const i of pr2[k]) await page.tap(`.mm-card[data-i="${i}"]`); await page.waitForTimeout(80); }
       await page.waitForSelector('#gmResult:not([hidden])', { timeout: 4000 });
-      ok((await money(page)) === m1 + 600, `めくり: 4 かいで ぜんぶ そろえると 600 コイン (ゆびのちから Lv.1 の 300 かいぶん)`);
+      ok((await money(page)) === m1 + 5000, 'めくり: 4 かいで ぜんぶ そろえると 5,000 コイン');
       // 途中でやめた (✕) あそびは 1 回に数えない
       await page.tap('#gmAgain');
       await page.waitForSelector('.mm-card');
@@ -787,7 +787,7 @@ async function run() {
       await page.waitForSelector('#gmResult:not([hidden])', { timeout: 4000 });
       const sc = Number((await page.textContent('#gmResSub')).match(/\d+/)[0]);
       const cm = Number((await page.textContent('#gmResCoins')).replace(/[^0-9]/g, ''));
-      ok(sc >= 3 && cm === (100 + Math.min(200, sc * 5)) * 2, `キャッチ: おやつを とって てんが入り、コインが 入る (${sc} てん → +${cm})`);
+      ok(sc >= 3 && cm === 1500 + Math.min(3500, Math.round(sc * 87.5)), `キャッチ: おやつを とって てんが入り、コインが 入る (${sc} てん → +${cm})`);
       ok(maxItems >= 2 && kinds.size >= 2, `おやつが つぎつぎ おちてくる (同時に ${maxItems} こ・${[...kinds].join('/')})`);
       ok(await page.evaluate(() => document.querySelectorAll('.ct-item').length) === 0, 'おわると 落ちていた おやつは 片づく');
       // ✕ は ひろばに もどる。ボタンの数字が へる
@@ -806,9 +806,9 @@ async function run() {
       ok(await page.evaluate(() => window.__app.core.miniLeft(window.__app.state(), 'memory', Date.now()) === 0 && window.__app.core.miniLeft(window.__app.state(), 'catch', Date.now()) === 0), '開き直しても きょうの回数は のこる');
       await page.evaluate(() => { const s = window.__app.state(); s.mini.day = '2000-01-01'; window.__app.mini.refresh(); });
       ok((await page.textContent('#gmBadge')) === '6', '日が かわると また 3 かいずつ (6)');
-      // ゆびのちからを上げると、ごほうびも増える
+      // ゆびのちからに関係なく、さいだい 5,000 コイン
       await page.evaluate(() => { const s = window.__app.state(); s.tapLevel = 12; s.mini.day = ''; window.__app.mini.open(); });
-      ok(/さいだい 6,000 コイン/.test(await page.textContent('#gmList')), 'ゆびのちから Lv.13 (20 コイン) では さいだい 6,000 コイン');
+      ok(/さいだい 5,000 コイン/.test(await page.textContent('#gmList')), 'ゆびのちから Lv.13 でも さいだい 5,000 コイン (かわらない)');
       // 遅い端末 (CPU 4 倍遅) でも おやつキャッチが なめらか (落ちてくる物が 同時に何こもある間)
       await page.evaluate(() => { const s = window.__app.state(); s.mini.day = ''; s.mini.plays = {}; window.__app.mini.opts.catchSeconds = 14; window.__app.mini.open(); });
       const cdpM = await context.newCDPSession(page);

@@ -530,12 +530,13 @@
   function numberLabel(card) { return card.num + '/' + String(SET_BY_ID[card.set].mainCount).padStart(3, '0'); }
 
   // ---------------------------------------------------------------- ミニゲーム (コインをかせぐ もう 1 つの道)
-  // どちらも 1 日 3 回まで。ごほうびは「いまのゆびのちからで 何回タップしたぶんか」で決める
-  // (ゆびのちからを上げるほど ミニゲームのコインも増える。満点 = 300 タップぶん = 約 1 分タップしたぶんを、30 秒ほどで)
+  // どちらも 1 日 3 回まで。ごほうびは 満点で 5,000 コイン (10 パックぶん)。ゆびのちからには関係しない
+  // (「タップだと 20 コインのゆびで 30 回ぶん = 2 秒で終わる量では あそばない」と言われて、はっきり多くした)
   const MINI_GAMES = {
     memory: { name: 'どうぶつ めくり', daily: 3, pairs: 4 },
     catch: { name: 'おやつキャッチ', daily: 3, seconds: 25 }
   };
+  const MINI_MAX = 5000;
 
   /** きょう あと何回あそべるか。日が変わると戻る */
   function miniLeft(state, game, now) {
@@ -545,22 +546,18 @@
     return Math.max(0, g.daily - (state.mini.plays[game] || 0));
   }
 
-  /** ごほうびを「何タップぶんか」で。memory: めくった回数 (turns) / catch: 点 (score) */
-  function miniTaps(game, result) {
+  /** ごほうびのコイン。memory: めくった回数 (turns) / catch: 点 (score) */
+  function miniReward(game, result) {
     if (game === 'memory') {
       const t = Math.floor(Number(result.turns));
-      if (!(t >= 1)) return 150;
-      return t <= 5 ? 300 : t <= 7 ? 250 : t <= 10 ? 200 : 150;
+      if (!(t >= 1)) return 2000;
+      return t <= 5 ? MINI_MAX : t <= 7 ? 4000 : t <= 10 ? 3000 : 2000;
     }
     if (game === 'catch') {
       const sc = Math.max(0, Math.floor(Number(result.score)) || 0);
-      return 100 + Math.min(200, sc * 5);
+      return 1500 + Math.min(3500, Math.round(sc * 87.5));   // 40 点で 5,000
     }
     return 0;
-  }
-
-  function miniReward(game, result, tapLevel) {
-    return miniTaps(game, result) * tapPowerAt(tapLevel);
   }
 
   /** 1 回あそんだことにして、ごほうびのコインを足す。回数が残っていなければ何も変えない */
@@ -570,9 +567,9 @@
     const today = dayKey(now);
     if (state.mini.day !== today) { state.mini.day = today; state.mini.plays = {}; }
     state.mini.plays[game] = (state.mini.plays[game] || 0) + 1;
-    const coins = miniReward(game, result, state.tapLevel);
+    const coins = miniReward(game, result);
     state.money += coins;
-    return { ok: true, coins: coins, taps: miniTaps(game, result), left: miniLeft(state, game, now) };
+    return { ok: true, coins: coins, left: miniLeft(state, game, now) };
   }
 
   /** どうぶつ めくり: ペアの絵 (どうぶつ) を えらんで ならべる。もっている子を先に使う */
@@ -665,7 +662,7 @@
     pet: pet,
     MINI_GAMES: MINI_GAMES,
     miniLeft: miniLeft,
-    miniTaps: miniTaps,
+    MINI_MAX: MINI_MAX,
     miniReward: miniReward,
     miniFinish: miniFinish,
     memoryDeal: memoryDeal,

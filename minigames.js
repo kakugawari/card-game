@@ -49,7 +49,7 @@
       const left = C.miniLeft(st, g, now);
       return '<div class="gm-card" data-game="' + g + '">' + info[g].art +
         '<div class="gm-info"><b>' + C.MINI_GAMES[g].name + '</b><span>' + info[g].rule + '</span>' +
-        '<em>さいだい <b>' + fmt(C.miniReward(g, bestOf(g), st.tapLevel)) + '</b> コイン ・ きょうは あと ' + left + ' かい</em></div>' +
+        '<em>さいだい <b>' + fmt(C.miniReward(g, bestOf(g))) + '</b> コイン ・ きょうは あと ' + left + ' かい</em></div>' +
         '<button type="button" class="btn btn-open gm-go" data-game="' + g + '"' + (left ? '' : ' disabled') + '><span class="btn-label">' + (left ? 'あそぶ' : 'また あした') + '</span></button></div>';
     }).join('');
   }
@@ -77,11 +77,11 @@
     res.dataset.game = game;
     $('gmResSub').textContent = summary;
     $('gmResCoins').textContent = r.ok ? '+' + fmt(r.coins) : '+0';
-    $('gmResTaps').textContent = r.ok ? 'ゆびで ' + fmt(r.taps) + ' かい たたいた ぶん！' : '';
+    $('gmResTaps').textContent = r.ok ? 'パック ' + (r.coins / C.PACK_PRICE).toFixed(r.coins % C.PACK_PRICE ? 1 : 0) + ' こ ぶん！' : '';
     const left = C.miniLeft(st, game, Date.now());
     $('gmAgain').disabled = left <= 0;
     $('gmAgainLabel').textContent = left > 0 ? 'もういちど (あと ' + left + ' かい)' : 'また あした';
-    Sfx.play(r.ok && r.taps >= 250 ? 'fanfareRR' : 'shine');
+    Sfx.play(r.ok && r.coins >= 4000 ? 'fanfareRR' : 'shine');
     if (r.ok) coinRain();
   }
 

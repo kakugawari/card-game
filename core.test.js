@@ -683,29 +683,26 @@ test('ミニゲーム: 1 日 3 回まで。日が変わると戻り、回数が�
   assert.strictEqual(Core.miniFinish(s, 'nanika', {}, NOON).ok, false);
 });
 
-test('ミニゲーム: ごほうび = (タップ何回ぶんか) x いまのゆびのちから。満点は 300 タップぶん', () => {
-  assert.strictEqual(Core.miniTaps('memory', { turns: 4 }), 300);
-  assert.strictEqual(Core.miniTaps('memory', { turns: 5 }), 300);
-  assert.strictEqual(Core.miniTaps('memory', { turns: 7 }), 250);
-  assert.strictEqual(Core.miniTaps('memory', { turns: 10 }), 200);
-  assert.strictEqual(Core.miniTaps('memory', { turns: 30 }), 150);
-  assert.strictEqual(Core.miniTaps('catch', { score: 0 }), 100);
-  assert.strictEqual(Core.miniTaps('catch', { score: 40 }), 300);
-  assert.strictEqual(Core.miniTaps('catch', { score: 999 }), 300);
-  assert.strictEqual(Core.miniTaps('catch', { score: -5 }), 100);
-  for (let l = 0; l <= Core.MAX_LEVEL; l++) assert.strictEqual(Core.miniReward('memory', { turns: 4 }, l), 300 * Core.tapPowerAt(l));
+test('ミニゲーム: ごほうびは 満点で 5,000 コイン (ゆびのちからに関係しない)', () => {
+  assert.deepStrictEqual([3, 4, 5, 6, 7, 8, 10, 11, 30].map((t) => Core.miniReward('memory', { turns: t })), [5000, 5000, 5000, 4000, 4000, 3000, 3000, 2000, 2000]);
+  assert.strictEqual(Core.miniReward('catch', { score: 0 }), 1500);
+  assert.strictEqual(Core.miniReward('catch', { score: 40 }), 5000);
+  assert.strictEqual(Core.miniReward('catch', { score: 999 }), 5000);
+  assert.strictEqual(Core.miniReward('catch', { score: -5 }), 1500);
   const s = Core.newState();
   s.money = 10;
-  assert.strictEqual(Core.miniFinish(s, 'memory', { turns: 4 }, NOON).coins, 600);
-  assert.strictEqual(s.money, 610);
+  s.tapLevel = 8;
+  assert.strictEqual(Core.miniFinish(s, 'memory', { turns: 4 }, NOON).coins, 5000);
+  assert.strictEqual(s.money, 5010);
+  // どんな得点でも、まえより悪い点が 多くはならない (点が上がるほど コインは増える)
+  let prev = 0;
+  for (let sc = 0; sc <= 60; sc++) { const r = Core.miniReward('catch', { score: sc }); assert.ok(r >= prev && r <= 5000); prev = r; }
 });
 
-test('ミニゲーム: 1 日に とれる量は「ゆびを 3 分たたいたぶん」より少ない (お得だが 3 分タップを超えない)', () => {
-  for (let l = 0; l <= Core.MAX_LEVEL; l++) {
-    const day = 3 * Core.miniReward('memory', { turns: 4 }, l) + 3 * Core.miniReward('catch', { score: 40 }, l);
-    assert.ok(day <= 900 * 2 * Core.tapPowerAt(l), `${l}: ${day}`);
-    assert.strictEqual(day, 1800 * Core.tapPowerAt(l));
-  }
+test('ミニゲーム: 1 日の上限は 満点 x 6 回 = 30,000 コイン (60 パックぶん)', () => {
+  const day = 3 * Core.miniReward('memory', { turns: 4 }) + 3 * Core.miniReward('catch', { score: 40 });
+  assert.strictEqual(day, 30000);
+  assert.strictEqual(day / Core.PACK_PRICE, 60);
 });
 
 test('めくり: 4 組 (8 まい)。同じ絵が 2 まいずつ。もっている子を先に使う', () => {
