@@ -1029,6 +1029,14 @@ async function run() {
         return { w: r.width, h: r.height, name: document.getElementById('shopName').textContent, idx: document.getElementById('stageIndex').textContent };
       });
       ok(bar.w >= 205 && bar.h >= 295 && bar.name === 'どうぶつパック' && bar.idx === '1 / 11', `大きいパック (${Math.round(bar.w)}x${Math.round(bar.h)}) と名前・番号が出る (${bar.idx})`);
+      await page.tap('.set-pick .sp-bar');
+      await page.waitForSelector('#packSheet:not([hidden])');
+      const grp = await page.evaluate(() => [...document.querySelectorAll('#pshBody .psh-cat')].map((h) => h.textContent.split(' ')[0] + ' ' + h.textContent.split(' ')[1] + ':' +
+        [...h.nextElementSibling.querySelectorAll('.sp-btn')].map((x) => x.dataset.set).join(',')));
+      ok(grp.length === 2 && grp[0] === 'いきもの パック:animal,sea,bird,dino,ghost,future' && grp[1] === 'せかい パック:okashi,tabemono,kisetsu,machi,mahou',
+        `パックの一覧は「いきもの」と「せかい」の 見出しで わかれる (${grp.join(' / ')})`);
+      await page.tap('#pshClose');
+      await page.waitForSelector('#packSheet', { state: 'hidden' });
       await page.tap('#btnNext');
       ok((await page.textContent('#shopName')) === 'さかなパック', '▶ で つぎの パックへ');
       await page.tap('#btnPrev');
