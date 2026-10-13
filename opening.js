@@ -126,7 +126,7 @@
     [els.pack, els.stack, els.black, els.crack, els.flash, els.stage].forEach(function (el) {
       el.getAnimations().forEach(function (a) { a.cancel(); });
     });
-    els.open.querySelectorAll('.op-shock, .op-beam, .op-heart, .op-shards').forEach(function (el) { el.remove(); });
+    els.open.querySelectorAll('.op-shock, .op-beam, .op-heart, .op-shards, .op-arc').forEach(function (el) { el.remove(); });
 
     els.open.hidden = false;
     els.result.hidden = true;
@@ -504,7 +504,7 @@
     const i = r.index;
     const slot = r.slots[i];
     S.play('whoosh');
-    if (r.revealed[i]) { hideBanner(); rays(null); }
+    if (r.revealed[i]) { hideBanner(); rays(null); removeArc(); }
     const from = slot.style.transform || 'none';
     slot.style.transform = 'translate(' + (dir * 560) + 'px,-80px) rotate(' + (dir * 28) + 'deg)';
     slot.animate([{ transform: from, opacity: 1 }, { transform: slot.style.transform, opacity: 0.2 }],
@@ -767,6 +767,26 @@
     })(t0);
   }
 
+  /** LR: カードの うしろに 大きな 虹が 左から右へ かかり、ゆっくり 息をする */
+  function rainbowArc(slot) {
+    const c = center(slot);
+    const arc = document.createElement('i');
+    arc.className = 'op-arc';
+    arc.style.left = c.x + 'px';
+    arc.style.top = (c.y + 40) + 'px';
+    els.open.insertBefore(arc, els.stage);
+    arc.animate([{ clipPath: 'inset(0 100% 50% 0)', opacity: 1 }, { clipPath: 'inset(0 0 50% 0)', opacity: 1 }],
+      { duration: 900, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'forwards' });
+    arc.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }],
+      { duration: 2600, delay: 900, iterations: Infinity, easing: 'ease-in-out' });
+  }
+
+  function removeArc() {
+    els.open.querySelectorAll('.op-arc').forEach(function (a) {
+      a.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' }).onfinish = function () { a.remove(); };
+    });
+  }
+
   /** 暗やみを はらう。getAnimations() に たよらず、作った アニメーションを 自分で止める
    * (getAnimations() で止めたつもりが、10 回に 1 回ほど 暗いまま のこった) */
   function clearBlack(r) {
@@ -909,11 +929,18 @@
 
     flash(rar === 'MUR' ? '#ffe27a' : '#ffffff', 1, rar === 'SR' ? 650 : 900);
     if (rar === 'SAR') setBg('night');
-    if (rar === 'LR') setBg('cosmos');
-    rays(RAY[color]);
+    if (rar === 'LR') {
+      // LR: 宇宙から 虹の世界へ。カードの うしろに 大きな 虹が かかる
+      // 回る 光の筋 (op-rays) は 出さない: 虹の背景の上で 回すと、遅い端末で 出た直後が 1 コマ ほぼ 1 つぶん 重くなった。
+      // 光の筋は 背景に 止まった絵として 描いてある
+      cutBg('rainbow');
+      rays(null);
+      rainbowArc(slot);
+    } else rays(RAY[color]);
     S.play('fanfare' + rar);
     shakeScreen(rar === 'SR' ? 10 : 16, 520);
-    shock(rar === 'LR' ? '#c39bff' : rar === 'MUR' ? '#ffd84a' : rar === 'SAR' ? '#ffffff' : '#ffe58a', rar === 'SR' ? 2 : rar === 'LR' ? 4 : 3);
+    if (rar === 'LR') ['#ff6fa8', '#ffb35c', '#ffe45c', '#6fe39a', '#5cc8ff', '#9a7bff'].forEach(function (col, k) { setTimeout(function () { if (alive(r)) shock(col, 1); }, k * 110); });
+    else shock(rar === 'MUR' ? '#ffd84a' : rar === 'SAR' ? '#ffffff' : '#ffe58a', rar === 'SR' ? 2 : 3);
     shake.animate([{ transform: 'scale(1.3)' }, { transform: 'scale(.96)', offset: 0.6 }, { transform: 'none' }],
       { duration: rar === 'SR' ? 600 : 1100, easing: 'ease-out' });
     const p = center(slot);
@@ -927,9 +954,9 @@
       fx.rain({ shape: 'star', color: 'rainbow', rate: 10, dur: 5, size: 10, speed: 90, gravity: 10, life: 6, add: true });
     } else if (rar === 'LR') {
       // 粒の数は MUR と同じくらいにおさえる (遅い端末で 1 コマ 16.7ms を守るため。色と星の量で LR らしさを出す)
-      fx.burst(p.x, p.y, { color: 'legend', count: 140, shape: 'star', speed: 820, size: 15, gravity: 60, life: 2.2 });
+      fx.burst(p.x, p.y, { color: 'rainbow', count: 140, shape: 'star', speed: 820, size: 15, gravity: 60, life: 2.2 });
       fx.burst(p.x, p.y, { color: 'gold', count: 30, shape: 'coin', speed: 700, size: 11, gravity: 520, life: 2.8, lift: 260 });
-      fx.rain({ shape: 'star', color: 'legend', rate: 14, dur: 7, size: 11, speed: 110, gravity: 10, life: 6, add: true });
+      fx.rain({ shape: 'star', color: 'rainbow', rate: 14, dur: 7, size: 11, speed: 110, gravity: 10, life: 6, add: true });
       fx.rain({ shape: 'confetti', color: 'rainbow', rate: 24, dur: 7, size: 12, speed: 170, life: 6 });
       fx.rain({ shape: 'coin', color: 'gold', rate: 10, dur: 7, size: 11, speed: 220, gravity: 120, life: 6 });
     } else {
@@ -950,6 +977,7 @@
   // ================================================================ 5. 結果
   function showResult(r) {
     r.phase = 'result';
+    removeArc();
     clearBlack(r);   // 念のため (結果に 暗やみを のこさない)
     hint('');
     els.count.textContent = '';

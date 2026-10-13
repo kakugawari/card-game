@@ -490,6 +490,8 @@ async function run() {
         const bgs = await page.evaluate(() => window.__bgs);
         ok(bgs.includes('cosmos') === (top === 'LR'), `宇宙の背景は LR のときだけ (${bgs.join(' → ')})`);
         if (top === 'LR') ok(bgs.indexOf('gold') >= 0 && bgs.indexOf('gold') < bgs.indexOf('cosmos'), 'LR: 金の世界を通ってから 宇宙へ');
+        ok(bgs.includes('rainbow') === (top === 'LR'), `虹の世界 (出たあとの お祝い) は LR のときだけ (${bgs.join(' → ')})`);
+        if (top === 'LR') ok(bgs.indexOf('cosmos') < bgs.indexOf('rainbow'), 'LR: 宇宙を ぬけてから 虹の世界へ');
         ok(end.phase === 'result' && end.revealed.length === show.specials.length, `最後まで進んで、特別なカードを全部めくった (${end.revealed.length})`);
         for (const { rarity, rec } of log) {
           const colors = [];

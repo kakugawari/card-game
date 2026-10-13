@@ -102,7 +102,7 @@
 .fr-full.r-SR .pc-in { background: linear-gradient(135deg, #f4f6fa, #c7cdd8 30%, #fafbfd 50%, #b9c0cc 75%, #eef1f6); }
 .fr-full.r-SAR .pc-in { background: linear-gradient(135deg, #ffe3f1, #e3ddff 25%, #d9f6ff 50%, #e8ffe1 75%, #fff4d6); }
 .fr-full.r-MUR .pc-in { background: linear-gradient(135deg, #fff3b8, #d9a520 25%, #fff7d6 50%, #c08a10 75%, #ffe58a); }
-.fr-full.r-LR .pc-in { background: linear-gradient(135deg, #ff9ecb, #9fe0ff 20%, #c39bff 40%, #ffe680 60%, #8ff0c0 80%, #ff9ecb); }
+.fr-full.r-LR .pc-in { padding: 0; background: linear-gradient(125deg, #ff6fa8, #ffb35c 16%, #ffe45c 32%, #6fe39a 48%, #5cc8ff 64%, #9a7bff 80%, #ff6fa8); }
 /* AR・SAR: 枠なしの全面イラスト (SAR は ふちに浮き彫りの段差) */
 .fr-full.r-AR .pc-in, .fr-full.r-SAR .pc-in { padding: 0; background: #fff; }
 .fr-full.r-AR .pc-art, .fr-full.r-SAR .pc-art { inset: 0; border-radius: 0; }
@@ -135,7 +135,19 @@
 }
 .fr-full.r-MUR .pc-name { -webkit-text-stroke-color: rgba(120, 70, 0, .75); }
 .fr-full.r-LR .pc-name { -webkit-text-stroke-color: rgba(40, 25, 110, .85); }
-.fr-full.r-LR .pc-panel { background: linear-gradient(rgba(255,255,255,0), rgba(250,244,255,.82) 26%, rgba(250,244,255,.92)); color: #2a1f6e; }
+.fr-full.r-LR .pc-panel { left: 0; right: 0; bottom: 0; border-radius: 0; padding: 8cqw 5cqw 3.6cqw; color: #2a1f6e;
+  background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,.5) 26%, rgba(255,255,255,.62)),
+    linear-gradient(100deg, rgba(255,111,168,.5), rgba(255,228,92,.5) 30%, rgba(111,227,154,.5) 55%, rgba(92,200,255,.5) 75%, rgba(154,123,255,.5)); }
+/* LR: カード ぜんたいが 虹色 (絵も どうぶつも 虹の色に そまる。明るさ・かげは そのまま) */
+.fr-full.r-LR .pc-art { inset: 0; border-radius: 0; }
+.fr-full.r-LR .pc-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: color;
+  background: linear-gradient(125deg, #ff4f93, #ff9a3c 16%, #ffd93c 32%, #3fd67a 48%, #3cb4ff 64%, #7a5cff 80%, #ff4f93);
+}
 .fr-full.r-MUR .pc-panel { background: linear-gradient(rgba(255,226,140,0), rgba(255,236,170,.88) 26%, rgba(255,226,140,.95)); color: #4a2e00; }
 .fr-full .pc-panel {
   position: absolute;
@@ -203,13 +215,10 @@
     radial-gradient(circle at 80% 10%, #fff 0 .7%, rgba(255,255,255,0) 1.1%),
     radial-gradient(circle at 65% 30%, #fff 0 .6%, rgba(255,255,255,0) 1%),
     linear-gradient(#1f2a6e, #5b4fb8 45%, #ff9cc8 85%); }
-.sc-LR { background:
-    radial-gradient(circle at 50% 42%, rgba(255,255,255,.95) 0 6%, rgba(255,255,255,.4) 18%, rgba(255,255,255,0) 42%),
-    radial-gradient(circle at 18% 20%, #fff 0 .9%, rgba(255,255,255,0) 1.4%),
-    radial-gradient(circle at 82% 16%, #fff 0 .8%, rgba(255,255,255,0) 1.3%),
-    radial-gradient(circle at 75% 70%, #fff 0 .7%, rgba(255,255,255,0) 1.2%),
-    radial-gradient(circle at 24% 66%, #fff 0 .8%, rgba(255,255,255,0) 1.3%),
-    conic-gradient(from 30deg at 50% 45%, #ff9ecb, #ffe680, #8ff0c0, #7fd4ff, #c39bff, #ff9ecb); }
+.sc-LR { background:   /* 明るさを なかくらいに しておくと、上の 虹 (mix-blend-mode: color) が こく のる */
+    radial-gradient(circle at 50% 40%, rgba(255,255,255,.85) 0 7%, rgba(255,255,255,.3) 22%, rgba(255,255,255,0) 44%),
+    repeating-conic-gradient(from 0deg at 50% 40%, rgba(255,255,255,.42) 0 6deg, rgba(255,255,255,0) 6deg 14deg),
+    linear-gradient(160deg, #c9c0dd, #b3aacb 50%, #c2cfdf); }
 .sc-MUR { background:
     radial-gradient(circle at 50% 42%, #fffbe0 0 10%, rgba(255,240,170,.6) 26%, rgba(255,210,80,0) 55%),
     repeating-conic-gradient(from 0deg at 50% 42%, #ffe58a 0 5deg, #f5b52e 5deg 10deg),
@@ -290,17 +299,19 @@
   background-size: 9px 9px, auto, 320% 320%;
   background-position: 0 0, 0 0, calc(var(--mx) * 1%) calc(var(--my) * 1%);
 }
-/* LR: 虹色のホログラム (カード ぜんたいが きらめく) + 浮き彫りの彫り筋 + ほしの粒 */
+/* LR: ポケモンカードの HR のように カード ぜんたいが 虹色。こまかい ラメ (砂のような粒) が いつも きらめき、
+   かたむけると 虹の光の帯が 走る */
 .r-LR .pc-holo {
   --h: 1;
+  opacity: calc(.6 + var(--glare, 0) * .4);
+  mix-blend-mode: overlay;
   background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='1' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 9 0 0 0 -5.3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"),
     radial-gradient(circle, rgba(255,255,255,1) 0 .7px, rgba(255,255,255,0) 1.5px),
-    radial-gradient(circle, rgba(255,230,128,.95) 0 .6px, rgba(255,255,255,0) 1.3px),
-    repeating-linear-gradient(45deg, rgba(255,255,255,.5) 0 .8px, rgba(60,30,110,.24) .8px 1.7px, rgba(255,255,255,0) 1.7px 4.4px),
-    linear-gradient(115deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.8) 48%, rgba(255,255,255,0) 66%),
-    repeating-linear-gradient(105deg, #ff9ecb 0%, #ffe680 8%, #8ff0c0 16%, #7fd4ff 24%, #c39bff 32%, #ff9ecb 40%);
-  background-size: 11px 11px, 17px 17px, auto, 260% 100%, 360% 360%;
-  background-position: 0 0, 5px 7px, 0 0, calc(var(--mx) * 1%) 0, calc(var(--mx) * 1%) calc(var(--my) * 1%);
+    linear-gradient(115deg, rgba(255,255,255,0) 28%, rgba(255,255,255,.9) 46%, rgba(255,255,255,0) 64%),
+    repeating-linear-gradient(105deg, #ff6fa8 0%, #ffe45c 8%, #6fe39a 16%, #5cc8ff 24%, #9a7bff 32%, #ff6fa8 40%);
+  background-size: 120px 120px, 13px 13px, 260% 100%, 360% 360%;
+  background-position: calc(var(--mx) * .2px) calc(var(--my) * .2px), 5px 7px, calc(var(--mx) * 1%) 0, calc(var(--mx) * 1%) calc(var(--my) * 1%);
 }
 /* MUR: 金の照り + 金の粒 */
 .r-MUR .pc-holo {
