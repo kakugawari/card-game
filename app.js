@@ -85,7 +85,7 @@
       els.btnUpLabel.textContent = 'MAX';
       els.btnUp.classList.add('max');
     } else {
-      els.upSub.textContent = '1かいで ' + C.tapPower(state) + 'コイン → ' + (C.tapPower(state) + 1) + 'コイン';
+      els.upSub.textContent = '1かいで ' + C.tapPower(state) + 'コイン → ' + C.tapPowerAt(state.tapLevel + 1) + 'コイン';
       els.btnUpLabel.textContent = C.formatMoney(cost);
       els.btnUp.classList.remove('max');
     }

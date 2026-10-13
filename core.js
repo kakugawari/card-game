@@ -285,7 +285,9 @@
   const BOX_PRICE = PACK_PRICE * BOX_PACKS;   // BOX は 30 パックぶんの値段 (おまけは「SR 以上 確定」)
   const MAX_BOXES = 20;
 
-  function tapPower(state) { return 1 + state.tapLevel; }
+  // 1 タップのコイン。(1 + レベル) の 1.5 倍を四捨五入 (コインは整数): 2・3・5・6・8・9・11・12・14
+  function tapPowerAt(level) { return Math.round((1 + level) * 1.5); }
+  function tapPower(state) { return tapPowerAt(state.tapLevel); }
 
   /** 次のレベルにするのに要るコイン。MAX なら null。 */
   function upgradeCost(level) {
@@ -553,6 +555,7 @@
     newState: newState,
     normalize: normalize,
     tapPower: tapPower,
+    tapPowerAt: tapPowerAt,
     upgradeCost: upgradeCost,
     tap: tap,
     buyUpgrade: buyUpgrade,

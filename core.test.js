@@ -467,13 +467,14 @@ test('NEW: はじめて出たカードだけ NEW', () => {
 // ------------------------------------------------------------ タップで稼ぐ
 test('タップ: 1 かいで「ゆびのちから」ぶん増える / 強化は足りるときだけ', () => {
   const s = Core.newState();
-  assert.strictEqual(Core.tap(s), 1);
+  assert.strictEqual(Core.tap(s), 2);   // (1 + 0) x 1.5 を四捨五入
   s.money = Core.upgradeCost(0) - 1;
   assert.strictEqual(Core.buyUpgrade(s), false);
   s.money = Core.upgradeCost(0);
   assert.strictEqual(Core.buyUpgrade(s), true);
   assert.strictEqual(s.money, 0);
-  assert.strictEqual(Core.tap(s), 2);
+  assert.strictEqual(Core.tap(s), 3);
+  assert.deepStrictEqual([0, 1, 2, 3, 4, 5, 6, 7, 8].map(Core.tapPowerAt), [2, 3, 5, 6, 8, 9, 11, 12, 14]);
   for (let l = 1; l < Core.MAX_LEVEL; l++) assert.ok(Core.upgradeCost(l) > Core.upgradeCost(l - 1));
   assert.strictEqual(Core.upgradeCost(Core.MAX_LEVEL), null);
 });
@@ -499,16 +500,16 @@ function packsPerDay(tapsPerDay, kids) {
   return out.sort((a, b) => a - b)[Math.floor(kids / 2)];
 }
 
-test('バランス: 毎日 1 分 (300 タップ) で 1 日 3〜5 パック (SR は 1〜2 週に 1 まいのめずらしさ)', () => {
+test('バランス: 毎日 1 分 (300 タップ) で 1 日 5〜8 パック (1 タップを 1.5 倍にしたあと。測った値 6.2)', () => {
   const p = packsPerDay(300, 20);
-  assert.ok(p >= 3 && p <= 5, `${p.toFixed(1)} パック/日`);
+  assert.ok(p >= 5 && p <= 8, `${p.toFixed(1)} パック/日`);
 });
 
-test('バランス: 毎日 20 秒でも むりょう + 少し買える / 3 分でも 1 日 20 パックは越えない', () => {
+test('バランス: 毎日 20 秒でも むりょう + 少し買える / 3 分でも 1 日 30 パックは越えない', () => {
   const light = packsPerDay(100, 20);
   const heavy = packsPerDay(900, 20);
-  assert.ok(light >= 1.1, `20秒: ${light.toFixed(1)}`);
-  assert.ok(heavy <= 20, `3分: ${heavy.toFixed(1)}`);
+  assert.ok(light >= 1.8, `20秒: ${light.toFixed(1)}`);
+  assert.ok(heavy <= 30, `3分: ${heavy.toFixed(1)}`);
 });
 
 // ------------------------------------------------------------ なかよし (お気に入り・おやつ)
