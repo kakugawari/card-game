@@ -779,13 +779,14 @@
   // ---------------------------------------------------------------- 起動
   function main() {
     renderDiag();
+    window.MiniGames.init({ C: C, A: A, Sfx: Sfx, getState: function () { return state; }, onChange: function () { saveNow(); renderMoney(); } });
     window.addEventListener('resize', renderDiag);
     buildShop();
     renderUpgrade();
     renderWalkers();
     renderFree();
     renderMute();
-    window.setInterval(renderFree, 20000);
+    window.setInterval(function () { renderFree(); window.MiniGames.refresh(); }, 20000);
 
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) saveNow(); else renderFree();
@@ -808,6 +809,7 @@
         state.shop[st].packs[0] = { top: top, ar: !!ar };
         saveNow();
       },
+      mini: window.MiniGames,
       closeTitle: function () { closeTitle(true); },
       titleOpen: function () { return titleOpen; },
       flush: saveNow

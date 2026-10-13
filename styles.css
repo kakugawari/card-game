@@ -930,3 +930,109 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 
 /* タイトルのあいだ、状態バーの帯が見える端末では その色を絵の上端に合わせる (絵の上端の左から右の色) */
 html.on-title, html.on-title body { background: linear-gradient(90deg, #82e6f6, #cbc0fa 25%, #a9c8fe 50%, #7fe3fa 75%, #8ce9f0); }
+
+/* ------------------------------------------------ ミニゲーム (minigames.js) */
+.gm-open {
+  position: absolute;
+  left: 14px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: var(--panel);
+  border: 3px solid var(--line);
+  border-radius: 50%;
+  box-shadow: 0 3px 0 var(--line);
+  cursor: pointer;
+}
+.gm-open:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+.gm-open svg { width: 28px; height: 28px; display: block; }
+.gm-badge {
+  position: absolute;
+  right: -7px;
+  top: -7px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  border: 2px solid #fff;
+  font-size: 12px;
+  font-style: normal;
+  line-height: 16px;
+  text-align: center;
+}
+#games {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--safe-top);
+  background:
+    radial-gradient(circle at 20% 8%, #fff 0, rgba(255,255,255,0) 40%),
+    linear-gradient(#ffeec2, #ffe2c8 70%, #ffd6d6);
+}
+.gm-bar { flex: none; height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; position: relative; }
+.gm-close {
+  width: 44px; height: 44px; padding: 0; display: grid; place-items: center;
+  background: var(--panel); border: 3px solid var(--line); border-radius: 50%; box-shadow: 0 3px 0 var(--line); cursor: pointer;
+}
+.gm-close svg { width: 20px; height: 20px; }
+.gm-title { position: absolute; left: 0; right: 0; text-align: center; font-size: 17px; pointer-events: none; }
+.gm-money { min-width: 0; padding: 4px 14px 4px 10px; font-size: 18px; gap: 6px; position: relative; }
+.gm-money .coin-ico { width: 22px; height: 22px; }
+.gm-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 8px 16px calc(var(--safe-bottom) + 16px); }
+.gm-lead { margin: 10px 0 14px; text-align: center; font-size: 20px; line-height: 1.5; }
+.gm-lead small { font-size: 13px; color: var(--muted); font-weight: 400; }
+.gm-list { display: flex; flex-direction: column; gap: 16px; }
+.gm-card { background: var(--panel); border: 3px solid var(--line); border-radius: 24px; box-shadow: 0 4px 0 var(--line); padding: 14px; display: grid; grid-template-columns: 76px 1fr; gap: 6px 14px; align-items: center; }
+.gm-card .gm-go { grid-column: 1 / -1; margin-top: 4px; }
+.gm-art { width: 76px; height: 76px; border-radius: 20px; background: #fff3d6; display: flex; align-items: center; justify-content: center; gap: 2px; }
+.gm-art.mm i { width: 26px; height: 36px; border-radius: 7px; background: linear-gradient(#ff9fc6, #f0668e); }
+.gm-art.mm i:nth-child(2) { background: #fff; border: 2px solid #f0668e; margin-left: -4px; transform: rotate(8deg); }
+.gm-art.ct svg { width: 32px; height: 32px; }
+.gm-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gm-info > b { font-size: 18px; }
+.gm-info > span { font-size: 12px; line-height: 1.45; color: var(--muted); font-weight: 400; }
+.gm-info > em { font-style: normal; font-size: 13px; color: #b5680a; }
+.gm-info > em b { font-size: 15px; }
+.gm-stat { display: flex; justify-content: space-between; font-size: 15px; padding: 2px 6px 10px; }
+.gm-stat b { font-size: 20px; color: #b5680a; font-variant-numeric: tabular-nums; }
+.gm-note { margin: 10px 0 0; text-align: center; font-size: 14px; color: var(--muted); line-height: 1.6; }
+.gm-note small { font-size: 12px; font-weight: 400; }
+
+.mm-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: min-content; align-content: center; gap: 12px 10px; }
+.mm-card { padding: 0; border: 0; background: none; cursor: pointer; perspective: 600px; aspect-ratio: 3 / 4; }
+.mm-in { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .35s; }
+.mm-card.up .mm-in { transform: rotateY(180deg); }
+.mm-face { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; border-radius: 14px; border: 3px solid #fff; box-shadow: 0 3px 0 rgba(0,0,0,.12); backface-visibility: hidden; -webkit-backface-visibility: hidden; box-sizing: border-box; overflow: hidden; }
+.mm-back { background: linear-gradient(#ff9fc6, #f0668e); }
+.mm-back svg { width: 56%; }
+.mm-front { background: #fffaf0; border-color: var(--line); transform: rotateY(180deg); }
+.mm-front svg { width: 92%; height: 92%; display: block; }
+.mm-card.ok .mm-front { border-color: #5cc98a; box-shadow: 0 0 0 3px rgba(92,201,138,.35), 0 3px 0 rgba(0,0,0,.12); }
+
+.ct-field {
+  position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; border-radius: 22px; border: 3px solid var(--line);
+  background: linear-gradient(#bfe9ff 0, #e9f8d6 72%, #a6dd7f 72.5%, #84c85f);
+}
+.ct-item { position: absolute; left: 0; top: 0; width: 40px; height: 40px; pointer-events: none; will-change: transform; }
+.ct-item svg { width: 100%; height: 100%; display: block; }
+.ct-player { position: absolute; left: 0; bottom: 18px; width: 84px; height: 84px; pointer-events: none; will-change: transform; }
+.ct-player svg { width: 100%; height: 100%; display: block; }
+.ct-pop { position: absolute; left: 0; top: 0; font-size: 22px; color: #b5680a; text-shadow: 0 0 4px #fff, 0 0 4px #fff; pointer-events: none; }
+.ct-pop.bad { color: #c0392b; }
+.ct-say { position: absolute; left: 0; right: 0; top: 34%; text-align: center; font-size: 40px; color: #fff; text-shadow: 0 3px 0 #f0668e, 0 0 10px rgba(240,102,142,.6); pointer-events: none; }
+
+.gm-result { position: absolute; left: 0; right: 0; bottom: 0; top: calc(var(--safe-top) + 56px); z-index: 5; display: flex; align-items: center; justify-content: center; background: linear-gradient(#ffeec2, #ffe2c8 70%, #ffd6d6); padding: 24px; overflow: hidden; }
+.gm-res-card { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; text-align: center; }
+.gm-res-sub { font-size: 18px; }
+.gm-res-coins { font-size: 56px; color: #d98a00; text-shadow: 0 3px 0 #fff, 0 0 12px rgba(255,201,51,.8); font-variant-numeric: tabular-nums; }
+.gm-res-taps { font-size: 14px; color: var(--muted); min-height: 20px; margin-bottom: 8px; }
+.btn.gm-back { background: #fff; color: var(--text); box-shadow: 0 5px 0 var(--line); }
+.gm-coin { position: absolute; left: 0; top: 0; width: 22px; height: 22px; border-radius: 50%; background: #ffc933; border: 3px solid #c98a0b; box-sizing: border-box; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .mm-in { transition: none; } }

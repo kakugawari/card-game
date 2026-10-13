@@ -667,3 +667,79 @@ test('画面の高さ: 根っこ (html, body) の高さに vh を使わない (�
   assert.ok(/height:\s*100%/.test(rule[0]), rule[0]);
   assert.ok(!/\b\d+d?v?s?vh\b/.test(rule[0].replace(/\/\*[\s\S]*?\*\//g, '')), 'vh / dvh / svh を使わない');
 });
+
+// ------------------------------------------------------------ ミニゲーム
+test('ミニゲーム: 1 日 3 回まで。日が変わると戻り、回数が残っていないと何も変わらない', () => {
+  const s = Core.newState();
+  ['memory', 'catch'].forEach((g) => {
+    assert.strictEqual(Core.miniLeft(s, g, NOON), 3);
+    for (let i = 0; i < 3; i++) assert.ok(Core.miniFinish(s, g, g === 'memory' ? { turns: 4 } : { score: 40 }, NOON).ok);
+    assert.strictEqual(Core.miniLeft(s, g, NOON), 0);
+    const m = s.money;
+    assert.strictEqual(Core.miniFinish(s, g, { turns: 4, score: 40 }, NOON).ok, false);
+    assert.strictEqual(s.money, m);
+    assert.strictEqual(Core.miniLeft(s, g, NOON + DAY), 3);
+  });
+  assert.strictEqual(Core.miniFinish(s, 'nanika', {}, NOON).ok, false);
+});
+
+test('ミニゲーム: ごほうび = (タップ何回ぶんか) x いまのゆびのちから。満点は 300 タップぶん', () => {
+  assert.strictEqual(Core.miniTaps('memory', { turns: 4 }), 300);
+  assert.strictEqual(Core.miniTaps('memory', { turns: 5 }), 300);
+  assert.strictEqual(Core.miniTaps('memory', { turns: 7 }), 250);
+  assert.strictEqual(Core.miniTaps('memory', { turns: 10 }), 200);
+  assert.strictEqual(Core.miniTaps('memory', { turns: 30 }), 150);
+  assert.strictEqual(Core.miniTaps('catch', { score: 0 }), 100);
+  assert.strictEqual(Core.miniTaps('catch', { score: 40 }), 300);
+  assert.strictEqual(Core.miniTaps('catch', { score: 999 }), 300);
+  assert.strictEqual(Core.miniTaps('catch', { score: -5 }), 100);
+  for (let l = 0; l <= Core.MAX_LEVEL; l++) assert.strictEqual(Core.miniReward('memory', { turns: 4 }, l), 300 * Core.tapPowerAt(l));
+  const s = Core.newState();
+  s.money = 10;
+  assert.strictEqual(Core.miniFinish(s, 'memory', { turns: 4 }, NOON).coins, 600);
+  assert.strictEqual(s.money, 610);
+});
+
+test('ミニゲーム: 1 日に とれる量は「ゆびを 3 分たたいたぶん」より少ない (お得だが 3 分タップを超えない)', () => {
+  for (let l = 0; l <= Core.MAX_LEVEL; l++) {
+    const day = 3 * Core.miniReward('memory', { turns: 4 }, l) + 3 * Core.miniReward('catch', { score: 40 }, l);
+    assert.ok(day <= 900 * 2 * Core.tapPowerAt(l), `${l}: ${day}`);
+    assert.strictEqual(day, 1800 * Core.tapPowerAt(l));
+  }
+});
+
+test('めくり: 4 組 (8 まい)。同じ絵が 2 まいずつ。もっている子を先に使う', () => {
+  const s = Core.newState();
+  const own = Core.CARDS.filter((c, i, a) => a.findIndex((x) => x.chara === c.chara) === i).slice(0, 6);
+  own.forEach((c) => { s.owned[c.no] = 1; });
+  for (let seed = 1; seed <= 200; seed++) {
+    const deal = Core.memoryDeal(s, Core.mulberry32(seed));
+    assert.strictEqual(deal.length, 8);
+    const cnt = {};
+    deal.forEach((x) => { cnt[x] = (cnt[x] || 0) + 1; assert.ok(Core.CHARAS[x], x); });
+    assert.deepStrictEqual(Object.values(cnt), Array(4).fill(2).slice(0, Object.keys(cnt).length));
+    assert.strictEqual(Object.keys(cnt).length, 4);
+    Object.keys(cnt).forEach((x) => assert.ok(own.some((c) => c.chara === x), '持っている子から'));
+  }
+  const empty = Core.memoryDeal(Core.newState(), Core.mulberry32(1));   // 何も持っていなくても 4 組できる
+  assert.strictEqual(new Set(empty).size, 4);
+});
+
+test('キャッチ: くり以外は点が付く。ふつうの確率で 4 しゅるいぜんぶ出る', () => {
+  const rng = Core.mulberry32(5), n = {};
+  for (let i = 0; i < 20000; i++) { const k = Core.catchPick(rng); n[k] = (n[k] || 0) + 1; }
+  assert.strictEqual(Object.keys(n).length, 4);
+  assert.ok(n.apple > n.cookie && n.cookie > n.chestnut && n.chestnut > n.gold, JSON.stringify(n));
+  assert.ok(Core.CATCH_ITEMS.chestnut.points < 0 && Core.CATCH_ITEMS.gold.points > Core.CATCH_ITEMS.cookie.points);
+});
+
+test('ミニゲーム: 保存したあと読み込んでも、きょうの回数が残る・こわれていても落ちない', () => {
+  const s = Core.newState();
+  Core.miniFinish(s, 'catch', { score: 10 }, NOON);
+  const r = Core.normalize(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(Core.miniLeft(r, 'catch', NOON), 2);
+  assert.strictEqual(Core.miniLeft(r, 'memory', NOON), 3);
+  const bad = Core.normalize({ mini: { day: 5, plays: { memory: 'x', catch: 1e9 } } });
+  assert.strictEqual(Core.miniLeft(bad, 'memory', NOON), 3);
+  assert.ok(Core.miniLeft(Core.normalize({ money: 5 }), 'catch', NOON) === 3);
+});

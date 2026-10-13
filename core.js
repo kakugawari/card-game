@@ -188,7 +188,7 @@
   function newState() {
     return {
       v: SAVE_VERSION, money: 0, tapLevel: 0, totalTaps: 0, owned: {}, lastFreeDay: '',
-      packsOpened: 0, shop: {}, boxes: [], muted: false, pets: {}
+      packsOpened: 0, shop: {}, boxes: [], muted: false, pets: {}, mini: { day: '', plays: {} }
     };
   }
 
@@ -233,6 +233,13 @@
     s.lastFreeDay = typeof raw.lastFreeDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.lastFreeDay)
       ? raw.lastFreeDay : '';
     s.muted = raw.muted === true;
+    if (raw.mini && typeof raw.mini === 'object') {
+      s.mini.day = typeof raw.mini.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.mini.day) ? raw.mini.day : '';
+      Object.keys(MINI_GAMES).forEach(function (g) {
+        const n = raw.mini.plays && raw.mini.plays[g];
+        if (n !== undefined) s.mini.plays[g] = Math.min(toCount(n, 99), MINI_GAMES[g].daily);
+      });
+    }
     if (raw.pets && typeof raw.pets === 'object') {
       Object.keys(CHARAS).forEach(function (ch) {
         const p = raw.pets[ch];
@@ -522,6 +529,87 @@
 
   function numberLabel(card) { return card.num + '/' + String(SET_BY_ID[card.set].mainCount).padStart(3, '0'); }
 
+  // ---------------------------------------------------------------- ミニゲーム (コインをかせぐ もう 1 つの道)
+  // どちらも 1 日 3 回まで。ごほうびは「いまのゆびのちからで 何回タップしたぶんか」で決める
+  // (ゆびのちからを上げるほど ミニゲームのコインも増える。満点 = 300 タップぶん = 約 1 分タップしたぶんを、30 秒ほどで)
+  const MINI_GAMES = {
+    memory: { name: 'どうぶつ めくり', daily: 3, pairs: 4 },
+    catch: { name: 'おやつキャッチ', daily: 3, seconds: 25 }
+  };
+
+  /** きょう あと何回あそべるか。日が変わると戻る */
+  function miniLeft(state, game, now) {
+    const g = MINI_GAMES[game];
+    if (!g) return 0;
+    if (state.mini.day !== dayKey(now)) return g.daily;
+    return Math.max(0, g.daily - (state.mini.plays[game] || 0));
+  }
+
+  /** ごほうびを「何タップぶんか」で。memory: めくった回数 (turns) / catch: 点 (score) */
+  function miniTaps(game, result) {
+    if (game === 'memory') {
+      const t = Math.floor(Number(result.turns));
+      if (!(t >= 1)) return 150;
+      return t <= 5 ? 300 : t <= 7 ? 250 : t <= 10 ? 200 : 150;
+    }
+    if (game === 'catch') {
+      const sc = Math.max(0, Math.floor(Number(result.score)) || 0);
+      return 100 + Math.min(200, sc * 5);
+    }
+    return 0;
+  }
+
+  function miniReward(game, result, tapLevel) {
+    return miniTaps(game, result) * tapPowerAt(tapLevel);
+  }
+
+  /** 1 回あそんだことにして、ごほうびのコインを足す。回数が残っていなければ何も変えない */
+  function miniFinish(state, game, result, now) {
+    if (!MINI_GAMES[game]) return { ok: false, reason: 'unknown' };
+    if (miniLeft(state, game, now) <= 0) return { ok: false, reason: 'full' };
+    const today = dayKey(now);
+    if (state.mini.day !== today) { state.mini.day = today; state.mini.plays = {}; }
+    state.mini.plays[game] = (state.mini.plays[game] || 0) + 1;
+    const coins = miniReward(game, result, state.tapLevel);
+    state.money += coins;
+    return { ok: true, coins: coins, taps: miniTaps(game, result), left: miniLeft(state, game, now) };
+  }
+
+  /** どうぶつ めくり: ペアの絵 (どうぶつ) を えらんで ならべる。もっている子を先に使う */
+  function memoryDeal(state, rng) {
+    const have = Object.keys(ownedCharas(state));
+    const all = Object.keys(CHARAS);
+    const pool = [];
+    const add = function (list) {
+      const l = list.slice();
+      for (let i = l.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = l[i]; l[i] = l[j]; l[j] = t; }
+      l.forEach(function (x) { if (pool.indexOf(x) < 0) pool.push(x); });
+    };
+    add(have);
+    add(all);
+    const pick = pool.slice(0, MINI_GAMES.memory.pairs);
+    const cards = pick.concat(pick);
+    for (let i = cards.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = cards[i]; cards[i] = cards[j]; cards[j] = t; }
+    return cards;
+  }
+
+  /** おやつキャッチ: 落ちてくる物の種類 (ふつうの確率) と点 */
+  const CATCH_ITEMS = {
+    apple: { points: 1, weight: 52 },
+    cookie: { points: 3, weight: 28 },
+    gold: { points: 8, weight: 6 },
+    chestnut: { points: -2, weight: 14 }   // くり: とると 2 点へる
+  };
+  function catchPick(rng) {
+    const keys = Object.keys(CATCH_ITEMS);
+    let total = 0;
+    keys.forEach(function (k) { total += CATCH_ITEMS[k].weight; });
+    let r = rng() * total;
+    for (let i = 0; i < keys.length; i++) { r -= CATCH_ITEMS[keys[i]].weight; if (r < 0) return keys[i]; }
+    return keys[0];
+  }
+
+
   return {
     mulberry32: mulberry32,
     RARITIES: RARITIES,
@@ -574,6 +662,14 @@
     petLevel: petLevel,
     petInfo: petInfo,
     feed: feed,
-    pet: pet
+    pet: pet,
+    MINI_GAMES: MINI_GAMES,
+    miniLeft: miniLeft,
+    miniTaps: miniTaps,
+    miniReward: miniReward,
+    miniFinish: miniFinish,
+    memoryDeal: memoryDeal,
+    CATCH_ITEMS: CATCH_ITEMS,
+    catchPick: catchPick
   };
 });
