@@ -470,8 +470,23 @@ async function run() {
           const o = document.getElementById('open');
           new MutationObserver(() => { const b = o.dataset.bg; if (window.__bgs[window.__bgs.length - 1] !== b) window.__bgs.push(b); })
             .observe(o, { attributes: true, attributeFilter: ['data-bg'] });
+          // 心臓の光・かけら・ひびの色 を記録する (MUR 以上だけに出るはず)
+          window.__fx = { heart: 0, shards: 0, cracks: [] };
+          new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => {
+            if (n.classList && n.classList.contains('op-heart')) window.__fx.heart++;
+            if (n.classList && n.classList.contains('op-shards')) window.__fx.shards++;
+          }))).observe(o, { childList: true });
+          const ck = document.getElementById('opCrack');
+          new MutationObserver(() => { const v = ck.style.getPropertyValue('--ck'); if (v && window.__fx.cracks[window.__fx.cracks.length - 1] !== v) window.__fx.cracks.push(v); })
+            .observe(ck, { attributes: true, attributeFilter: ['style'] });
         });
         const end = await playThrough(page, log);
+        const efx = await page.evaluate(() => ({ ...window.__fx, left: document.querySelectorAll('#open .op-heart, #open .op-shards').length,
+          black: Number(getComputedStyle(document.getElementById('opBlack')).opacity) }));
+        const wantFx = { MUR: [1, 1, '#ffcf40'], LR: [1, 2, '#ffcf40,#c39bff'] }[top] || [0, 0, ''];
+        ok(efx.heart === wantFx[0] && efx.shards === wantFx[1] && efx.cracks.join(',') === wantFx[2],
+          `心臓の金の光・われて とびちる かけら・ひびは MUR 以上だけ (光 ${efx.heart} / かけら ${efx.shards} / ひび ${efx.cracks.join(',') || 'なし'})`);
+        ok(efx.left === 0 && efx.black === 0, `おわったあと 光・かけらは のこらず、暗やみも 晴れている (のこり ${efx.left} / 暗さ ${efx.black})`);
         const bgs = await page.evaluate(() => window.__bgs);
         ok(bgs.includes('cosmos') === (top === 'LR'), `宇宙の背景は LR のときだけ (${bgs.join(' → ')})`);
         if (top === 'LR') ok(bgs.indexOf('gold') >= 0 && bgs.indexOf('gold') < bgs.indexOf('cosmos'), 'LR: 金の世界を通ってから 宇宙へ');
@@ -683,7 +698,10 @@ async function run() {
       await page.evaluate(() => {
         const s = window.__app.state();
         const b = s.boxes[0];
-        b.next = b.packs.findIndex((p) => window.__app.core.rank(p.top) >= window.__app.core.rank('SR')) + 1;
+        // SR 以上のパックが 最後 (30 パックめ) だと、開け切って BOX ごと消えてしまうので、5 パックめと入れかえておく
+        const at = b.packs.findIndex((p) => window.__app.core.rank(p.top) >= window.__app.core.rank('SR'));
+        const t = b.packs[at]; b.packs[at] = b.packs[4]; b.packs[4] = t;
+        b.next = 5;
         window.__app.flush();
       });
       await goTab(page, 'Home');

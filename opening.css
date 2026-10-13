@@ -13,7 +13,8 @@
 
 /* ---------------------------------------------------------------- 背景 (重ねて、見せる 1 枚だけ濃くする) */
 .op-bg { position: absolute; inset: 0; background: #2a1f4e; }   /* 切りかえの途中で 下の画面が すけないように */
-.op-bg > i { position: absolute; inset: 0; opacity: 0; transition: opacity .6s ease; }
+.op-bg > i { position: absolute; inset: 0; opacity: 0; transition: opacity .45s ease .45s; }   /* 消える方は 次が出きってから消える (2 枚が半分ずつ すけて 暗い下地で濁らない) */
+#open.bg-cut .op-bg > i { transition: none !important; }
 .b-day { background: radial-gradient(circle at 50% 42%, #fffdf4, #ffe6c2 70%, #ffd2c8); }
 .b-night { background: radial-gradient(circle at 50% 44%, #3b3f8f 0, #1a1d4a 55%, #0b0c22); }
 .b-night::after {
@@ -36,7 +37,7 @@
 #open[data-bg="night"] .b-night,
 #open[data-bg="pastel"] .b-pastel,
 #open[data-bg="gold"] .b-gold,
-#open[data-bg="cosmos"] .b-cosmos { opacity: 1; }
+#open[data-bg="cosmos"] .b-cosmos { opacity: 1; transition-delay: 0s; }
 /* LR: 宇宙。星雲と星 */
 .b-cosmos { background:
     radial-gradient(ellipse 60% 40% at 30% 35%, rgba(255,120,200,.45), rgba(255,120,200,0) 70%),
@@ -145,11 +146,26 @@
   pointer-events: none;
   transform-origin: 50% 100%;
   z-index: 5;
-  border-radius: 40px 40px 0 0;
+  /* 切り口 (下のまん中 58%) から 上へ ひろがる 扇 */
+  clip-path: polygon(21% 100%, 79% 100%, 100% 0, 0 0);
+  --bc: 255,255,255;
+  background:
+    radial-gradient(ellipse 34% 100% at 50% 100%, rgba(255,255,255,.95), rgba(255,255,255,0) 70%),
+    linear-gradient(to top, rgba(var(--bc), .9), rgba(var(--bc), .35) 45%, rgba(var(--bc), 0));
 }
-.beam-white { background: linear-gradient(to top, rgba(255,255,255,.95), rgba(255,255,255,0)); }
-.beam-blue { background: linear-gradient(to top, rgba(160,215,255,.95), rgba(160,215,255,0)); }
-.beam-gold { background: linear-gradient(to top, rgba(255,226,120,1), rgba(255,200,60,0)); box-shadow: 0 0 40px 10px rgba(255,210,80,.5); }
+.op-beam b {
+  position: absolute;
+  bottom: 0;
+  width: 4px;
+  height: 100%;
+  margin-left: -2px;
+  transform-origin: 50% 100%;
+  background: linear-gradient(to top, rgba(255,255,255,.95), rgba(255,255,255,0) 85%);
+  border-radius: 2px;
+}
+.beam-white { --bc: 255,255,255; }
+.beam-blue { --bc: 150,210,255; }
+.beam-gold { --bc: 255,214,90; }
 
 /* ---------------------------------------------------------------- カードの束 */
 .op-stack {
@@ -245,6 +261,8 @@
   pointer-events: none;
 }
 @keyframes op-glint { from { background-position: 120% 0; } to { background-position: -40% 0; } }
+.pc.glint { animation: op-rim .9s ease-out both; }
+@keyframes op-rim { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,0); } 30% { box-shadow: 0 0 16px 6px rgba(255,255,255,.95), 0 0 34px 10px rgba(255,250,220,.55); } 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); } }
 
 /* ---------------------------------------------------------------- 衝撃の輪・暗転・ひび・フラッシュ */
 .op-shock {
@@ -258,15 +276,14 @@
 }
 .op-black { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 9; }
 .op-crack { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; z-index: 10; }
-.op-crack path {
-  fill: none;
-  stroke: #ffe27a;
-  stroke-width: 5;
-  stroke-linejoin: round;
-  stroke-dasharray: 1 1;
-  stroke-dashoffset: 1;
-  filter: drop-shadow(0 0 6px #ffcf40) drop-shadow(0 0 16px #ffb000);
-}
+.op-crack path { fill: none; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 1 1; stroke-dashoffset: 1; }
+.op-crack .ck-glow { stroke: var(--ck, #ffcf40); stroke-width: 12; opacity: .45; }
+.op-crack .ck-core { stroke: #fffbe6; stroke-width: 3.2; }
+/* 心臓の音に あわせて カードの うしろが 金に ひかる (MUR 以上だけが ここに来る) */
+.op-heart { position: absolute; width: 420px; height: 540px; margin: -270px 0 0 -210px; border-radius: 50%; pointer-events: none; z-index: 10; opacity: 0;
+  background: radial-gradient(closest-side, rgba(255,226,120,.85), rgba(255,190,40,.35) 55%, rgba(255,190,40,0)); }
+/* 暗やみ (または 金の世界) が われて とびちる かけら */
+.op-shards { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9; }
 .op-flash { position: absolute; inset: 0; opacity: 0; pointer-events: none; z-index: 20; background: #fff; }
 
 /* ---------------------------------------------------------------- 字 */
@@ -295,16 +312,23 @@
 .bn-SR .bn-code span { filter: drop-shadow(0 0 1.5px #7a4a00) drop-shadow(0 0 1.5px #7a4a00) drop-shadow(0 4px 0 rgba(0,0,0,.35)); }
 .bn-SAR .bn-code span { filter: drop-shadow(0 0 1.5px #3a2a7a) drop-shadow(0 0 1.5px #3a2a7a) drop-shadow(0 0 14px rgba(255,255,255,.7)); }
 .bn-MUR .bn-code span { filter: drop-shadow(0 0 1.5px #5a3200) drop-shadow(0 0 1.5px #5a3200) drop-shadow(0 4px 0 rgba(90,50,0,.45)) drop-shadow(0 0 18px rgba(255,255,255,.8)); }
-.bn-RR .bn-code span { background-image: linear-gradient(#ffffff, #b9dcff 50%, #6aa8f0); }
-.bn-AR .bn-code span { background-image: linear-gradient(#fff, #ffb3d1 50%, #c39bff); }
-.bn-SR .bn-code span { background-image: linear-gradient(#fffbe6, #ffd84a 45%, #e09a00 70%, #fff1a8); }
+.bn-RR .bn-code span { background-image: var(--hl), linear-gradient(#ffffff, #b9dcff 50%, #6aa8f0); }
+.bn-AR .bn-code span { background-image: var(--hl), linear-gradient(#fff, #ffb3d1 50%, #c39bff); }
+.bn-SR .bn-code span { background-image: var(--hl), linear-gradient(#fffbe6, #ffd84a 45%, #e09a00 70%, #fff1a8); }
 .bn-SAR .bn-code span {
-  background-image: linear-gradient(90deg, #ff7eb3, #ffd36b, #8fe3b0, #7ec8ff, #c39bff, #ff7eb3);
-  background-size: 100% 100%;
+  background-image: var(--hl), linear-gradient(90deg, #ff7eb3, #ffd36b, #8fe3b0, #7ec8ff, #c39bff, #ff7eb3);
 }
 .bn-MUR .bn-code span {
-  background-image: linear-gradient(100deg, #b37400 0%, #ffe27a 30%, #fffbe6 45%, #ffcf40 55%, #b37400 100%);
+  background-image: var(--hl), linear-gradient(100deg, #b37400 0%, #ffe27a 30%, #fffbe6 45%, #ffcf40 55%, #b37400 100%);
 }
+/* 字に 光が 2 回 走る (ずっと動かすと 遅い端末で 重いので 2 回だけ)。光は 字の中だけ (background-clip: text の 1 枚目) */
+.bn-code span {
+  --hl: linear-gradient(110deg, rgba(255,255,255,0) 40%, rgba(255,255,255,.95) 50%, rgba(255,255,255,0) 60%);
+  background-size: 260% 100%, 100% 100% !important;
+  background-repeat: no-repeat;
+  animation: bn-shine 1.2s ease-in-out .75s 2 both;
+}
+@keyframes bn-shine { from { background-position: 130% 0, 0 0; } to { background-position: -30% 0, 0 0; } }
 .bn-name {
   padding: 4px 16px;
   border-radius: 999px;
@@ -318,7 +342,7 @@
 .bn-SAR .bn-name { background: linear-gradient(90deg, #ff7eb3, #c39bff, #7ec8ff); }
 .bn-LR .bn-name { background: linear-gradient(90deg, #2a1f6e, #6a4bc4, #2a1f6e); border-color: #ffe680; }
 .bn-LR .bn-code span {
-  background-image: linear-gradient(100deg, #ff9ecb 0%, #fff 22%, #9fe0ff 40%, #c39bff 60%, #fff 78%, #ffe680 100%);
+  background-image: var(--hl), linear-gradient(100deg, #ff9ecb 0%, #fff 22%, #9fe0ff 40%, #c39bff 60%, #fff 78%, #ffe680 100%);
   filter: drop-shadow(0 0 1.5px #2a1f6e) drop-shadow(0 0 1.5px #2a1f6e) drop-shadow(0 0 16px rgba(200,170,255,.9));
 }
 
