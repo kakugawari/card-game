@@ -82,29 +82,12 @@
       <div class="stage-btns">
         <button type="button" class="btn btn-big btn-open" id="btnFree"><span class="btn-label" id="btnFreeLabel">きょうの むりょうパック！</span></button>
         <button type="button" class="btn btn-mid btn-coin" id="btnBuy"><span class="btn-label" id="btnBuyLabel">500</span></button>
-        <div class="box-left" id="boxLeft"></div>
+        <button type="button" class="boxbar" id="btnBoxBar" aria-label="BOX で かう">
+          <i class="boxbar-ico" aria-hidden="true"></i>
+          <span class="boxbar-text"><b>BOX で かう</b><small id="boxBarSub">30パック入り・SR いじょう 1まい かくてい！</small></span>
+          <i class="boxbar-go" aria-hidden="true"></i>
+        </button>
       </div>
-      <div class="boxshop">
-        <div class="boxshop-row">
-          <div class="boxart" id="boxArt" aria-hidden="true"></div>
-          <div class="boxshop-info">
-            <div class="boxshop-title">BOX で かう</div>
-            <div class="boxshop-sub">30パック入り<br><b>SR いじょう 1まい かくてい！</b></div>
-          </div>
-        </div>
-        <button type="button" class="btn btn-big btn-coin" id="btnBox"><span class="btn-label" id="btnBoxLabel">15,000</span></button>
-        <div class="mybox" id="myBox" hidden>
-          <div class="mybox-text"><b id="myBoxLeft">のこり 30パック</b><span id="myBoxSr"></span></div>
-          <div class="mybox-btns">
-            <button type="button" class="btn btn-mid btn-box" id="btnOpenBox"><span class="btn-label">1パック あける</span></button>
-            <button type="button" class="btn btn-mid btn-all" id="btnOpenAll"><span class="btn-label" id="btnOpenAllLabel">まとめて あける</span></button>
-          </div>
-        </div>
-      </div>
-      <details class="rates">
-        <summary>でる カードと かくりつ</summary>
-        <div class="rates-body" id="rates"></div>
-      </details>
     </section>
 
     <!-- ずかん -->
@@ -166,6 +149,37 @@
     <div class="psh-panel">
       <div class="psh-head"><b id="pshTitle">パックを えらぶ</b><button type="button" class="psh-close" id="pshClose" aria-label="とじる">×</button></div>
       <div class="psh-body" id="pshBody"></div>
+    </div>
+  </div>
+
+  <!-- BOX で かう・てもとの BOX・かくりつ (パック画面から ひらく) -->
+  <div id="boxSheet" hidden>
+    <div class="psh-panel">
+      <div class="psh-head"><b>BOX</b><button type="button" class="psh-close" id="bxClose" aria-label="とじる">×</button></div>
+      <div class="psh-body bx-body">
+        <div class="box-left" id="boxLeft"></div>
+      <div class="boxshop">
+        <div class="boxshop-row">
+          <div class="boxart" id="boxArt" aria-hidden="true"></div>
+          <div class="boxshop-info">
+            <div class="boxshop-title">BOX で かう</div>
+            <div class="boxshop-sub">30パック入り<br><b>SR いじょう 1まい かくてい！</b></div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-big btn-coin" id="btnBox"><span class="btn-label" id="btnBoxLabel">15,000</span></button>
+        <div class="mybox" id="myBox" hidden>
+          <div class="mybox-text"><b id="myBoxLeft">のこり 30パック</b><span id="myBoxSr"></span></div>
+          <div class="mybox-btns">
+            <button type="button" class="btn btn-mid btn-box" id="btnOpenBox"><span class="btn-label">1パック あける</span></button>
+            <button type="button" class="btn btn-mid btn-all" id="btnOpenAll"><span class="btn-label" id="btnOpenAllLabel">まとめて あける</span></button>
+          </div>
+        </div>
+      </div>
+      <details class="rates">
+        <summary>でる カードと かくりつ</summary>
+        <div class="rates-body" id="rates"></div>
+      </details>
+      </div>
     </div>
   </div>
 

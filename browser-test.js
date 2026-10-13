@@ -126,14 +126,13 @@ async function holdTop(page, ms) {
 }
 
 /** 開封を最後まで進める: やぶる → めくる (特別なカードはタップ / 長押し) → 結果 */
-/** パック画面の中だけを縦に送って、ボタンをタブの上に出す (scrollIntoView は外側の入れ物まで送ってしまう) */
+/** BOX の札 (パック画面の「BOX で かう」から ひらく) を出して、ボタンが見えるようにする */
 async function scrollToBtn(page, id) {
-  await page.evaluate((i) => {
-    const b = document.getElementById(i);
-    const sc = b.closest('.screen');
-    const bar = document.getElementById('tabbar').getBoundingClientRect();
-    sc.scrollTop += b.getBoundingClientRect().bottom - bar.top + 12;
-  }, id);
+  if (await page.locator('#boxSheet').isHidden()) {
+    await page.tap('#btnBoxBar');
+    await page.waitForSelector('#boxSheet:not([hidden])');
+    await page.waitForTimeout(220);   // ひらく動きが終わるのを待つ
+  }
 }
 
 /** パックの種類を えらぶ: 「ほかの パック」→ 一覧から 1 つ (where = setPick / zkPick) */
@@ -536,6 +535,56 @@ async function run() {
     }
 
     // ------------------------------------------------ 買う
+    // ------------------------------------------------ パック画面: 1 画面におさまる
+    if (want('パック画面')) {
+      section('パック画面: 1 画面におさまる (パックが見えたまま、むりょう・かうが押せる。BOX は札から)');
+      ({ context, page } = await newGame(browser, errors));
+      await page.evaluate(() => {
+        document.documentElement.style.setProperty('--safe-top', '59px');
+        document.documentElement.style.setProperty('--safe-bottom', '34px');
+      });
+      await goTab(page, 'Packs');
+      for (const h of [932, 873]) {
+        await page.setViewportSize({ width: 430, height: h });
+        await page.waitForTimeout(150);
+        const lay = await page.evaluate(() => {
+          const g = (id) => document.getElementById(id).getBoundingClientRect();
+          const sc = document.getElementById('scPacks');
+          const bar = g('tabbar').top;
+          const pk = g('shopPack');
+          const hit = (id) => { const r = g(id); const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!(e && e.closest('#' + id)); };
+          const mid = document.elementFromPoint(pk.left + pk.width / 2, pk.top + pk.height / 2);
+          return { noScroll: sc.scrollHeight <= sc.clientHeight + 1, packBottom: pk.bottom, freeTop: g('btnFree').top, bottoms: [g('btnFree').bottom, g('btnBuy').bottom, g('btnBoxBar').bottom], bar,
+            hits: hit('btnFree') && hit('btnBuy') && hit('btnBoxBar'), packSeen: !!(mid && mid.closest('#shopPack')), packTop: pk.top, topbar: g('topbar').bottom };
+        });
+        ok(lay.noScroll && lay.hits && lay.bottoms.every((x) => x <= lay.bar), `高さ ${h}: 縦に送らなくても むりょう・かう・BOX が全部タブの上で押せる (いちばん下 ${Math.round(Math.max(...lay.bottoms))} / タブ ${Math.round(lay.bar)})`);
+        ok(lay.packSeen && lay.packBottom <= lay.freeTop && lay.packTop >= lay.topbar, `高さ ${h}: パックが見えたまま (パックの下 ${Math.round(lay.packBottom)} / むりょうボタンの上 ${Math.round(lay.freeTop)})`);
+      }
+      await page.setViewportSize({ width: 430, height: 932 });
+      // BOX の札: ひらく・とじる (× / 外をタップ)。BOX の買い方・かくりつは中に ある
+      await page.tap('#btnBoxBar');
+      await page.waitForSelector('#boxSheet:not([hidden])');
+      const sh = await page.evaluate(() => ({ buy: !!document.querySelector('#boxSheet #btnBox'), rates: !!document.querySelector('#boxSheet .rates'), left: document.getElementById('boxLeft').textContent }));
+      ok(sh.buy && sh.rates && /のこり/.test(sh.left), 'BOX の札に 買うボタン・でるカードとかくりつ・お店の BOX の のこり が入っている');
+      await page.waitForTimeout(220);
+      await page.tap('#bxClose');
+      ok(await page.locator('#boxSheet').isHidden(), '× で札が閉じる');
+      await page.tap('#btnBoxBar');
+      await page.waitForTimeout(220);
+      await page.touchscreen.tap(215, 40);   // 札の外 (うしろの暗い所)
+      ok(await page.locator('#boxSheet').isHidden(), '外をタップしても閉じる');
+      // 手もとに BOX があると 札に出る (パックの画面から気づける)
+      await page.evaluate(() => { window.__app.setMoney(window.__app.core.BOX_PRICE); });
+      await page.tap('#btnBoxBar');
+      await page.waitForTimeout(220);
+      await page.tap('#btnBox'); await page.tap('#btnBox');
+      await page.waitForTimeout(300);
+      await page.tap('#bxClose');
+      const hv = await page.evaluate(() => ({ has: document.getElementById('btnBoxBar').classList.contains('has'), sub: document.getElementById('boxBarSub').textContent }));
+      ok(hv.has && /のこり 30パック/.test(hv.sub), `手もとの BOX があると 札に出る (${hv.sub})`);
+      await context.close();
+    }
+
     if (want('買う')) {
       section('買う');
       ({ context, page } = await newGame(browser, errors));
@@ -588,11 +637,10 @@ async function run() {
       const vis = await page.evaluate(() => {
         const b = document.getElementById('btnBox').getBoundingClientRect();
         const bar = document.getElementById('tabbar').getBoundingClientRect();
-        const sc = document.getElementById('scPacks');
         const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
-        return { bottom: b.bottom, barTop: bar.top, hit: !!(hit && hit.closest('#btnBox')) };
+        return { bottom: b.bottom, barTop: window.innerHeight - 34, hit: !!(hit && hit.closest('#btnBox')) };
       });
-      ok(vis.bottom <= vis.barTop + 0.5 && vis.hit, `BOX のボタンは、縦に送るとタブに隠れずに押せる (下 ${Math.round(vis.bottom)} / タブ ${Math.round(vis.barTop)})`);
+      ok(vis.bottom <= vis.barTop + 0.5 && vis.hit, `BOX のボタンは、「BOX で かう」の札を ひらくと 画面の中で押せる (下 ${Math.round(vis.bottom)} / 下の安全域 ${Math.round(vis.barTop)})`);
       await page.tap('#btnBox');
       const first = await page.evaluate(() => ({ money: window.__app.state().money, label: document.getElementById('btnBoxLabel').textContent }));
       ok(first.money === price && first.label.includes('ほんとうに'), `1 回目のタップは「ほんとうに かう？」だけで、まだ買わない (${first.label})`);
@@ -613,9 +661,9 @@ async function run() {
       const ob = await page.evaluate(() => {
         const b = document.getElementById('btnOpenBox').getBoundingClientRect();
         const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
-        return b.bottom <= document.getElementById('tabbar').getBoundingClientRect().top + 0.5 && !!(hit && hit.closest('#btnOpenBox'));
+        return b.bottom <= window.innerHeight - 34 + 0.5 && !!(hit && hit.closest('#btnOpenBox'));
       });
-      ok(ob, '「BOX から あける」も、縦に送るとタブに隠れずに押せる');
+      ok(ob, '「BOX から あける」も、札の中で 画面に収まって押せる');
 
       await page.evaluate(() => { window.__app.state().lastFreeDay = window.__app.core.dayKey(Date.now()); });
       await page.tap('#btnOpenBox');
@@ -647,6 +695,7 @@ async function run() {
       await goTab(page, 'Packs');
       const leftBefore = await page.evaluate(() => window.__app.core.packsInHand(window.__app.state()));
       ok((await page.textContent('#btnOpenAllLabel')).includes(String(leftBefore)), `ボタンに残りの数 (${await page.textContent('#btnOpenAllLabel')})`);
+      await scrollToBtn(page, 'btnOpenAll');
       await page.tap('#btnOpenAll');
       await page.waitForFunction(() => window.__app.opening.state().phase === 'bulk');
       ok(await page.locator('#opBulk').isVisible(), 'パックが次々にやぶれる画面が出る');
@@ -690,7 +739,7 @@ async function run() {
       ok(sum.title === leftBefore + 'パック あけた！' && sum.total === leftBefore * 5, `まとめ: 「${sum.title}」・合計 ${sum.total} まい`);
       ok(sum.cells >= bulk.n && sum.inside, `レアと はじめてのカードを並べ (${sum.cells} まい)、ボタンにかぶらない`);
       await page.tap('#opClose');
-      ok(await page.locator('#myBox').isHidden(), '閉じると、手もとの BOX の欄は消える');
+      ok((await page.textContent('#boxBarSub')).startsWith('30パック入り') && !(await page.evaluate(() => document.getElementById('btnBoxBar').classList.contains('has'))), '閉じると、「BOX で かう」の札から 手もとの BOX の表示が消える');
       await context.close();
     }
 
@@ -950,7 +999,7 @@ async function run() {
         const r = document.getElementById('shopPack').getBoundingClientRect();
         return { w: r.width, h: r.height, name: document.getElementById('shopName').textContent, idx: document.getElementById('stageIndex').textContent };
       });
-      ok(bar.w >= 230 && bar.h >= 330 && bar.name === 'どうぶつパック' && bar.idx === '1 / 11', `大きいパック (${Math.round(bar.w)}x${Math.round(bar.h)}) と名前・番号が出る (${bar.idx})`);
+      ok(bar.w >= 205 && bar.h >= 295 && bar.name === 'どうぶつパック' && bar.idx === '1 / 11', `大きいパック (${Math.round(bar.w)}x${Math.round(bar.h)}) と名前・番号が出る (${bar.idx})`);
       await page.tap('#btnNext');
       ok((await page.textContent('#shopName')) === 'さかなパック', '▶ で つぎの パックへ');
       await page.tap('#btnPrev');

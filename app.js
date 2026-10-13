@@ -20,7 +20,7 @@
     upLv: $('upLv'), upSub: $('upSub'), btnUp: $('btnUp'), btnUpLabel: $('btnUpLabel'),
     shopPack: $('shopPack'), shopName: $('shopName'), stage: $('packStage'), stageRow: $('stageRow'), stageDesc: $('stageDesc'), stageMark: $('stageMark'), stageHave: $('stageHave'), stageIndex: $('stageIndex'), btnPrev: $('btnPrev'), btnNext: $('btnNext'), btnFree: $('btnFree'), btnFreeLabel: $('btnFreeLabel'),
     btnBuy: $('btnBuy'), btnBuyLabel: $('btnBuyLabel'), btnBox: $('btnBox'), btnBoxLabel: $('btnBoxLabel'),
-    boxArt: $('boxArt'), btnOpenAll: $('btnOpenAll'), btnOpenAllLabel: $('btnOpenAllLabel'), myBox: $('myBox'), myBoxLeft: $('myBoxLeft'), myBoxSr: $('myBoxSr'), btnOpenBox: $('btnOpenBox'), boxLeft: $('boxLeft'), rates: $('rates'), packDot: $('packDot'),
+    boxArt: $('boxArt'), btnOpenAll: $('btnOpenAll'), btnOpenAllLabel: $('btnOpenAllLabel'), myBox: $('myBox'), myBoxLeft: $('myBoxLeft'), myBoxSr: $('myBoxSr'), btnOpenBox: $('btnOpenBox'), boxLeft: $('boxLeft'), rates: $('rates'), packDot: $('packDot'), btnBoxBar: $('btnBoxBar'), boxBarSub: $('boxBarSub'), boxSheet: $('boxSheet'), bxClose: $('bxClose'),
     setPick: $('setPick'), packSheet: $('packSheet'), pshBody: $('pshBody'), pshTitle: $('pshTitle'), pshClose: $('pshClose'), zkPick: $('zkPick'), zkTitle: $('zkTitle'),
     zkCount: $('zkCount'), zkSub: $('zkSub'), zkGrid: $('zkGrid'),
     detail: $('detail'), dtBox: $('dtBox'),
@@ -446,6 +446,8 @@
 
     const inHand = C.packsInHand(state, curSet);
     els.myBox.hidden = inHand === 0;
+    els.btnBoxBar.classList.toggle('has', inHand > 0);
+    els.boxBarSub.textContent = inHand ? 'てもとの BOX: のこり ' + inHand + 'パック ▸ ひらく' : '30パック入り・SR いじょう 1まい かくてい！';
     if (inHand) {
       const st = C.boxStatus(C.boxInHand(state, curSet));
       const more = state.boxes.filter(function (b) { return b.set === curSet; }).length - 1;
@@ -478,8 +480,14 @@
     els.myBox.animate([{ transform: 'scale(.9)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 400, delay: 250, fill: 'backwards' });
   });
 
-  els.btnOpenBox.addEventListener('click', function () { openPack('box'); });
-  els.btnOpenAll.addEventListener('click', openBoxAll);
+  // BOX の画面 (いちらんと同じ下からの札)。あけはじめるときは閉じる
+  function openBoxSheet() { els.boxSheet.hidden = false; els.boxSheet.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160 }); }
+  function closeBoxSheet() { els.boxSheet.hidden = true; }
+  els.btnBoxBar.addEventListener('click', openBoxSheet);
+  els.bxClose.addEventListener('click', closeBoxSheet);
+  els.boxSheet.addEventListener('click', function (e) { if (e.target === els.boxSheet) closeBoxSheet(); });
+  els.btnOpenBox.addEventListener('click', function () { closeBoxSheet(); openPack('box'); });
+  els.btnOpenAll.addEventListener('click', function () { closeBoxSheet(); openBoxAll(); });
 
   /** 手もとの BOX の残りを全部開けて、レアだけ演出で見せる */
   function openBoxAll() {
