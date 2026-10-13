@@ -21,6 +21,7 @@
       <svg class="coin-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#ffc933" stroke="#c98a0b" stroke-width="1.6"/><circle cx="12" cy="12" r="7" fill="none" stroke="#e9a512" stroke-width="1.6"/><path d="M12 7.5v9M9.6 10h3.6a1.6 1.6 0 010 3.2H9.6" fill="none" stroke="#c98a0b" stroke-width="1.5" stroke-linecap="round"/></svg>
       <span id="moneyNum">0</span>
     </div>
+    <button type="button" class="gm-open" id="btnGames" aria-label="ミニゲーム"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l3.7 7.6 8.3 1.2-6 5.9 1.4 8.3L16 22.5l-7.4 3.9L10 18.2 4 12.3l8.3-1.2z" fill="#ffd23f" stroke="#4a3436" stroke-width="2.2" stroke-linejoin="round"/><ellipse cx="13" cy="15.4" rx="1.3" ry="1.8" fill="#4a3436"/><ellipse cx="19" cy="15.4" rx="1.3" ry="1.8" fill="#4a3436"/><path d="M13.6 19q2.4 2.2 4.8 0" fill="none" stroke="#4a3436" stroke-width="1.6" stroke-linecap="round"/><ellipse cx="10.6" cy="18.4" rx="1.8" ry="1.1" fill="#ff9bb3" opacity=".8"/><ellipse cx="21.4" cy="18.4" rx="1.8" ry="1.1" fill="#ff9bb3" opacity=".8"/></svg><i class="gm-badge" id="gmBadge" hidden>6</i></button>
     <button type="button" class="mute" id="btnMute" aria-label="おと"><svg id="muteIco" viewBox="0 0 32 32" aria-hidden="true"><path class="mu-note" d="M12 22V8.5l12-3V19" fill="none" stroke="#4a3436" stroke-width="4.4" stroke-linejoin="round" stroke-linecap="round"/><path class="mu-note" d="M12 22V8.5l12-3V19" fill="none" stroke="#ffb7c9" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><ellipse class="mu-head" cx="9" cy="22.5" rx="4.6" ry="3.8" fill="#ff8fa8" stroke="#4a3436" stroke-width="1.8"/><ellipse class="mu-head" cx="21" cy="19.5" rx="4.6" ry="3.8" fill="#ff8fa8" stroke="#4a3436" stroke-width="1.8"/><path class="mu-slash" d="M5 5L27 27" stroke="#4a3436" stroke-width="4.2" stroke-linecap="round"/><path class="mu-slash" d="M5 5L27 27" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></button>
   </header>
 
@@ -81,29 +82,12 @@
       <div class="stage-btns">
         <button type="button" class="btn btn-big btn-open" id="btnFree"><span class="btn-label" id="btnFreeLabel">きょうの むりょうパック！</span></button>
         <button type="button" class="btn btn-mid btn-coin" id="btnBuy"><span class="btn-label" id="btnBuyLabel">500</span></button>
-        <div class="box-left" id="boxLeft"></div>
+        <button type="button" class="boxbar" id="btnBoxBar" aria-label="BOX で かう">
+          <i class="boxbar-ico" aria-hidden="true"></i>
+          <span class="boxbar-text"><b>BOX で かう</b><small id="boxBarSub">30パック入り・SR いじょう 1まい かくてい！</small></span>
+          <i class="boxbar-go" aria-hidden="true"></i>
+        </button>
       </div>
-      <div class="boxshop">
-        <div class="boxshop-row">
-          <div class="boxart" id="boxArt" aria-hidden="true"></div>
-          <div class="boxshop-info">
-            <div class="boxshop-title">BOX で かう</div>
-            <div class="boxshop-sub">30パック入り<br><b>SR いじょう 1まい かくてい！</b></div>
-          </div>
-        </div>
-        <button type="button" class="btn btn-big btn-coin" id="btnBox"><span class="btn-label" id="btnBoxLabel">15,000</span></button>
-        <div class="mybox" id="myBox" hidden>
-          <div class="mybox-text"><b id="myBoxLeft">のこり 30パック</b><span id="myBoxSr"></span></div>
-          <div class="mybox-btns">
-            <button type="button" class="btn btn-mid btn-box" id="btnOpenBox"><span class="btn-label">1パック あける</span></button>
-            <button type="button" class="btn btn-mid btn-all" id="btnOpenAll"><span class="btn-label" id="btnOpenAllLabel">まとめて あける</span></button>
-          </div>
-        </div>
-      </div>
-      <details class="rates">
-        <summary>でる カードと かくりつ</summary>
-        <div class="rates-body" id="rates"></div>
-      </details>
     </section>
 
     <!-- ずかん -->
@@ -168,6 +152,37 @@
     </div>
   </div>
 
+  <!-- BOX で かう・てもとの BOX・かくりつ (パック画面から ひらく) -->
+  <div id="boxSheet" hidden>
+    <div class="psh-panel">
+      <div class="psh-head"><b>BOX</b><button type="button" class="psh-close" id="bxClose" aria-label="とじる">×</button></div>
+      <div class="psh-body bx-body">
+        <div class="box-left" id="boxLeft"></div>
+      <div class="boxshop">
+        <div class="boxshop-row">
+          <div class="boxart" id="boxArt" aria-hidden="true"></div>
+          <div class="boxshop-info">
+            <div class="boxshop-title">BOX で かう</div>
+            <div class="boxshop-sub">30パック入り<br><b>SR いじょう 1まい かくてい！</b></div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-big btn-coin" id="btnBox"><span class="btn-label" id="btnBoxLabel">15,000</span></button>
+        <div class="mybox" id="myBox" hidden>
+          <div class="mybox-text"><b id="myBoxLeft">のこり 30パック</b><span id="myBoxSr"></span></div>
+          <div class="mybox-btns">
+            <button type="button" class="btn btn-mid btn-box" id="btnOpenBox"><span class="btn-label">1パック あける</span></button>
+            <button type="button" class="btn btn-mid btn-all" id="btnOpenAll"><span class="btn-label" id="btnOpenAllLabel">まとめて あける</span></button>
+          </div>
+        </div>
+      </div>
+      <details class="rates">
+        <summary>でる カードと かくりつ</summary>
+        <div class="rates-body" id="rates"></div>
+      </details>
+      </div>
+    </div>
+  </div>
+
   <div id="petSheet" hidden>
     <div class="ps-panel">
       <button type="button" class="ps-close" id="psClose" aria-label="とじる">×</button>
@@ -196,6 +211,40 @@
 </div>
 
 <!-- タイトル画面 (開くたびに はじめに出る。「あそぶ」で ひろば = 木をタップする画面へ) -->
+<!-- ミニゲーム (minigames.js) -->
+<div id="games" hidden>
+  <div class="gm-bar">
+    <button type="button" class="gm-close" id="gmClose" aria-label="もどる"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="#4a3436" stroke-width="3.4" stroke-linecap="round"/></svg></button>
+    <b class="gm-title" id="gmTitle">ミニゲーム</b>
+    <div class="money gm-money"><svg class="coin-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#ffc933" stroke="#c98a0b" stroke-width="1.6"/><circle cx="12" cy="12" r="7" fill="none" stroke="#e9a512" stroke-width="1.6"/><path d="M12 7.5v9M9.6 10h3.6a1.6 1.6 0 010 3.2H9.6" fill="none" stroke="#c98a0b" stroke-width="1.5" stroke-linecap="round"/></svg><span id="gmMoney">0</span></div>
+  </div>
+  <section class="gm-pane" id="gmMenu">
+    <p class="gm-lead">あそんで コインを ゲット！<br><small>どちらも 1 にち 3 かいまで</small></p>
+    <div class="gm-list" id="gmList"></div>
+  </section>
+  <section class="gm-pane" id="gmMemory" hidden>
+    <div class="gm-stat"><span>めくった かいすう <b id="mmTurns">0</b></span><span>のこり <b id="mmLeft">4</b> くみ</span></div>
+    <div class="mm-grid" id="mmGrid"></div>
+    <p class="gm-note">すくない かいすうで そろえると コインが おおいよ<br><small>5 かい いかいで まんてん</small></p>
+  </section>
+  <section class="gm-pane" id="gmCatch" hidden>
+    <div class="gm-stat"><span>のこり <b id="ctTime">25</b> びょう</span><span>てん <b id="ctScore">0</b></span></div>
+    <div class="ct-field" id="ctField">
+      <div class="ct-say" id="ctSay" hidden>よーい…</div>
+      <div class="ct-player" id="ctPlayer"></div>
+    </div>
+  </section>
+  <div class="gm-result" id="gmResult" hidden>
+    <div class="gm-res-card">
+      <div class="gm-res-sub" id="gmResSub"></div>
+      <div class="gm-res-coins" id="gmResCoins">+0</div>
+      <div class="gm-res-taps" id="gmResTaps"></div>
+      <button type="button" class="btn btn-big btn-open" id="gmAgain"><span class="btn-label" id="gmAgainLabel">もういちど</span></button>
+      <button type="button" class="btn btn-big gm-back" id="gmBack"><span class="btn-label">ミニゲームに もどる</span></button>
+    </div>
+  </div>
+</div>
+
 <div id="title">
   <span id="diag"></span>
   <div class="tt-stage">
@@ -212,6 +261,7 @@
 <script src="./scenery.js"></script>
 <script src="./card.js"></script>
 <script src="./fx.js"></script>
+<script src="./minigames.js"></script>
 <script src="./opening.js"></script>
 <script src="./app.js"></script>
 </body>

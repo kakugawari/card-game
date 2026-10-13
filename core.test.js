@@ -667,3 +667,76 @@ test('画面の高さ: 根っこ (html, body) の高さに vh を使わない (�
   assert.ok(/height:\s*100%/.test(rule[0]), rule[0]);
   assert.ok(!/\b\d+d?v?s?vh\b/.test(rule[0].replace(/\/\*[\s\S]*?\*\//g, '')), 'vh / dvh / svh を使わない');
 });
+
+// ------------------------------------------------------------ ミニゲーム
+test('ミニゲーム: 1 日 3 回まで。日が変わると戻り、回数が残っていないと何も変わらない', () => {
+  const s = Core.newState();
+  ['memory', 'catch'].forEach((g) => {
+    assert.strictEqual(Core.miniLeft(s, g, NOON), 3);
+    for (let i = 0; i < 3; i++) assert.ok(Core.miniFinish(s, g, g === 'memory' ? { turns: 4 } : { score: 40 }, NOON).ok);
+    assert.strictEqual(Core.miniLeft(s, g, NOON), 0);
+    const m = s.money;
+    assert.strictEqual(Core.miniFinish(s, g, { turns: 4, score: 40 }, NOON).ok, false);
+    assert.strictEqual(s.money, m);
+    assert.strictEqual(Core.miniLeft(s, g, NOON + DAY), 3);
+  });
+  assert.strictEqual(Core.miniFinish(s, 'nanika', {}, NOON).ok, false);
+});
+
+test('ミニゲーム: ごほうびは 満点で 5,000 コイン (ゆびのちからに関係しない)', () => {
+  assert.deepStrictEqual([3, 4, 5, 6, 7, 8, 10, 11, 30].map((t) => Core.miniReward('memory', { turns: t })), [5000, 5000, 5000, 4000, 4000, 3000, 3000, 2000, 2000]);
+  assert.strictEqual(Core.miniReward('catch', { score: 0 }), 1500);
+  assert.strictEqual(Core.miniReward('catch', { score: 40 }), 5000);
+  assert.strictEqual(Core.miniReward('catch', { score: 999 }), 5000);
+  assert.strictEqual(Core.miniReward('catch', { score: -5 }), 1500);
+  const s = Core.newState();
+  s.money = 10;
+  s.tapLevel = 8;
+  assert.strictEqual(Core.miniFinish(s, 'memory', { turns: 4 }, NOON).coins, 5000);
+  assert.strictEqual(s.money, 5010);
+  // どんな得点でも、まえより悪い点が 多くはならない (点が上がるほど コインは増える)
+  let prev = 0;
+  for (let sc = 0; sc <= 60; sc++) { const r = Core.miniReward('catch', { score: sc }); assert.ok(r >= prev && r <= 5000); prev = r; }
+});
+
+test('ミニゲーム: 1 日の上限は 満点 x 6 回 = 30,000 コイン (60 パックぶん)', () => {
+  const day = 3 * Core.miniReward('memory', { turns: 4 }) + 3 * Core.miniReward('catch', { score: 40 });
+  assert.strictEqual(day, 30000);
+  assert.strictEqual(day / Core.PACK_PRICE, 60);
+});
+
+test('めくり: 4 組 (8 まい)。同じ絵が 2 まいずつ。もっている子を先に使う', () => {
+  const s = Core.newState();
+  const own = Core.CARDS.filter((c, i, a) => a.findIndex((x) => x.chara === c.chara) === i).slice(0, 6);
+  own.forEach((c) => { s.owned[c.no] = 1; });
+  for (let seed = 1; seed <= 200; seed++) {
+    const deal = Core.memoryDeal(s, Core.mulberry32(seed));
+    assert.strictEqual(deal.length, 8);
+    const cnt = {};
+    deal.forEach((x) => { cnt[x] = (cnt[x] || 0) + 1; assert.ok(Core.CHARAS[x], x); });
+    assert.deepStrictEqual(Object.values(cnt), Array(4).fill(2).slice(0, Object.keys(cnt).length));
+    assert.strictEqual(Object.keys(cnt).length, 4);
+    Object.keys(cnt).forEach((x) => assert.ok(own.some((c) => c.chara === x), '持っている子から'));
+  }
+  const empty = Core.memoryDeal(Core.newState(), Core.mulberry32(1));   // 何も持っていなくても 4 組できる
+  assert.strictEqual(new Set(empty).size, 4);
+});
+
+test('キャッチ: くり以外は点が付く。ふつうの確率で 4 しゅるいぜんぶ出る', () => {
+  const rng = Core.mulberry32(5), n = {};
+  for (let i = 0; i < 20000; i++) { const k = Core.catchPick(rng); n[k] = (n[k] || 0) + 1; }
+  assert.strictEqual(Object.keys(n).length, 4);
+  assert.ok(n.apple > n.cookie && n.cookie > n.chestnut && n.chestnut > n.gold, JSON.stringify(n));
+  assert.ok(Core.CATCH_ITEMS.chestnut.points < 0 && Core.CATCH_ITEMS.gold.points > Core.CATCH_ITEMS.cookie.points);
+});
+
+test('ミニゲーム: 保存したあと読み込んでも、きょうの回数が残る・こわれていても落ちない', () => {
+  const s = Core.newState();
+  Core.miniFinish(s, 'catch', { score: 10 }, NOON);
+  const r = Core.normalize(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(Core.miniLeft(r, 'catch', NOON), 2);
+  assert.strictEqual(Core.miniLeft(r, 'memory', NOON), 3);
+  const bad = Core.normalize({ mini: { day: 5, plays: { memory: 'x', catch: 1e9 } } });
+  assert.strictEqual(Core.miniLeft(bad, 'memory', NOON), 3);
+  assert.ok(Core.miniLeft(Core.normalize({ money: 5 }), 'catch', NOON) === 3);
+});
