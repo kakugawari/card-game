@@ -470,11 +470,28 @@ async function run() {
           const o = document.getElementById('open');
           new MutationObserver(() => { const b = o.dataset.bg; if (window.__bgs[window.__bgs.length - 1] !== b) window.__bgs.push(b); })
             .observe(o, { attributes: true, attributeFilter: ['data-bg'] });
+          // 心臓の光・かけら・ひびの色 を記録する (MUR 以上だけに出るはず)
+          window.__fx = { heart: 0, shards: 0, cracks: [] };
+          new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => {
+            if (n.classList && n.classList.contains('op-heart')) window.__fx.heart++;
+            if (n.classList && n.classList.contains('op-shards')) window.__fx.shards++;
+          }))).observe(o, { childList: true });
+          const ck = document.getElementById('opCrack');
+          new MutationObserver(() => { const v = ck.style.getPropertyValue('--ck'); if (v && window.__fx.cracks[window.__fx.cracks.length - 1] !== v) window.__fx.cracks.push(v); })
+            .observe(ck, { attributes: true, attributeFilter: ['style'] });
         });
         const end = await playThrough(page, log);
+        const efx = await page.evaluate(() => ({ ...window.__fx, left: document.querySelectorAll('#open .op-heart, #open .op-shards').length,
+          black: Number(getComputedStyle(document.getElementById('opBlack')).opacity) }));
+        const wantFx = { MUR: [1, 1, '#ffcf40'], LR: [1, 2, '#ffcf40,#c39bff'] }[top] || [0, 0, ''];
+        ok(efx.heart === wantFx[0] && efx.shards === wantFx[1] && efx.cracks.join(',') === wantFx[2],
+          `心臓の金の光・われて とびちる かけら・ひびは MUR 以上だけ (光 ${efx.heart} / かけら ${efx.shards} / ひび ${efx.cracks.join(',') || 'なし'})`);
+        ok(efx.left === 0 && efx.black === 0, `おわったあと 光・かけらは のこらず、暗やみも 晴れている (のこり ${efx.left} / 暗さ ${efx.black})`);
         const bgs = await page.evaluate(() => window.__bgs);
         ok(bgs.includes('cosmos') === (top === 'LR'), `宇宙の背景は LR のときだけ (${bgs.join(' → ')})`);
         if (top === 'LR') ok(bgs.indexOf('gold') >= 0 && bgs.indexOf('gold') < bgs.indexOf('cosmos'), 'LR: 金の世界を通ってから 宇宙へ');
+        ok(bgs.includes('rainbow') === (top === 'LR'), `虹の世界 (出たあとの お祝い) は LR のときだけ (${bgs.join(' → ')})`);
+        if (top === 'LR') ok(bgs.indexOf('cosmos') < bgs.indexOf('rainbow'), 'LR: 宇宙を ぬけてから 虹の世界へ');
         ok(end.phase === 'result' && end.revealed.length === show.specials.length, `最後まで進んで、特別なカードを全部めくった (${end.revealed.length})`);
         for (const { rarity, rec } of log) {
           const colors = [];
@@ -659,6 +676,13 @@ async function run() {
       ok(bought.money === 0 && bought.hand === 30, `2 回タップで買える: コイン ${bought.money}・手もとに ${bought.hand} パック`);
       ok(bought.shop === null, 'BOX を買っても、お店の BOX (1 パックずつの方) は進まない');
       ok(bought.text.includes('30') && bought.sr.includes('まだ'), `手もとの BOX の様子が出る (${bought.text} / ${bought.sr})`);
+      const art = await page.evaluate(() => {
+        const a = document.getElementById('boxArt'), r = a.getBoundingClientRect(), f = a.querySelector('.bxb-art');
+        const fr = f.getBoundingClientRect();
+        return { faces: ['.bxb-top', '.bxb-front', '.bxb-side'].every((s) => !!a.querySelector(s)), mascots: a.querySelectorAll('.bxb-m svg').length,
+          name: a.querySelector('.bxb-big').textContent, inside: fr.left >= r.left - 1 && fr.right <= r.right + 1 && fr.bottom <= r.bottom + 1, w: r.width };
+      });
+      ok(art.faces && art.mascots === 3 && art.name === 'どうぶつ' && art.inside && art.w >= 140, `BOX の絵は 3 つの面の箱で、前の面に パックの絵 (名前「${art.name}」・なかま ${art.mascots} 人) が はまる`);
       await scrollToBtn(page, 'btnOpenBox');
       const ob = await page.evaluate(() => {
         const b = document.getElementById('btnOpenBox').getBoundingClientRect();
@@ -683,7 +707,10 @@ async function run() {
       await page.evaluate(() => {
         const s = window.__app.state();
         const b = s.boxes[0];
-        b.next = b.packs.findIndex((p) => window.__app.core.rank(p.top) >= window.__app.core.rank('SR')) + 1;
+        // SR 以上のパックが 最後 (30 パックめ) だと、開け切って BOX ごと消えてしまうので、5 パックめと入れかえておく
+        const at = b.packs.findIndex((p) => window.__app.core.rank(p.top) >= window.__app.core.rank('SR'));
+        const t = b.packs[at]; b.packs[at] = b.packs[4]; b.packs[4] = t;
+        b.next = 5;
         window.__app.flush();
       });
       await goTab(page, 'Home');

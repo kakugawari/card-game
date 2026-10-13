@@ -126,7 +126,7 @@
     [els.pack, els.stack, els.black, els.crack, els.flash, els.stage].forEach(function (el) {
       el.getAnimations().forEach(function (a) { a.cancel(); });
     });
-    els.open.querySelectorAll('.op-shock, .op-beam').forEach(function (el) { el.remove(); });
+    els.open.querySelectorAll('.op-shock, .op-beam, .op-heart, .op-shards, .op-arc').forEach(function (el) { el.remove(); });
 
     els.open.hidden = false;
     els.result.hidden = true;
@@ -339,12 +339,22 @@
     const line = pk.querySelector('.pk-leak').getBoundingClientRect();
     const beam = document.createElement('i');
     beam.className = 'op-beam beam-' + r.show.tearLight;
-    beam.style.left = (line.left - o.left) + 'px';
-    beam.style.width = line.width + 'px';
-    beam.style.height = (line.top - o.top) + 'px';
+    const bw = line.width / 0.58;                       // 下のまん中 58% が 切り口。上へ ひろがる
+    beam.style.left = (line.left - o.left - (bw - line.width) / 2) + 'px';
+    beam.style.width = bw + 'px';
+    beam.style.height = (line.top - o.top + 4) + 'px';
+    const streaks = { white: 5, blue: 7, gold: 9 }[r.show.tearLight];
+    for (let k = 0; k < streaks; k++) {
+      const b = document.createElement('b');
+      const f = (k + 0.5) / streaks;                    // 0〜1 (左〜右)
+      b.style.left = (21 + f * 58) + '%';
+      b.style.transform = 'rotate(' + ((f - 0.5) * 34).toFixed(1) + 'deg)';
+      b.style.opacity = (0.45 + Math.random() * 0.5).toFixed(2);
+      beam.appendChild(b);
+    }
     els.open.appendChild(beam);
-    beam.animate([{ transform: 'scaleY(0)', opacity: 0 }, { transform: 'scaleY(1)', opacity: 1, offset: 0.3 }, { transform: 'scaleY(1)', opacity: 0 }],
-      { duration: 1100, easing: 'ease-out' }).onfinish = function () { beam.remove(); };
+    beam.animate([{ transform: 'scaleY(0)', opacity: 0 }, { transform: 'scaleY(1)', opacity: 1, offset: 0.25 }, { transform: 'scaleY(1.04)', opacity: 0 }],
+      { duration: r.show.tearLight === 'white' ? 1000 : 1300, easing: 'ease-out' }).onfinish = function () { beam.remove(); };
     const cx = line.left - o.left + line.width / 2;
     fx.burst(cx, line.top - o.top, {
       color: r.show.tearLight, count: r.show.tearLight === 'white' ? 26 : 50, shape: 'star',
@@ -421,7 +431,11 @@
       // R はめくった瞬間にキラッ
       S.play('shine');
       const p = center(slot);
-      fx.burst(p.x, p.y - p.h * 0.18, { color: 'white', count: 16, shape: 'star', speed: 260, size: 9, gravity: 0, life: 0.9, add: false });
+      fx.burst(p.x, p.y - p.h * 0.18, { color: 'white', count: 22, shape: 'star', speed: 280, size: 10, gravity: 0, life: 1, add: false });
+      [[-0.45, -0.45], [0.45, 0.42]].forEach(function (q) {   // かどにも キラッ
+        fx.burst(p.x + p.w * q[0], p.y + p.h * q[1], { color: 'white', count: 6, shape: 'star', speed: 120, size: 8, gravity: 0, life: 0.8, add: true });
+      });
+      slot.querySelector('.shake').animate([{ transform: 'none' }, { transform: 'scale(1.045)', offset: 0.35 }, { transform: 'none' }], { duration: 420, easing: 'ease-out' });
       slot.querySelector('.pc').classList.add('glint');
     }
     hint(i === 0 ? 'スワイプ か タップで つぎの カードへ' : '');
@@ -490,7 +504,7 @@
     const i = r.index;
     const slot = r.slots[i];
     S.play('whoosh');
-    if (r.revealed[i]) { hideBanner(); rays(null); }
+    if (r.revealed[i]) { hideBanner(); rays(null); removeArc(); }
     const from = slot.style.transform || 'none';
     slot.style.transform = 'translate(' + (dir * 560) + 'px,-80px) rotate(' + (dir * 28) + 'deg)';
     slot.animate([{ transform: from, opacity: 1 }, { transform: slot.style.transform, opacity: 0.2 }],
@@ -648,6 +662,161 @@
     hint(STAGE_TALK[Math.min(k, STAGE_TALK.length - 1)] + '  もっと ながおし！');
   }
 
+  /** その場で 枝わかれした ひびを 描く。(cx, cy) から 左右へ 走り、とちゅうで 上下へ 枝が のびる */
+  function drawCrack(cx, cy, color) {
+    const o = els.open.getBoundingClientRect();
+    const W = o.width, H = o.height;
+    els.crack.setAttribute('viewBox', '0 0 ' + W.toFixed(0) + ' ' + H.toFixed(0));
+    els.crack.style.setProperty('--ck', color);
+    const lines = [];
+    [-1, 1].forEach(function (dir) {
+      let x = cx, y = cy;
+      const pts = [[x, y]];
+      while (x > -20 && x < W + 20) {
+        x += dir * (26 + Math.random() * 34);
+        y = cy + (Math.random() * 2 - 1) * 26;
+        pts.push([x, y]);
+        if (Math.random() < 0.55) {                    // 枝
+          let bx = x, by = y;
+          const up = Math.random() < 0.5 ? -1 : 1;
+          const br = [[bx, by]];
+          for (let k = 0; k < 2 + Math.floor(Math.random() * 2); k++) {
+            bx += dir * (8 + Math.random() * 22);
+            by += up * (22 + Math.random() * 30);
+            br.push([bx, by]);
+          }
+          lines.push({ pts: br, delay: 0.35 + Math.abs(x - cx) / W * 0.4, w: 0.7 });
+        }
+      }
+      lines.push({ pts: pts, delay: 0, w: 1 });
+    });
+    els.crack.innerHTML = lines.map(function (l) {
+      const d = 'M' + l.pts.map(function (p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L');
+      return '<path class="ck-glow" pathLength="1" d="' + d + '" style="stroke-width:' + (12 * l.w).toFixed(1) + 'px" data-delay="' + l.delay + '"/>' +
+        '<path class="ck-core" pathLength="1" d="' + d + '" style="stroke-width:' + (3.2 * l.w).toFixed(1) + 'px" data-delay="' + l.delay + '"/>';
+    }).join('');
+    els.crack.getAnimations().forEach(function (a) { a.cancel(); });
+    els.crack.style.opacity = 1;
+    els.crack.querySelectorAll('path').forEach(function (p) {
+      p.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }],
+        { duration: 360, delay: Number(p.dataset.delay) * 1000, easing: 'ease-out', fill: 'both' });
+    });
+  }
+
+  /** ひびから 光が もれる (太い光の線が ふくらむ) */
+  function crackGlow(ms) {
+    els.crack.querySelectorAll('.ck-glow').forEach(function (p) {
+      p.animate([{ opacity: 0.45 }, { opacity: 0.95 }], { duration: ms, easing: 'ease-in', fill: 'forwards' });
+    });
+  }
+
+  /**
+   * 画面を おおっている物 (暗やみ・金の世界) が われて とびちる。(cx, cy) を中心に 三角の かけらに分け、外へ とばす。
+   * かけらは キャンバス (倍率 1) に 描く。DOM の かけら 16 まい (clip-path) だと、遅い端末で われた瞬間に
+   * 1 コマ 83〜133ms まで つまった (キャンバスなら 33ms で、かけらが無いときと 同じ)
+   */
+  function shatter(cx, cy, paint, n) {
+    const o = els.open.getBoundingClientRect();
+    const W = Math.round(o.width), H = Math.round(o.height);
+    const cv = document.createElement('canvas');
+    cv.className = 'op-shards';
+    cv.width = W;
+    cv.height = H;
+    const g = cv.getContext('2d');
+    let fill = paint;
+    if (paint === 'gold') {   // 金の世界 (.b-gold と同じ色)
+      fill = g.createRadialGradient(W * 0.5, H * 0.44, 0, W * 0.5, H * 0.44, Math.hypot(W, H) * 0.62);
+      [[0, '#fffbe0'], [0.45, '#ffd65c'], [0.85, '#d99a12'], [1, '#9c6200']].forEach(function (st) { fill.addColorStop(st[0], st[1]); });
+    }
+    const R = Math.hypot(W, H) * 1.2;
+    const angs = [];
+    for (let k = 0; k < n; k++) angs.push((k + 0.2 + Math.random() * 0.6) / n * Math.PI * 2);
+    const pieces = angs.map(function (a0, k) {
+      const a1 = angs[(k + 1) % n] + (k === n - 1 ? Math.PI * 2 : 0);
+      return {
+        pts: [a0, (a0 + a1) / 2, a1].map(function (a) { return [cx + Math.cos(a) * R, cy + Math.sin(a) * R]; }),
+        am: (a0 + a1) / 2, d: 160 + Math.random() * 220, rot: (Math.random() * 2 - 1) * 0.5, dur: 480 + Math.random() * 180
+      };
+    });
+    els.open.appendChild(cv);
+    const t0 = performance.now();
+    (function loop(now) {
+      if (!cv.isConnected) return;
+      g.clearRect(0, 0, W, H);
+      let live = 0;
+      pieces.forEach(function (pc) {
+        const t = Math.min(1, (now - t0) / pc.dur);
+        if (t >= 1) return;
+        live++;
+        const e = t * t * (1.6 - 0.6 * t);    // はじめ ゆっくり → 速く (外へ ふきとぶ)
+        g.save();
+        g.globalAlpha = 1 - t;
+        g.translate(cx + Math.cos(pc.am) * pc.d * e, cy + Math.sin(pc.am) * pc.d * e);
+        g.rotate(pc.rot * e);
+        g.scale(1 - 0.08 * e, 1 - 0.08 * e);
+        g.translate(-cx, -cy);
+        g.beginPath();
+        g.moveTo(cx, cy);
+        pc.pts.forEach(function (p) { g.lineTo(p[0], p[1]); });
+        g.closePath();
+        g.fillStyle = fill;
+        g.fill();
+        g.restore();
+      });
+      if (live) requestAnimationFrame(loop); else cv.remove();
+    })(t0);
+  }
+
+  /** LR: カードの うしろに 大きな 虹が 左から右へ かかり、ゆっくり 息をする */
+  function rainbowArc(slot) {
+    const c = center(slot);
+    const arc = document.createElement('i');
+    arc.className = 'op-arc';
+    arc.style.left = c.x + 'px';
+    arc.style.top = (c.y + 40) + 'px';
+    els.open.insertBefore(arc, els.stage);
+    arc.animate([{ clipPath: 'inset(0 100% 50% 0)', opacity: 1 }, { clipPath: 'inset(0 0 50% 0)', opacity: 1 }],
+      { duration: 900, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'forwards' });
+    arc.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }],
+      { duration: 2600, delay: 900, iterations: Infinity, easing: 'ease-in-out' });
+  }
+
+  function removeArc() {
+    els.open.querySelectorAll('.op-arc').forEach(function (a) {
+      a.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' }).onfinish = function () { a.remove(); };
+    });
+  }
+
+  /** 暗やみを はらう。getAnimations() に たよらず、作った アニメーションを 自分で止める
+   * (getAnimations() で止めたつもりが、10 回に 1 回ほど 暗いまま のこった) */
+  function clearBlack(r) {
+    if (r && r.blackAnim) { r.blackAnim.cancel(); r.blackAnim = null; }
+    els.black.getAnimations().forEach(function (a) { a.cancel(); });
+    els.black.style.opacity = 0;
+  }
+
+  /** 背景を いっきに 切りかえる (かけらの すきまから 新しい世界が 見えるように) */
+  function cutBg(name) {
+    els.open.classList.add('bg-cut');
+    setBg(name);
+    requestAnimationFrame(function () { requestAnimationFrame(function () { els.open.classList.remove('bg-cut'); }); });
+  }
+
+  /** 心臓の音 (どっくん どっくん) に あわせて、カードの うしろが 金に ひかり、カードが ふくらむ */
+  function heartGlow(slot) {
+    const c = center(els.stack);
+    const h = document.createElement('i');
+    h.className = 'op-heart';
+    h.style.left = c.x + 'px';
+    h.style.top = c.y + 'px';
+    els.open.appendChild(h);
+    // fx.js の heartbeat は 0・0.22・0.85・1.07 秒に 鳴る (1.5 秒のうち)
+    const beat = [[0, 0], [0.02, 0.75], [0.1, 0.2], [0.16, 0.95], [0.32, 0.1], [0.56, 0.1], [0.58, 0.85], [0.66, 0.25], [0.72, 1], [0.92, 0.2], [1, 0.25]];
+    h.animate(beat.map(function (b) { return { opacity: b[1], offset: b[0] }; }), { duration: 1500, fill: 'forwards' });
+    slot.querySelector('.shake').animate(beat.map(function (b) { return { transform: 'scale(' + (1 + b[1] * 0.035).toFixed(3) + ')', offset: b[0] }; }), { duration: 1500 });
+    return h;
+  }
+
   async function megaSequence(r) {
     const ch = r.charge;
     ch.done = true;
@@ -657,26 +826,34 @@
     els.ring.hidden = true;
     rays(null);
     // まっくら → 心臓の音
-    els.black.animate([{ opacity: 0 }, { opacity: 0.9 }], { duration: 350, fill: 'forwards' });   // カードがうっすら見えるくらい
+    r.blackAnim = els.black.animate([{ opacity: 0 }, { opacity: 0.9 }], { duration: 350, fill: 'forwards' });   // カードがうっすら見えるくらい
     await wait(420);
     if (!alive(r)) return;
     S.play('heartbeat');
     const shake = r.slots[ch.i].querySelector('.shake');
     shake.style.transform = 'none';
+    const heart = heartGlow(r.slots[ch.i]);
     await wait(1500);
-    if (!alive(r)) return;
-    // 金のひび
-    S.play('crack');
-    els.crack.style.opacity = 1;
-    const path = els.crack.querySelector('path');
-    path.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 380, easing: 'ease-out', fill: 'forwards' });
+    if (!alive(r)) { heart.remove(); return; }
+    // 金のひび: カードの まん中から 左右へ 走り、枝わかれする → 光が もれる → 暗やみが われて とびちる
     const c = center(els.stack);
+    S.play('crack');
+    drawCrack(c.x, c.y, '#ffcf40');
     fx.burst(c.x, c.y, { color: 'gold', count: 30, shape: 'star', speed: 300, size: 8, gravity: 0, life: 0.9, add: true });
-    await wait(650);
-    if (!alive(r)) return;
-    els.black.animate([{ opacity: 0.9 }, { opacity: 0 }], { duration: 500, fill: 'forwards' });
-    els.crack.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
-    setBg('gold');
+    heart.animate([{ opacity: 0.25 }, { opacity: 1 }], { duration: 700, fill: 'forwards' });
+    await wait(380);
+    if (!alive(r)) { heart.remove(); return; }
+    crackGlow(420);
+    shakeScreen(6, 400);
+    await wait(440);
+    if (!alive(r)) { heart.remove(); return; }
+    clearBlack(r);
+    shatter(c.x, c.y, 'rgba(0,0,0,.9)', 11);
+    cutBg('gold');
+    flash('#fff3b0', 0.85, 650);
+    shakeScreen(12, 450);
+    els.crack.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' });
+    heart.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards' }).onfinish = function () { heart.remove(); };
     if (ch.sp.rarity === 'LR') { legendSequence(r); return; }
     chargeReveal(r, true);
   }
@@ -693,16 +870,20 @@
     hint('……！？ まだ ひかりが とまらない！');
     await wait(1300);
     if (!alive(r)) return;
-    // 金の世界に もういちど ひび → 宇宙へ
+    // 金の世界に もういちど ひび (こんどは 虹色) → 金の世界が われて とびちり、宇宙へ ぬける
+    const cc = center(els.stack);
     S.play('crack');
-    els.crack.style.opacity = 1;
-    els.crack.querySelector('path').animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 300, easing: 'ease-out', fill: 'forwards' });
+    drawCrack(cc.x, cc.y, '#c39bff');
     shakeScreen(14, 500);
-    await wait(450);
+    await wait(380);
     if (!alive(r)) return;
-    flash('#ffffff', 1, 700);
+    crackGlow(380);
+    await wait(400);
+    if (!alive(r)) return;
+    shatter(cc.x, cc.y, 'gold', 12);
+    cutBg('cosmos');
+    flash('#ffffff', 0.9, 650);
     els.crack.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' });
-    setBg('cosmos');
     rays(null);
     hint('');
     S.play('warp');
@@ -748,11 +929,18 @@
 
     flash(rar === 'MUR' ? '#ffe27a' : '#ffffff', 1, rar === 'SR' ? 650 : 900);
     if (rar === 'SAR') setBg('night');
-    if (rar === 'LR') setBg('cosmos');
-    rays(RAY[color]);
+    if (rar === 'LR') {
+      // LR: 宇宙から 虹の世界へ。カードの うしろに 大きな 虹が かかる
+      // 回る 光の筋 (op-rays) は 出さない: 虹の背景の上で 回すと、遅い端末で 出た直後が 1 コマ ほぼ 1 つぶん 重くなった。
+      // 光の筋は 背景に 止まった絵として 描いてある
+      cutBg('rainbow');
+      rays(null);
+      rainbowArc(slot);
+    } else rays(RAY[color]);
     S.play('fanfare' + rar);
     shakeScreen(rar === 'SR' ? 10 : 16, 520);
-    shock(rar === 'LR' ? '#c39bff' : rar === 'MUR' ? '#ffd84a' : rar === 'SAR' ? '#ffffff' : '#ffe58a', rar === 'SR' ? 2 : rar === 'LR' ? 4 : 3);
+    if (rar === 'LR') ['#ff6fa8', '#ffb35c', '#ffe45c', '#6fe39a', '#5cc8ff', '#9a7bff'].forEach(function (col, k) { setTimeout(function () { if (alive(r)) shock(col, 1); }, k * 110); });
+    else shock(rar === 'MUR' ? '#ffd84a' : rar === 'SAR' ? '#ffffff' : '#ffe58a', rar === 'SR' ? 2 : 3);
     shake.animate([{ transform: 'scale(1.3)' }, { transform: 'scale(.96)', offset: 0.6 }, { transform: 'none' }],
       { duration: rar === 'SR' ? 600 : 1100, easing: 'ease-out' });
     const p = center(slot);
@@ -766,9 +954,9 @@
       fx.rain({ shape: 'star', color: 'rainbow', rate: 10, dur: 5, size: 10, speed: 90, gravity: 10, life: 6, add: true });
     } else if (rar === 'LR') {
       // 粒の数は MUR と同じくらいにおさえる (遅い端末で 1 コマ 16.7ms を守るため。色と星の量で LR らしさを出す)
-      fx.burst(p.x, p.y, { color: 'legend', count: 140, shape: 'star', speed: 820, size: 15, gravity: 60, life: 2.2 });
+      fx.burst(p.x, p.y, { color: 'rainbow', count: 140, shape: 'star', speed: 820, size: 15, gravity: 60, life: 2.2 });
       fx.burst(p.x, p.y, { color: 'gold', count: 30, shape: 'coin', speed: 700, size: 11, gravity: 520, life: 2.8, lift: 260 });
-      fx.rain({ shape: 'star', color: 'legend', rate: 14, dur: 7, size: 11, speed: 110, gravity: 10, life: 6, add: true });
+      fx.rain({ shape: 'star', color: 'rainbow', rate: 14, dur: 7, size: 11, speed: 110, gravity: 10, life: 6, add: true });
       fx.rain({ shape: 'confetti', color: 'rainbow', rate: 24, dur: 7, size: 12, speed: 170, life: 6 });
       fx.rain({ shape: 'coin', color: 'gold', rate: 10, dur: 7, size: 11, speed: 220, gravity: 120, life: 6 });
     } else {
@@ -789,6 +977,8 @@
   // ================================================================ 5. 結果
   function showResult(r) {
     r.phase = 'result';
+    removeArc();
+    clearBlack(r);   // 念のため (結果に 暗やみを のこさない)
     hint('');
     els.count.textContent = '';
     els.skip.hidden = true;
