@@ -128,6 +128,15 @@
     ).onfinish = function () { p.remove(); };
   }
 
+  // 連打で画面が拡大されないように: 二本指の拡大 (gesture) を止め、300ms 以内の二度押しも木では止める (iOS は user-scalable=no を無視する)
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (n) { document.addEventListener(n, function (e) { e.preventDefault(); }); });
+  let lastTouchEnd = 0;
+  els.tree.addEventListener('touchend', function (e) {   // 木だけ (ほかのボタンの click まで止めない。木は pointerdown で数えるので影響しない)
+    const now = Date.now();
+    if (now - lastTouchEnd < 300 && e.cancelable) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+
   // 指・マウスは pointerdown で数える (連打に強い)。click はキーボード用。
   // 指のタップのあとにも click が来るが、その detail は 0 のことがある (Chromium で確認) ので、
   // 「直前に pointerdown があったか」で見分ける。detail で見分けると 1 タップが 2 回に数えられる
@@ -734,9 +743,11 @@
   // 開くたびに はじめに出る。「あそぶ」を押すと ひろば (木をタップする画面) へ。?title=0 のときは出さない (自動テスト用)
   const titleEl = $('title');
   let titleOpen = true;
+  document.documentElement.classList.add('on-title');
   function closeTitle(instant) {
     if (!titleOpen) return;
     titleOpen = false;
+    document.documentElement.classList.remove('on-title');
     // 状態バーの色は ウェブ画面の外なので絵を描けない。タイトルのあいだは絵の空に近い色にして つなげ、閉じたら もとの色へ
     const tc = document.querySelector('meta[name="theme-color"]');
     if (tc) tc.setAttribute('content', '#fff3d6');
