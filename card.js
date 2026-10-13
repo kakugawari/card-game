@@ -4,6 +4,7 @@
  *   CardView.html(card, opts)  表のカード
  *   CardView.backHTML()        カードの裏
  *   CardView.packHTML()        パックの絵 (上の切り口つき)
+ *   CardView.boxHTML()         BOX の絵 (パックの絵を 前の面に はめた 箱)
  *   CardView.tilt(el, opts)    指の位置でかたむけ、光 (ホロ) を動かす。止めるときは返り値の stop()
  *
  * かたむきと光は CSS 変数で渡す: --rx --ry (角度) / --mx --my (光の位置 0〜100) / --glare (0〜1)
@@ -123,6 +124,28 @@
       '<div class="pk-guide"></div><div class="pk-leak"></div></div>';
   }
 
+  /**
+   * BOX の絵: 本物の BOX (パックが 30 入った 横長の箱) のように、ふたの上の面・前の面・横の面の 3 つの面で できている。
+   * 前の面に そのパックの 絵 (ロゴ・そのパックの色・ななめの縞・なかまたち) を はめる。パックの種類ごとに ちがう
+   */
+  function boxHTML(setId) {
+    const set = C.setById(setId) || C.SET;
+    const big = set.name.replace(/パック$/, '').replace('みらいの どうぶつ', 'みらい');
+    const mascots = set.mascots.map(function (id, i) {
+      return '<div class="bxb-m bxb-m' + i + '">' + A.svg(id, { walk: false }) + '</div>';
+    }).join('');
+    const bg = '--pk1:' + set.colors[0] + ';--pk2:' + set.colors[1] + ';--pk3:' + set.colors[2];
+    return '<div class="bxb" style="' + bg + '">' +
+      '<div class="bxb-top"><span>' + set.mark + ' ' + set.code + ' BOX</span></div>' +
+      '<div class="bxb-front"><div class="bxb-art">' +
+        '<div class="bxb-logo"><span class="bxb-small">' + set.mark + ' ' + set.code + '</span>' +
+        '<span class="bxb-big' + (big.length > 4 ? ' long' : '') + '">' + esc(big) + '</span>' +
+        '<span class="bxb-tag">BOX</span></div>' +
+        '<div class="bxb-mascots">' + mascots + '</div>' +
+        '<div class="bxb-count">30パック入り</div></div></div>' +
+      '<div class="bxb-side"><span>BOX</span></div></div>';
+  }
+
   // ---------------------------------------------------------------- かたむけ
   /**
    * el に --rx --ry --mx --my --glare を置き続ける。
@@ -204,5 +227,5 @@
     return { stop: stop };
   }
 
-  root.CardView = { html: html, backHTML: backHTML, packHTML: packHTML, tilt: tilt };
+  root.CardView = { html: html, backHTML: backHTML, packHTML: packHTML, boxHTML: boxHTML, tilt: tilt };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

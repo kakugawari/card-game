@@ -676,6 +676,13 @@ async function run() {
       ok(bought.money === 0 && bought.hand === 30, `2 回タップで買える: コイン ${bought.money}・手もとに ${bought.hand} パック`);
       ok(bought.shop === null, 'BOX を買っても、お店の BOX (1 パックずつの方) は進まない');
       ok(bought.text.includes('30') && bought.sr.includes('まだ'), `手もとの BOX の様子が出る (${bought.text} / ${bought.sr})`);
+      const art = await page.evaluate(() => {
+        const a = document.getElementById('boxArt'), r = a.getBoundingClientRect(), f = a.querySelector('.bxb-art');
+        const fr = f.getBoundingClientRect();
+        return { faces: ['.bxb-top', '.bxb-front', '.bxb-side'].every((s) => !!a.querySelector(s)), mascots: a.querySelectorAll('.bxb-m svg').length,
+          name: a.querySelector('.bxb-big').textContent, inside: fr.left >= r.left - 1 && fr.right <= r.right + 1 && fr.bottom <= r.bottom + 1, w: r.width };
+      });
+      ok(art.faces && art.mascots === 3 && art.name === 'どうぶつ' && art.inside && art.w >= 140, `BOX の絵は 3 つの面の箱で、前の面に パックの絵 (名前「${art.name}」・なかま ${art.mascots} 人) が はまる`);
       await scrollToBtn(page, 'btnOpenBox');
       const ob = await page.evaluate(() => {
         const b = document.getElementById('btnOpenBox').getBoundingClientRect();

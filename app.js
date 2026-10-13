@@ -548,8 +548,7 @@
     const set = C.setById(curSet);
     els.shopPack.innerHTML = V.packHTML(curSet);
     els.boxArt.style.cssText = '--pk1:' + set.colors[0] + ';--pk2:' + set.colors[1] + ';--pk3:' + set.colors[2];
-    els.boxArt.innerHTML = '<i class="bx-pack"></i><i class="bx-pack"></i><i class="bx-pack"></i><i class="bx-pack"></i>' +
-      '<div class="bx-front"><b>BOX</b><span>' + shortName(set) + '</span></div>';
+    els.boxArt.innerHTML = V.boxHTML(set.id);
     els.shopName.textContent = set.name;
     els.stageMark.textContent = set.mark;
     const cat = C.CATS.find(function (c) { return c.id === set.cat; });

@@ -439,38 +439,50 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .boxshop-sub { margin-top: 2px; font-size: 13px; color: var(--muted); line-height: 1.5; }
 .boxshop-sub b { color: #e07a1f; }
 
-/* BOX の絵: ふたの開いた箱から、パックの頭が 4 つのぞく */
-.boxart { position: relative; flex: none; width: 118px; height: 96px; }
-.boxart .bx-pack {
+/* BOX の絵: 本物の BOX のように 3 つの面 (ふた・前・横)。前の面に そのパックの絵を はめる (card.js の boxHTML) */
+.boxart { position: relative; flex: none; width: 150px; height: 114px; }
+.bxb { position: relative; width: 100%; height: 100%; container-type: inline-size; filter: drop-shadow(0 6px 4px rgba(60,30,90,.28)); }
+.bxb > div {
   position: absolute;
-  bottom: 40px;
-  width: 26px;
-  height: 40px;
-  border-radius: 3px 3px 0 0;
-  background: linear-gradient(165deg, #ff9fc6, #ffb27a 60%, #ffe27a);
-  box-shadow: inset 0 3px 0 rgba(255,255,255,.5);
+  background: linear-gradient(135deg, var(--pk1), var(--pk2) 55%, var(--pk3));
 }
-.boxart .bx-pack:nth-child(1) { left: 10px; transform: rotate(-8deg); }
-.boxart .bx-pack:nth-child(2) { left: 34px; bottom: 44px; }
-.boxart .bx-pack:nth-child(3) { left: 58px; bottom: 42px; transform: rotate(5deg); }
-.boxart .bx-pack:nth-child(4) { left: 82px; transform: rotate(10deg); }
-.boxart .bx-front {
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 58px;
-  border-radius: 8px;
-  background: linear-gradient(160deg, #7f8cf5, #a06ad8 60%, #e07ab8);
-  border: 3px solid #fff5e6;
-  box-shadow: 0 4px 0 rgba(90, 50, 110, .25);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  line-height: 1.1;
+/* 面ごとの形 (cqw = 箱の幅の 1/100)。ふた = 上の平行四辺形 / 前 = 長方形 / 横 = 右の平行四辺形 */
+.bxb-top { left: 0; top: 0; width: 100cqw; height: 100%; clip-path: polygon(14cqw 0, 100cqw 0, 86cqw 17cqw, 0 17cqw); }
+.bxb-front { left: 0; top: 0; width: 100cqw; height: 100%; clip-path: polygon(0 17cqw, 86cqw 17cqw, 86cqw 76cqw, 0 76cqw); }
+.bxb-side { left: 0; top: 0; width: 100cqw; height: 100%; clip-path: polygon(86cqw 17cqw, 100cqw 0, 100cqw 59cqw, 86cqw 76cqw); }
+.bxb-top::after, .bxb-side::after { content: ""; position: absolute; inset: 0; }
+.bxb-top::after { background: rgba(255,255,255,.42); }
+.bxb-side::after { background: rgba(40,20,70,.34); }
+.bxb-top span, .bxb-side span {
+  position: absolute; font-weight: 900; color: #fff; letter-spacing: .08em; paint-order: stroke fill; -webkit-text-stroke: 1.2cqw rgba(80,40,90,.5); z-index: 1; white-space: nowrap;
 }
-.boxart .bx-front b { font-size: 20px; letter-spacing: .06em; }
-.boxart .bx-front span { font-size: 10px; }
+.bxb-top span { left: 17cqw; top: 3.5cqw; font-size: 8cqw; }
+.bxb-side span { right: 2.2cqw; top: 40cqw; font-size: 8cqw; writing-mode: vertical-rl; }
+/* 前の面: 白い縁 + ななめの縞 + 絵 */
+.bxb-front { box-shadow: inset 0 0 0 1.2cqw rgba(255,248,236,.95); }
+.bxb-front::before {
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(115deg, rgba(255,255,255,.28) 0 5cqw, rgba(255,255,255,0) 5cqw 11cqw);
+}
+.bxb-art { position: absolute; left: 0; top: 17cqw; width: 86cqw; height: 59cqw; }
+.bxb-logo { position: absolute; left: 4.5cqw; top: 3.5cqw; width: 46cqw; display: flex; flex-direction: column; align-items: flex-start; gap: .6cqw; }
+.bxb-small { font-size: 4.6cqw; font-weight: 900; color: #fff; paint-order: stroke fill; -webkit-text-stroke: 1.2cqw rgba(80,40,90,.55); }
+.bxb-big {
+  font-size: 12.5cqw; font-weight: 900; line-height: 1.05; color: #fff; letter-spacing: .02em; white-space: nowrap;
+  paint-order: stroke fill; -webkit-text-stroke: 1.6cqw var(--pk-ink, rgba(190,70,110,.85)); text-shadow: 0 .8cqw 0 rgba(0,0,0,.18);
+}
+.bxb-big.long { font-size: 9.6cqw; }
+.bxb-tag {
+  margin-top: .8cqw; padding: .6cqw 3.2cqw; border-radius: 99px; font-size: 5.6cqw; font-weight: 900; letter-spacing: .1em; color: #fff;
+  background: rgba(70,30,100,.55); border: .5cqw solid rgba(255,255,255,.8);
+}
+.bxb-mascots { position: absolute; right: 0; bottom: 5.4cqw; width: 46cqw; height: 40cqw; }
+.bxb-m { position: absolute; bottom: 0; width: 22cqw; height: 24cqw; }
+.bxb-m svg { width: 100%; height: 100%; display: block; }
+.bxb-m0 { left: 0; bottom: 1cqw; }
+.bxb-m1 { left: 12cqw; bottom: 6cqw; width: 26cqw; height: 28cqw; z-index: 1; }
+.bxb-m2 { left: 26cqw; bottom: 0; }
+.bxb-count { position: absolute; left: 4.5cqw; bottom: 2.2cqw; font-size: 4.4cqw; font-weight: 900; color: #fff; paint-order: stroke fill; -webkit-text-stroke: 1.2cqw rgba(80,40,90,.55); }
 .boxart.drop { animation: none; }
 
 .btn-box { background: #8e7cf0; box-shadow: 0 5px 0 #6a58c9; }
