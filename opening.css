@@ -442,3 +442,9 @@
   padding: 10px 2px;
 }
 .op-result.bulk .op-cell { width: 88px; }
+
+/* 結果の画面: 「もう1パック」(ピンク) をおもな ボタンに、「とじる」は白くして 見分けやすくする */
+#opAgain { background: linear-gradient(#ff8fb0, #f0668e); color: #fff; box-shadow: 0 5px 0 #c94a72; }
+#opAgain:disabled { background: #e8c8d2; box-shadow: 0 5px 0 #c9a3b0; }
+.btn.btn-done { background: #fff; color: var(--text); border: 3px solid #f0d9a8; box-shadow: 0 5px 0 #e3cfa9; }
+.btn.btn-done:active:not(:disabled) { box-shadow: 0 1px 0 #e3cfa9; }

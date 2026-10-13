@@ -400,6 +400,8 @@ async function run() {
       await page.tap('.op-cell >> nth=0');
       ok(await page.locator('#opZoom').isVisible(), '結果のカードを押すと大きく見られる');
       await page.tap('#opZoom', { position: { x: 20, y: 20 } });
+      const bt = await page.evaluate(() => { const a = getComputedStyle(document.getElementById('opAgain')), c = getComputedStyle(document.getElementById('opClose')); return { aBg: a.backgroundImage + a.backgroundColor, cBg: c.backgroundImage + c.backgroundColor, cColor: c.backgroundColor, aText: a.color, cText: c.color }; });
+      ok(bt.aBg !== bt.cBg && bt.cColor === 'rgb(255, 255, 255)' && bt.aText !== bt.cText, '結果の「もう1パック」(ピンク) と「とじる」(白) は 色がちがって 見分けられる');
       ok(await page.locator('#opAgain').isHidden(), 'むりょうを使って、お金も無いときは「もう1パック」が出ない');
       await page.tap('#opClose');
       ok(await page.locator('#open').isHidden(), '「とじる」で もどる');
