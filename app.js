@@ -737,6 +737,9 @@
   function closeTitle(instant) {
     if (!titleOpen) return;
     titleOpen = false;
+    // 状態バーの色は ウェブ画面の外なので絵を描けない。タイトルのあいだは絵の空に近い色にして つなげ、閉じたら もとの色へ
+    const tc = document.querySelector('meta[name="theme-color"]');
+    if (tc) tc.setAttribute('content', '#fff3d6');
     titleEl.classList.add('leave');
     const done = function () { titleEl.hidden = true; };
     if (instant) { done(); return; }
