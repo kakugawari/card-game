@@ -85,7 +85,7 @@
       els.btnUpLabel.textContent = 'MAX';
       els.btnUp.classList.add('max');
     } else {
-      els.upSub.textContent = '1かいで ' + C.tapPower(state) + 'コイン → ' + (C.tapPower(state) + 1) + 'コイン';
+      els.upSub.textContent = '1かいで ' + C.tapPower(state) + 'コイン → ' + C.tapPowerAt(state.tapLevel + 1) + 'コイン';
       els.btnUpLabel.textContent = C.formatMoney(cost);
       els.btnUp.classList.remove('max');
     }
@@ -729,7 +729,7 @@
   });
 
   function renderMute() {
-    els.muteIco.textContent = state.muted ? '🔇' : '🔊';
+    els.btnMute.classList.toggle('off', !!state.muted);   // 音がきれているときは おんぷに 斜めの線
     Sfx.setMuted(state.muted);
   }
   els.btnMute.addEventListener('click', function () {

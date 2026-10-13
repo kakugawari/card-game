@@ -316,19 +316,27 @@ async function run() {
       section('タップ: コインが増える・強化・保存');
       ({ context, page } = await newGame(browser, errors));
       for (let i = 0; i < 10; i++) await page.tap('#tree', { position: { x: 80 + i * 12, y: 90 } });
-      ok((await money(page)) === 10 && (await page.textContent('#moneyNum')) === '10', '10 回タップで 10 コイン');
+      ok((await money(page)) === 20 && (await page.textContent('#moneyNum')) === '20', '10 回タップで 20 コイン (1 回 2 コイン)');
       await page.evaluate(() => {
         const t = document.getElementById('tree');
         for (let i = 0; i < 30; i++) t.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, clientX: 200, clientY: 300, pointerId: 1 + (i % 2) }));
       });
-      ok((await money(page)) === 40, `連打 30 回も 1 回も取りこぼさない (${await money(page)})`);
+      ok((await money(page)) === 80, `連打 30 回も 1 回も取りこぼさない (${await money(page)})`);
+      const mu = await page.evaluate(() => {
+        const bt = document.getElementById('btnMute'), sl = bt.querySelector('.mu-slash');
+        return { emoji: /[🔊🔇]/.test(bt.textContent), svg: !!bt.querySelector('svg'), slash: getComputedStyle(sl).display, w: bt.getBoundingClientRect().width };
+      });
+      await page.tap('#btnMute');
+      const mu2 = await page.evaluate(() => ({ off: document.getElementById('btnMute').classList.contains('off'), slash: getComputedStyle(document.querySelector('.mu-slash')).display }));
+      await page.tap('#btnMute');
+      ok(!mu.emoji && mu.svg && mu.slash === 'none' && mu2.off && mu2.slash !== 'none' && mu.w >= 44, '音のボタンは 絵文字ではなく おんぷの絵。止めると斜めの線が出る');
       const cost = await page.evaluate(() => window.__app.core.upgradeCost(0));
       await page.evaluate((c) => window.__app.setMoney(c - 1), cost);
       ok(await page.locator('#btnUp').isDisabled(), `強化: ${cost - 1} コインでは押せない`);
       await page.evaluate((c) => window.__app.setMoney(c), cost);
       await page.tap('#btnUp');
       await page.tap('#tree', { position: { x: 100, y: 100 } });
-      ok((await money(page)) === 2, '強化すると 1 回で 2 コイン');
+      ok((await money(page)) === 3, '強化すると 1 回で 3 コイン');
       await page.waitForTimeout(1200);
       const before = await page.evaluate(() => JSON.stringify(window.__app.state()));
       await page.reload();
