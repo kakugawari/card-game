@@ -159,7 +159,7 @@
     player.innerHTML = A.svg(chara, { walk: false });
     field.querySelectorAll('.ct-item, .ct-pop').forEach(function (n) { n.remove(); });
     const W = field.clientWidth || 430, H = field.clientHeight || 600;
-    const PW = 84, FOOT = 18;      // 遊ぶ子の幅・下からの高さ
+    const PW = 84, FOOT = 96;      // 遊ぶ子の幅・下からの高さ (指でかくれないよう、下から 96。styles.css の .ct-player の bottom と同じ)
     const total = opts.catchSeconds || C.MINI_GAMES.catch.seconds;
     let px = W / 2, score = 0, time = total, spawnIn = 0.6, items = [], last = 0, raf = 0, dead = false, ready = 0.9, over = false;
     const rng = Math.random;

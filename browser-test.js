@@ -877,6 +877,9 @@ async function run() {
       await page.evaluate(() => { window.__app.mini.opts.catchSeconds = 7; });
       await page.tap('.gm-go[data-game=catch]');
       await page.waitForSelector('.ct-player svg');
+      // 遊ぶ子は 指でかくれない高さ (下から 80 以上) にいて、うけとめる場所も その高さ
+      const pl = await page.evaluate(() => { const f = document.getElementById('ctField').getBoundingClientRect(), p = document.getElementById('ctPlayer').getBoundingClientRect(); return { gap: f.bottom - p.bottom, h: p.height }; });
+      ok(pl.gap >= 80, `おやつキャッチ: 遊ぶ子は 下から ${Math.round(pl.gap)} の高さ (指でかくれない)`);
       // ゆびで うごかす: 画面の左はしへ → 右はしへ
       const fb = await box(page, '#ctField');
       await page.mouse.move(fb.x + 60, fb.y + 300); await page.mouse.down(); await page.mouse.move(fb.x + 70, fb.y + 300, { steps: 3 });
@@ -931,7 +934,9 @@ async function run() {
       ok(q2.floors === 2 && q2.streak === 0 && Math.abs(q2.top.w - (q1.top.w - 40)) < 0.01, `40 ずれると 40 きれて ほそくなる (はば ${Math.round(q1.top.w)} → ${Math.round(q2.top.w)})`);
       ok((await page.evaluate(() => document.querySelectorAll('#stWorld .st-slab').length)) >= 4, 'ブロックと きりおとした かけらが 画面に出る');
       const mStack = await money(page);
-      await stDrop(q2.top.w + 20);      // かさならない
+      // かさならない所へ置く (画面の中に おさまる がわを えらぶ。はみ出すと 動くとき 内がわへ もどされて かさなってしまう)
+      const qm = await page.evaluate(() => window.MiniGames.stackState());
+      await stDrop(qm.top.x + qm.top.w + 6 + qm.top.w <= qm.W ? qm.top.w + 6 : -(qm.top.w + 6));
       await page.waitForSelector('#gmResult:not([hidden])', { timeout: 4000 });
       const gotMiss = (await money(page)) - mStack;
       ok(gotMiss === 2083 && (await page.textContent('#gmResCoins')) === '+2,083', `はずれると おわり。2 だんぶんの コイン +${gotMiss}`);

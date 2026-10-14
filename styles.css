@@ -1049,7 +1049,7 @@ html.on-title, html.on-title body { background: linear-gradient(90deg, #82e6f6, 
 }
 .ct-item { position: absolute; left: 0; top: 0; width: 40px; height: 40px; pointer-events: none; will-change: transform; }
 .ct-item svg { width: 100%; height: 100%; display: block; }
-.ct-player { position: absolute; left: 0; bottom: 18px; width: 84px; height: 84px; pointer-events: none; will-change: transform; }
+.ct-player { position: absolute; left: 0; bottom: 96px; width: 84px; height: 84px; pointer-events: none; will-change: transform; }
 .ct-player svg { width: 100%; height: 100%; display: block; }
 .ct-pop { position: absolute; left: 0; top: 0; font-size: 22px; color: #b5680a; text-shadow: 0 0 4px #fff, 0 0 4px #fff; pointer-events: none; }
 .ct-pop.bad { color: #c0392b; }
