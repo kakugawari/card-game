@@ -774,3 +774,50 @@ test('パックは「いきもの」6 つと「せかい」5 つに わかれる
   const g = (st) => Core.CATS.find((c) => c.id === st.cat).group;
   assert.deepStrictEqual(Core.SETS.map(g), ['ikimono', 'ikimono', 'ikimono', 'ikimono', 'ikimono', 'ikimono', 'sekai', 'sekai', 'sekai', 'sekai', 'sekai']);
 });
+
+test('ひろばの なかま: えらんだ人数ぶんだけ歩く (1 人でもよい)。足りないぶんは自動で埋めない', () => {
+  const s = Core.newState();
+  Cards.CARDS.forEach((c, i) => { if (i % 4 === 0) s.owned[c.no] = 1; });
+  const cand = Core.crewCandidates(s);
+  assert.ok(cand.length > 10);
+  assert.strictEqual(s.crew, null);
+  assert.deepStrictEqual(Core.crewList(s), cand.slice(0, 7), 'えらばないときは おまかせ (7 人まで)');
+  for (const n of [1, 3, 7]) {
+    const pick = cand.slice(5, 5 + n);
+    assert.ok(Core.setCrew(s, pick).ok);
+    assert.deepStrictEqual(Core.crewList(s), pick, n + ' 人えらぶと ちょうど ' + n + ' 人');
+  }
+  assert.ok(Core.setCrew(s, []).ok);
+  assert.strictEqual(s.crew, null, '空にすると おまかせに もどる');
+});
+
+test('ひろばの なかま: 持っていない子・重なり・8 人は はねられ、状態は変わらない', () => {
+  const s = Core.newState();
+  Cards.CARDS.forEach((c, i) => { if (i % 4 === 0) s.owned[c.no] = 1; });
+  const cand = Core.crewCandidates(s);
+  Core.setCrew(s, [cand[0]]);
+  const notOwned = Object.keys(Core.CHARAS).find((ch) => !cand.includes(ch));
+  assert.strictEqual(Core.setCrew(s, [notOwned]).reason, 'notOwned');
+  assert.strictEqual(Core.setCrew(s, [cand[1], cand[1]]).reason, 'dup');
+  assert.strictEqual(Core.setCrew(s, cand.slice(0, 8)).reason, 'tooMany');
+  assert.deepStrictEqual(s.crew, [cand[0]], 'しっぱいは なにも変えない');
+});
+
+test('ひろばの なかま: 保存して読み直しても残る。こわれた記録は おまかせに戻る', () => {
+  const s = Core.newState();
+  Cards.CARDS.forEach((c, i) => { if (i % 4 === 0) s.owned[c.no] = 1; });
+  const cand = Core.crewCandidates(s);
+  Core.setCrew(s, [cand[2], cand[0]]);
+  const back = Core.normalize(JSON.parse(JSON.stringify(s)));
+  assert.deepStrictEqual(back.crew, [cand[2], cand[0]]);
+  assert.strictEqual(Core.normalize({ crew: 'x' }).crew, null);
+  assert.strictEqual(Core.normalize({ crew: ['nobody', 5, null] }).crew, null);
+  const dup = Core.normalize({ crew: [cand[0], cand[0], ...cand.slice(1, 12)] }).crew;
+  assert.ok(dup.length === 7 && new Set(dup).size === 7, '重なりを捨て、7 人までにする');
+  assert.strictEqual(Core.normalize({ v: 4, money: 5 }).crew, null, '前の版の記録は おまかせ');
+  // 持っていない子が混ざっていても、歩くのは持っている子だけ (全部だめなら おまかせ)
+  const t = Core.newState();
+  t.owned[Cards.CARDS[0].no] = 1;
+  t.crew = [Object.keys(Core.CHARAS).find((ch) => ch !== Cards.CARDS[0].chara)];
+  assert.deepStrictEqual(Core.crewList(t), [Cards.CARDS[0].chara]);
+});

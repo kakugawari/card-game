@@ -846,7 +846,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .sp-mini .animal { position: absolute; left: 4%; right: 4%; bottom: 4%; width: 92%; height: auto; aspect-ratio: 1; }
 .sp-mini i { position: absolute; left: 0; right: 0; top: 4%; font-style: normal; font-size: 15px; text-align: center; }
 
-#packSheet {
+#packSheet, #crewSheet {
   position: absolute;
   inset: 0;
   z-index: 27;
@@ -1079,3 +1079,55 @@ html.on-title, html.on-title body { background: linear-gradient(90deg, #82e6f6, 
 .bx-body .boxshop { margin-top: 8px; }
 #boxSheet .psh-panel { height: auto; max-height: calc(100% - var(--safe-top) - 40px); }
 .bx-body { padding-bottom: calc(18px + var(--safe-bottom)); }
+
+/* ひろばの なかまを えらぶ */
+.crew-btn {
+  position: absolute;
+  right: 16px;
+  bottom: 200px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 12px 7px 9px;
+  border: 3px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 3px 0 var(--line);
+  cursor: pointer;
+}
+.crew-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+.crew-ico { font-size: 15px; }
+.crew-count { color: var(--muted); font-size: 14px; margin-left: 4px; }
+#crewSheet .psh-panel { height: auto; max-height: calc(100% - var(--safe-top) - 40px); }
+.crew-sub { flex: none; margin: 0 20px 8px; font-size: 12px; color: var(--muted); min-height: 16px; }
+.crew-sub.warn { color: #e0506b; font-weight: 700; }
+.crew-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 8px; padding-top: 4px; }
+.crew-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px 5px;
+  border: 3px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+}
+.crew-cell.on { border-color: #ff8fa8; background: #fff3f6; box-shadow: 0 0 0 2px #ffd3de; }
+.crew-pic { display: block; width: 62px; height: 62px; }
+.crew-name { font-size: 10px; line-height: 1.15; max-width: 84px; text-align: center; }
+.crew-lv { font-size: 11px; color: #ff5d73; font-weight: 700; }
+.crew-chk {
+  position: absolute; right: -6px; top: -6px; width: 22px; height: 22px; border-radius: 50%;
+  background: #ff6f91; color: #fff; font-style: normal; font-size: 13px; line-height: 22px; text-align: center;
+  border: 2px solid #fff;
+}
+.crew-foot { flex: none; padding: 8px 16px calc(14px + var(--safe-bottom)); }
+.crew-foot .btn-all { opacity: .55; }
+.crew-foot .btn-all.on { opacity: 1; }

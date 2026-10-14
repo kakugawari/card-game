@@ -51,6 +51,7 @@
         </button>
         <p class="tap-hint" id="tapHint">コインのきを タップ！</p>
         <div class="ground" id="ground"></div>
+        <button type="button" class="crew-btn" id="crewBtn" aria-label="ひろばの なかまを えらぶ"><span class="crew-ico">🐾</span><span class="crew-txt">なかま</span></button>
       </div>
 
       <div class="upgrade" id="upgrade">
@@ -180,6 +181,16 @@
         <div class="rates-body" id="rates"></div>
       </details>
       </div>
+    </div>
+  </div>
+
+  <!-- ひろばを歩く なかまを えらぶ (ひろばの「なかま」ボタンから ひらく) -->
+  <div id="crewSheet" hidden>
+    <div class="psh-panel">
+      <div class="psh-head"><b>ひろばの なかま <span class="crew-count" id="crewCount"></span></b><button type="button" class="psh-close" id="crewClose" aria-label="とじる">×</button></div>
+      <div class="crew-sub" id="crewSub"></div>
+      <div class="psh-body"><div class="crew-grid" id="crewGrid"></div></div>
+      <div class="crew-foot"><button type="button" class="btn btn-mid btn-all" id="crewAuto"><span class="btn-label">おまかせ</span></button></div>
     </div>
   </div>
 
