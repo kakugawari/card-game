@@ -740,3 +740,37 @@ test('ミニゲーム: 保存したあと読み込んでも、きょうの回数
   assert.strictEqual(Core.miniLeft(bad, 'memory', NOON), 3);
   assert.ok(Core.miniLeft(Core.normalize({ money: 5 }), 'catch', NOON) === 3);
 });
+
+// ------------------------------------------------------------ パックの表紙と色
+test('パックの表紙の 3 人は そのパックに 出る子。せかい パックは 中身の ちがう 小さいパックから 1 人ずつ', () => {
+  const P = require('./packs.js');
+  const packOf = {};
+  (P.PACKS || P).forEach((pk) => pk.charas.forEach((c) => { packOf[c.id] = pk.id; }));
+  Core.SETS.forEach((st) => {
+    const charas = new Set(st.cards.map((c) => c.chara));
+    assert.strictEqual(st.mascots.length, 3, st.id);
+    st.mascots.forEach((m) => assert.ok(charas.has(m), `${st.id}: ${m} は このパックに 出ない`));
+  });
+  ['okashi', 'tabemono', 'kisetsu', 'machi'].forEach((id) => {
+    const st = Core.setById(id);
+    assert.strictEqual(new Set(st.mascots.map((m) => packOf[m])).size, 3, `${id}: ${st.mascots.map((m) => packOf[m])}`);
+  });
+});
+
+test('パックの色は どれも 見分けられる (3 つの色を 位置ごとに くらべた 平均の へだたりが 55 以上。前は おかしと きせつが 39)', () => {
+  const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  const S = Core.SETS;
+  for (let i = 0; i < S.length; i++) {
+    for (let j = i + 1; j < S.length; j++) {
+      const a = S[i].colors.map(hex), b = S[j].colors.map(hex);
+      const m = (d(a[0], b[0]) + d(a[1], b[1]) + d(a[2], b[2])) / 3;
+      assert.ok(m >= 55, `${S[i].id} と ${S[j].id}: ${m.toFixed(0)}`);
+    }
+  }
+});
+
+test('パックは「いきもの」6 つと「せかい」5 つに わかれる', () => {
+  const g = (st) => Core.CATS.find((c) => c.id === st.cat).group;
+  assert.deepStrictEqual(Core.SETS.map(g), ['ikimono', 'ikimono', 'ikimono', 'ikimono', 'ikimono', 'ikimono', 'sekai', 'sekai', 'sekai', 'sekai', 'sekai']);
+});

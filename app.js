@@ -379,10 +379,15 @@
   let sheetBuilt = false;
 
   function buildSheet() {
-    els.pshBody.innerHTML = '<div class="psh-grid">' + C.SETS.map(function (st) {
-      return '<button type="button" class="sp-btn" data-set="' + st.id + '">' + miniPack(st) +
-        '<span class="sp-name">' + shortName(st) + '</span><i class="sp-badge" hidden></i></button>';
-    }).join('') + '</div>';
+    // 「いきもの パック」(どんな いきものが でるか) と「せかい パック」(どうぶつたちが いろんな せかいで あそぶ) に分けて並べる
+    const groups = [['ikimono', 'いきもの パック', 'どんな いきものが でるかな'], ['sekai', 'せかい パック', 'どうぶつたちが いろんな せかいで あそぶよ']];
+    els.pshBody.innerHTML = groups.map(function (g) {
+      const sets = C.SETS.filter(function (st) { const cat = C.CATS.find(function (c) { return c.id === st.cat; }); return cat && cat.group === g[0]; });
+      return '<h3 class="psh-cat" data-group="' + g[0] + '">' + g[1] + ' <small>' + g[2] + '</small></h3><div class="psh-grid">' + sets.map(function (st) {
+        return '<button type="button" class="sp-btn" data-set="' + st.id + '">' + miniPack(st) +
+          '<span class="sp-name">' + shortName(st) + '</span><i class="sp-badge" hidden></i></button>';
+      }).join('') + '</div>';
+    }).join('');
     sheetBuilt = true;
   }
 

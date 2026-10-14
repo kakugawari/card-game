@@ -323,19 +323,19 @@
   ];
 
   // ---------------------------------------------------------------- ふえたパック (packs.js)
-  // なかまわけ = シリーズ (1 つにつき 1 パック)
+  // なかまわけ = シリーズ (1 つにつき 1 パック)。group: いきもの (どんな いきものが でるか) / せかい (どうぶつたちが いろんな せかいで あそぶ)
   const CATS = [
-    { id: 'mori', name: 'どうぶつ', mark: '🐾', code: 'A' },
-    { id: 'umi', name: 'うみ', mark: '🐟', code: 'S' },
-    { id: 'sora', name: 'そら', mark: '🐦', code: 'B' },
-    { id: 'mukashi', name: 'むかし', mark: '🦖', code: 'D' },
-    { id: 'yoru', name: 'よる・おばけ', mark: '👻', code: 'G' },
-    { id: 'mirai', name: 'みらい・うちゅう', mark: '🤖', code: 'F' },
-    { id: 'okashi', name: 'おかし', mark: '🍰', code: 'K' },
-    { id: 'tabemono', name: 'たべもの', mark: '🍙', code: 'T' },
-    { id: 'kisetsu', name: 'きせつ・おまつり', mark: '🌸', code: 'Q' },
-    { id: 'machi', name: 'まち・おしごと', mark: '🚒', code: 'M' },
-    { id: 'mahou', name: 'まほう・おとぎばなし', mark: '🪄', code: 'W' }
+    { id: 'mori', group: 'ikimono', name: 'どうぶつ', mark: '🐾', code: 'A' },
+    { id: 'umi', group: 'ikimono', name: 'うみ', mark: '🐟', code: 'S' },
+    { id: 'sora', group: 'ikimono', name: 'そら', mark: '🐦', code: 'B' },
+    { id: 'mukashi', group: 'ikimono', name: 'むかし', mark: '🦖', code: 'D' },
+    { id: 'yoru', group: 'ikimono', name: 'よる・おばけ', mark: '👻', code: 'G' },
+    { id: 'mirai', group: 'ikimono', name: 'みらい・うちゅう', mark: '🤖', code: 'F' },
+    { id: 'okashi', group: 'sekai', name: 'おかし', mark: '🍰', code: 'K' },
+    { id: 'tabemono', group: 'sekai', name: 'たべもの', mark: '🍙', code: 'T' },
+    { id: 'kisetsu', group: 'sekai', name: 'きせつ・おまつり', mark: '🌸', code: 'Q' },
+    { id: 'machi', group: 'sekai', name: 'まち・おしごと', mark: '🚒', code: 'M' },
+    { id: 'mahou', group: 'sekai', name: 'まほう・おとぎばなし', mark: '🪄', code: 'W' }
   ];
   const PACKS = typeof module === 'object' && module.exports ? require('./packs.js') : (typeof globalThis !== 'undefined' ? globalThis : this).Packs;
   const PACK_BY_ID = {};
@@ -374,13 +374,17 @@
     yoru: { base: 'ghost', extra: ['pbyoimatsuri', 'pbyumenokuni', 'pbyashiki'] },
     mirai: { base: 'future', extra: ['pbstation', 'pbwakusei', 'pbyuenchi'] },
     okashi: { full: ['oskcake', 'oskcandy', 'oskchoco', 'oskice', 'oskdonut', 'oskwagashi'],
-      sid: 'okashi', name: 'おかしパック', title: 'あまい あまい おかしの くに', scene: 'candy', colors: ['#ffc2dc', '#ffe3a0', '#ff9ec8'] },
+      sid: 'okashi', name: 'おかしパック', title: 'あまい あまい おかしの くに', scene: 'candy', colors: ['#ffb6d9', '#c8f2e4', '#ff8cc6'],
+      mascots: ['oskicedra', 'oskdonutinu', 'oskcandyuni'] },
     tabemono: { full: ['tbmfruit', 'tbmyasai', 'tbmonigiri', 'tbmsushi', 'tbmpasta', 'tbmnoodle'],
-      sid: 'tabemono', name: 'たべものパック', title: 'おいしい ごちそうの くに', scene: 'kitchen', colors: ['#ffd9a0', '#ffb870', '#ff9a8a'] },
+      sid: 'tabemono', name: 'たべものパック', title: 'おいしい ごちそうの くに', scene: 'kitchen', colors: ['#ffb070', '#ffe27a', '#8fd47a'],
+      mascots: ['tbmyasaiusa', 'tbmpastainu', 'tbmfruitkuma'] },
     kisetsu: { full: ['harusakura', 'natsumatsuri', 'akimomiji', 'fuyuyukiasobi', 'xmaskirakira', 'oshogatsu'],
-      sid: 'kisetsu', name: 'きせつパック', title: 'はる なつ あき ふゆ', scene: 'season', colors: ['#ffc2dc', '#ffe08a', '#ffa56a'] },
+      sid: 'kisetsu', name: 'きせつパック', title: 'はる なつ あき ふゆ', scene: 'season', colors: ['#ffc0dc', '#9fe0a8', '#9fd4ff'],
+      mascots: ['nmhanabikit', 'fydarumaru', 'hzsakuneko'] },
     machi: { full: ['shoubousho', 'oishasan', 'panyasan', 'gakkoubi', 'denshagotou', 'yuubinkyoku'],
-      sid: 'machi', name: 'まちパック', title: 'にぎやかな まちの はたらきもの', scene: 'town', colors: ['#ffb0a0', '#ffd060', '#80c8ff'] },
+      sid: 'machi', name: 'まちパック', title: 'にぎやかな まちの はたらきもの', scene: 'town', colors: ['#8fd0ff', '#ffe08a', '#ff8f7a'],
+      mascots: ['oiishakuma', 'pnkoppetora', 'sbtaichopen'] },
     mahou: { full: ['mahougakuen', 'yumenoshiro', 'youseinomori', 'yuushanotabi', 'kaizokusen', 'royalpalace'],
       sid: 'mahou', name: 'まほうパック', title: 'ふしぎな まほうと おとぎばなし', scene: 'castle', colors: ['#c9a6ff', '#ff9ed2', '#ffe27a'] }
   };
@@ -411,7 +415,8 @@
       extras = FULL_PLAN.map(function (row) { return cardFrom(ps[row[0]], row); });
       const first = ps[0].charas;
       set = { id: sp.sid, cat: cat.id, scene: sp.scene, code: cat.code + '1', name: sp.name, title: sp.title, mark: cat.mark,
-        colors: sp.colors, mascots: [first[0].id, first[1].id, first[2].id], cards: [] };
+        // 表紙の 3 人 (3 人めが スター)。中身の ちがう 小さいパックから 1 人ずつ えらぶと、パックの テーマが 伝わる
+        colors: sp.colors, mascots: sp.mascots || [first[0].id, first[1].id, first[2].id], cards: [] };
     }
     // レア度の低い順に並べ (同じレア度は書いた順)、001 から振り直す。ふつう (C〜RR) が先、シークレットが後
     const all = set.cards.concat(extras).map(function (c, i) { return { c: c, i: i }; });

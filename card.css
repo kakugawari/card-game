@@ -424,6 +424,10 @@
 }
 .pk-small { font-size: 4.6cqw; letter-spacing: .1em; opacity: .95; }
 .pk-big small { font-size: .5em; margin-left: .1em; }
+.pk-pre {
+  font-size: 7cqw; font-weight: 900; line-height: 1; margin-bottom: -1.5cqw;
+  paint-order: stroke fill; -webkit-text-stroke: 1.8cqw var(--ink, #ff6f91);
+}
 .pk-big.long { font-size: 10.5cqw; }
 .pk-big {
   font-size: 13.5cqw;
