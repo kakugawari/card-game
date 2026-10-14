@@ -315,7 +315,7 @@ async function run() {
         const q = await page.evaluate(() => {
           const r = (s) => document.querySelector(s).getBoundingClientRect();
           const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-          const up = r('#upgrade'), cr = r('#crewBtn'), tr = r('#tree'), bt = r('#btnUp'), g = r('#ground'), tab = r('#tabbar');
+          const up = r('#upgrade'), cr = r('#crewBtn'), tr = r('#tree .tree'), bt = r('#btnUp'), g = r('#ground'), tab = r('#tabbar');
           return { overCrew: hit(up, cr), overTree: hit(up, tr), tab: up.bottom <= g.top + 0.5 && g.bottom <= tab.top + 0.5, left: up.left, right: up.right, btnW: bt.width, btnH: bt.height };
         });
         ok(!q.overCrew && !q.overTree && q.tab && q.left >= 0 && q.right <= 430 && q.btnW >= 44 && q.btnH >= 40,
@@ -335,6 +335,25 @@ async function run() {
         for (let i = 0; i < 30; i++) t.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, clientX: 200, clientY: 300, pointerId: 1 + (i % 2) }));
       });
       ok((await money(page)) === 80, `連打 30 回も 1 回も取りこぼさない (${await money(page)})`);
+      // タップできる所は 木の絵だけでなく、木のまわりの空ぜんぶ (画面のはしまで)。「ゆびのちから」「なかま」の札と 草原の子は そのまま押せる
+      const zone = await page.evaluate(() => {
+        const r = (s) => document.querySelector(s).getBoundingClientRect();
+        const t = r('#tree .tree'), g = r('#ground'), u = r('#upgrade'), c = r('#crewBtn'), a = r('#tree');
+        const at = (x, y) => { const e = document.elementFromPoint(x, y); return e ? (e.closest('#tree') ? 'tree' : e.closest('#upgrade') ? 'upgrade' : e.closest('#crewBtn') ? 'crew' : e.closest('.walker') ? 'walker' : e.closest('#ground') ? 'ground' : e.tagName) : null; };
+        return {
+          wide: a.width >= 428 && a.left <= 1 && a.right >= 429 && a.bottom >= g.top - 1,
+          area: Math.round(a.width * a.height), art: Math.round(t.width * t.height),
+          left: at(10, t.top + 60), right: at(420, t.top + 160), below: at(30, g.top - 40),
+          up: at(u.left + 20, u.top + 12), crew: at(c.left + 10, c.top + 10), ground: at(215, g.top + 60)
+        };
+      });
+      ok(zone.wide && zone.left === 'tree' && zone.right === 'tree' && zone.below === 'tree' && zone.up === 'upgrade' && zone.crew === 'crew' && zone.ground !== 'tree',
+        `木をタップできる所は 木の絵のまわりの空ぜんぶ (面積 ${zone.area} / 木の絵 ${zone.art}。はし ${zone.left}・${zone.right}・草原の手前 ${zone.below}。札は ${zone.up}・${zone.crew}。草原は ${zone.ground})`);
+      const skyBefore = await money(page);
+      await page.touchscreen.tap(10, (await box(page, '#tree .tree')).y + 60);
+      await page.touchscreen.tap(420, (await box(page, '#tree .tree')).y + 160);
+      await page.waitForTimeout(150);
+      ok((await money(page)) - skyBefore === 2 * (await page.evaluate(() => window.__app.core.tapPower(window.__app.state()))), `木の絵の外 (画面のはし) を 指でタップしても コインが入る (+${(await money(page)) - skyBefore})`);
       const mu = await page.evaluate(() => {
         const bt = document.getElementById('btnMute'), sl = bt.querySelector('.mu-slash');
         return { emoji: /[🔊🔇]/.test(bt.textContent), svg: !!bt.querySelector('svg'), slash: getComputedStyle(sl).display, w: bt.getBoundingClientRect().width };

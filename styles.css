@@ -115,20 +115,32 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 }
 
 .tree-btn {
-  flex: none;
-  width: 290px;
-  height: 290px;
-  margin-top: 4px;
-  padding: 0;
+  /* タップできる所は 木のまわりの空ぜんぶ (ひろばの上から 草原の手前まで・画面のはしまで)。木の絵は まん中に 置くだけ */
+  position: absolute;
+  left: -16px;
+  right: -16px;
+  top: 0;
+  bottom: var(--gh);
+  margin: 0;
+  padding: 4px 0 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
   border: 0;
   background: none;
   cursor: pointer;
   outline: none;
   touch-action: none;   /* 連打しても 二度押しの拡大 (ズーム) をしない */
 }
-.tree { width: 100%; height: 100%; display: block; pointer-events: none; }
+.tree { flex: none; width: 290px; height: 290px; display: block; pointer-events: none; }
 
 .tap-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 302px;
+  text-align: center;
+  pointer-events: none;
   margin: 0;
   font-size: 15px;
   color: var(--muted);

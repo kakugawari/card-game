@@ -102,7 +102,7 @@
     renderMoney();
     pop(e, gain);
     if (squishAnim) squishAnim.cancel();
-    squishAnim = els.tree.animate(
+    squishAnim = els.tree.querySelector('.tree').animate(
       [{ transform: 'scale(1, 1)' }, { transform: 'scale(1.05, .94)' }, { transform: 'scale(1, 1)' }],
       { duration: 160, easing: 'ease-out' }
     );
