@@ -1120,6 +1120,12 @@ async function run() {
         [...h.nextElementSibling.querySelectorAll('.sp-btn')].map((x) => x.dataset.set).join(',')));
       ok(grp.length === 2 && grp[0] === 'いきもの パック:animal,sea,bird,dino,ghost,future' && grp[1] === 'せかい パック:okashi,tabemono,kisetsu,machi,mahou',
         `パックの一覧は「いきもの」と「せかい」の 見出しで わかれる (${grp.join(' / ')})`);
+      // 一覧の札は パックの絵そのもの (名前・3 人そろい)。どの札も 画面の中で 押せる大きさ
+      const art = await page.evaluate(() => [...document.querySelectorAll('#pshBody .sp-btn')].map((b) => {
+        const pk = b.querySelector('.sp-pack .pk'), r = pk && pk.getBoundingClientRect();
+        return { set: b.dataset.set, big: !!b.querySelector('.pk-big'), people: b.querySelectorAll('.pk-m').length, w: r ? Math.round(r.width) : 0, h: r ? Math.round(r.height) : 0 };
+      }));
+      ok(art.length === 11 && art.every((a) => a.big && a.people === 3 && a.w >= 100 && a.h >= 140), `一覧の札は パックの絵そのもの (名前・3 人そろい。${art.map((a) => a.w + 'x' + a.h)[0]})`);
       await page.tap('#pshClose');
       await page.waitForSelector('#packSheet', { state: 'hidden' });
       await page.tap('#btnNext');

@@ -869,7 +869,9 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .psh-cat { margin: 14px 6px 8px; font-size: 15px; }
 .psh-cat small { color: var(--muted); font-size: 11px; }
 .psh-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 8px; margin-top: 6px; }
-.psh-grid .sp-mini { width: 76px; height: 106px; }
+/* 一覧は パックの絵そのもの (パック画面の 大きいパックと 同じ絵。名前・説明・3 人そろい)。押せるのは ボタンぜんたい */
+.psh-grid .sp-pack { display: block; position: relative; width: 112px; height: 161px; pointer-events: none; }
+.psh-grid .sp-pack .pk-guide, .psh-grid .sp-pack .pk-leak { display: none; }
 .psh-grid .sp-name { font-size: 13px; }
 .sp-btn {
   position: relative;
