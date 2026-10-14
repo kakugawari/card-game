@@ -1173,7 +1173,7 @@ async function run() {
         return { badge: w && w.querySelector('.wk-lv') ? w.querySelector('.wk-lv').textContent : '', first: document.querySelector('.walker').dataset.ch,
           hint: !!document.querySelector('.wk-hint') };
       }, ch);
-      ok(after.badge.includes('2') && !after.hint, `歩いている子に ♥ のレベルが付き、案内は消える (${after.badge})`);
+      ok(after.badge === '' && !after.hint, `今日なでた子には ♥ の札が出ず、案内は消える (札 「${after.badge}」)`);
       // 今日なでた子からは ふわふわの ハートが出ない (なでていない子だけ出るので、済んだかどうか 見分けられる)
       const floatHeart = (c) => page.evaluate((id) => {
         const w = document.querySelector('.walker[data-ch="' + id + '"]');
@@ -1187,8 +1187,10 @@ async function run() {
       await page.waitForTimeout(300);
       fh = await floatHeart(ch);
       ok(!fh.cls.includes('petted') && fh.n === 1, `まだなでていない子は ハートが出る (${fh.cls} / ハート ${fh.n})`);
+      const badgeNow = await page.evaluate((c) => { const b = document.querySelector('.walker[data-ch="' + c + '"] .wk-lv'); return b ? b.textContent : ''; }, ch);
+      ok(/^♥\d$/.test(badgeNow), `まだなでていない子には ♥ の札が出る (${badgeNow})`);
       // どの子も「なでた ⇔ ハートの部品が無い」(Lv2 以上の子)。7 人ぜんぶで そろっている
-      const allHearts = await page.evaluate(() => [...document.querySelectorAll('.walker')].filter((w) => !/\blv1\b/.test(w.className)).map((w) => ({ ch: w.dataset.ch, petted: w.classList.contains('petted'), n: w.querySelectorAll('.wk-fh').length })).filter((x) => x.petted !== (x.n === 0)));
+      const allHearts = await page.evaluate(() => [...document.querySelectorAll('.walker')].map((w) => ({ ch: w.dataset.ch, petted: w.classList.contains('petted'), lv1: /\blv1\b/.test(w.className), n: w.querySelectorAll('.wk-fh').length, b: w.querySelectorAll('.wk-lv').length })).filter((x) => x.petted !== (x.b === 0) || (!x.lv1 && x.petted !== (x.n === 0))));
       ok(allHearts.length === 0, `どの子も なでた ⇔ ハートが無い (ちがい: ${JSON.stringify(allHearts)})`);
 
       // ずかんからも おやつを あげられる (歩いていない子にも)
