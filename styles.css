@@ -240,28 +240,29 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 }
 
 .upgrade {
-  /* 草原の上のひだり (「なかま」のボタンと同じ段) に ちいさく置く */
+  /* 草原の いちばん下 (タブの上) に よこいっぱいに おく。歩く子は この上を歩く */
   position: absolute;
-  left: 16px;
-  bottom: calc(var(--gh) + 10px);
+  left: 0;
+  right: 0;
+  bottom: 8px;
   z-index: 3;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 5px 5px 12px;
+  gap: 10px;
+  padding: 6px 6px 6px 16px;
   background: var(--panel);
   border: 3px solid var(--line);
-  border-radius: 20px;
+  border-radius: 22px;
   box-shadow: 0 3px 0 var(--line);
 }
-.up-info { min-width: 0; white-space: nowrap; }
-.up-name { font-size: 12px; }
+.up-info { flex: 1 1 auto; min-width: 0; white-space: nowrap; }
+.up-name { font-size: 15px; }
 .up-name b { color: #e07a1f; }
-.up-sub { margin-top: 1px; font-size: 11px; color: var(--muted); }
-.upgrade .btn-up { min-width: 0; font-size: 14px; border-radius: 14px; box-shadow: 0 3px 0 #d9a114; }
+.up-sub { margin-top: 1px; font-size: 12px; color: var(--muted); }
+.upgrade .btn-up { min-width: 118px; font-size: 16px; border-radius: 16px; box-shadow: 0 3px 0 #d9a114; }
 .upgrade .btn-up:disabled { box-shadow: 0 3px 0 #c9b998; }
-.upgrade .btn-label { padding: 12px 11px; }
-.upgrade .btn-up .btn-label::before { width: 13px; height: 13px; border-width: 2px; }
+.upgrade .btn-label { padding: 12px 12px; }
+.upgrade .btn-up .btn-label::before { width: 15px; height: 15px; border-width: 2px; }
 
 /* ------------------------------------------------ ボタン */
 .btn {
@@ -1106,25 +1107,22 @@ html.on-title, html.on-title body { background: linear-gradient(90deg, #82e6f6, 
 
 /* ひろばの なかまを えらぶ */
 .crew-btn {
+  /* 「なかま」: 上のおんぷのボタンの となり (ひろばだけ) */
   position: absolute;
-  right: 16px;
-  bottom: calc(var(--gh) + 10px);
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 7px 12px 7px 9px;
-  border: 3px solid var(--line);
-  border-radius: 999px;
+  right: 66px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
   background: var(--panel);
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 700;
+  border: 3px solid var(--line);
+  border-radius: 50%;
   box-shadow: 0 3px 0 var(--line);
   cursor: pointer;
 }
 .crew-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
-.crew-ico { font-size: 15px; }
+.crew-btn svg { width: 26px; height: 26px; display: block; }
 .crew-count { color: var(--muted); font-size: 14px; margin-left: 4px; }
 #crewSheet .psh-panel { height: auto; max-height: calc(100% - var(--safe-top) - 40px); }
 .crew-sub { flex: none; margin: 0 20px 8px; font-size: 12px; color: var(--muted); min-height: 16px; }

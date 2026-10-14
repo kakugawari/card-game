@@ -307,7 +307,7 @@ async function run() {
         ok(r.barBottom <= 932.5 && r.worst <= r.barTop + 0.5 && r.right <= 430.5 && r.top >= 59,
           `${tab}: タブ・ボタンが画面に収まり、重ならない (ボタンの下 ${Math.round(r.worst)} / タブの上 ${Math.round(r.barTop)})`);
       }
-      // ひろば: 「ゆびのちから」の札 (草原の上のひだり) が、「なかま」のボタン・木・タブと重ならず、押せる大きさ
+      // ひろば: 「ゆびのちから」の札は 草原の いちばん下 (タブの上) に よこいっぱい。「なかま」は おんぷのボタンの となり (ひろばだけ)
       for (const h of [932, 873]) {
         await page.setViewportSize({ width: 430, height: h });
         await goTab(page, 'Home');
@@ -315,12 +315,30 @@ async function run() {
         const q = await page.evaluate(() => {
           const r = (s) => document.querySelector(s).getBoundingClientRect();
           const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-          const up = r('#upgrade'), cr = r('#crewBtn'), tr = r('#tree .tree'), bt = r('#btnUp'), g = r('#ground'), tab = r('#tabbar');
-          return { overCrew: hit(up, cr), overTree: hit(up, tr), tab: up.bottom <= g.top + 0.5 && g.bottom <= tab.top + 0.5, left: up.left, right: up.right, btnW: bt.width, btnH: bt.height };
+          const up = r('#upgrade'), cr = r('#crewBtn'), mu = r('#btnMute'), mo = r('#money'), gm = r('#btnGames'), tr = r('#tree .tree'), bt = r('#btnUp'), g = r('#ground'), tab = r('#tabbar');
+          const walkers = [...document.querySelectorAll('.walker')].map((w) => w.getBoundingClientRect());
+          return {
+            crewBeside: cr.right <= mu.left && mu.left - cr.right <= 16 && Math.abs(cr.top - mu.top) < 1 && cr.width >= 44 && !hit(cr, mo) && !hit(cr, gm),
+            upOnGrass: up.top >= g.top && up.bottom <= g.bottom && up.bottom <= tab.top && up.left >= 0 && up.right <= 430 && up.width >= 380, overTree: hit(up, tr),
+            walkersAbove: walkers.every((w) => w.bottom <= up.top + 2), btnW: bt.width, btnH: bt.height, crewVisible: !document.getElementById('crewBtn').hidden
+          };
         });
-        ok(!q.overCrew && !q.overTree && q.tab && q.left >= 0 && q.right <= 430 && q.btnW >= 44 && q.btnH >= 40,
-          `ひろば (高さ ${h}): 「ゆびのちから」の札は 草原の上に ちいさく置かれ、なかま・木と重ならず、ボタンは押せる大きさ (${Math.round(q.btnW)}x${Math.round(q.btnH)})`);
+        ok(q.crewBeside && q.crewVisible, `ひろば (高さ ${h}): 「なかま」は おんぷのボタンの となり (コイン・★と重ならない)`);
+        ok(q.upOnGrass && !q.overTree && q.walkersAbove && q.btnW >= 44 && q.btnH >= 40,
+          `ひろば (高さ ${h}): 「ゆびのちから」の札は 草原の いちばん下で よこいっぱい。歩く子は その上・ボタンは押せる大きさ (${Math.round(q.btnW)}x${Math.round(q.btnH)})`);
       }
+      // 「なかま」は ひろばだけ。コインの桁が多くても、両はしのボタンと 重ならない
+      await goTab(page, 'Packs');
+      ok(await page.locator('#crewBtn').isHidden(), '「なかま」は パックの画面では 出ない');
+      await goTab(page, 'Home');
+      await page.evaluate(() => window.__app.setMoney(9999999999));
+      await page.waitForTimeout(100);
+      const wide = await page.evaluate(() => {
+        const r = (s) => document.querySelector(s).getBoundingClientRect();
+        const mo = r('#money'), cr = r('#crewBtn'), gm = r('#btnGames');
+        return { gapR: cr.left - mo.right, gapL: mo.left - gm.right, text: document.getElementById('moneyNum').textContent };
+      });
+      ok(wide.gapR >= 0 && wide.gapL >= 0, `コインが ${wide.text} でも、コインの表示は 両はしのボタンと 重ならない (右 ${Math.round(wide.gapR)}・左 ${Math.round(wide.gapL)})`);
       await context.close();
     }
 
