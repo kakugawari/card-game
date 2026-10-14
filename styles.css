@@ -1219,3 +1219,60 @@ html.on-title, html.on-title body { background: linear-gradient(90deg, #82e6f6, 
   .boxbar { padding: 5px 14px 5px 10px; }
   .boxbar-ico { width: 34px; height: 34px; }
 }
+
+/* ------------------------------------------------ パック画面: 用意してもらった画像のとおりの並び (背景は packs-bg.jpg。ボタン・札は本物) */
+#app.bg-packs { background: #f1dfc4 url(./packs-bg.jpg) center top / cover no-repeat; }
+#scPacks { background: none; }
+.stage::before, .stage-shadow { display: none; }
+.stage { padding: 0; }
+.stage-btns { background: none; padding-top: 6px; gap: 8px; }
+.stage-plaque {
+  position: relative; width: 352px; max-width: none; padding: 6px 24px 7px 12px; gap: 10px; box-sizing: border-box;
+  background: linear-gradient(#fffdf8, #f8ecda); border: 3px solid #e2c99f; box-shadow: 0 3px 0 #d3b182, 0 6px 14px rgba(90,50,20,.15);
+}
+.stage-paw { width: 44px; height: 44px; font-size: 24px; flex: none; }
+.plq-text { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
+.plq-text b { font-size: 29px; letter-spacing: .05em; max-width: 100%; }
+.plq-text .stage-desc { margin: 2px 0 0; font-size: 11.5px; white-space: nowrap; }
+.plq-leaf { position: absolute; top: 14px; width: 24px; height: 24px; }
+.plq-leaf.l { left: -9px; transform: rotate(-20deg); }
+.plq-leaf.r { right: -9px; transform: rotate(20deg); }
+.stage-row { margin-top: 10px; }
+.shop-pack { filter: drop-shadow(0 16px 12px rgba(90,50,10,.4)); }
+/* ◀ ▶ : 丸いボタン (パックの左右) */
+.stage-nb {
+  top: 50%; translate: 0 -50%; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center;
+  background: linear-gradient(#fffdf8, #f6e9d6); border: 3px solid #ecd9b8; box-shadow: 0 3px 0 #d8bf94, 0 6px 12px rgba(90,50,20,.2);
+}
+.stage-nb svg { width: 26px; height: 26px; }
+.stage-nb.prev { left: 24px; }
+.stage-nb.next { right: 24px; }
+.stage-nb:active { translate: 0 calc(-50% + 3px); box-shadow: 0 0 0 #d8bf94; }
+.stage-dots { margin-top: 2px; }
+.stage-dots button { width: 20px; }
+.stage-dots i { background: rgba(255,255,255,.85); box-shadow: 0 0 0 1px rgba(150,120,90,.35); }
+.stage-meta { width: 100%; padding: 0 30px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 2px; }
+.stage-meta .btn { width: auto; flex: none; }
+#btnFree { font-size: 14px; }
+#btnFree .btn-label { padding: 6px 16px; }
+#btnFree.wait { background: #fff0f3; border: 2px solid #f3b7c6; box-shadow: 0 2px 0 #e3a0b3; color: #e0476b; }
+#btnFree.wait .btn-label { padding: 4px 14px 4px 10px; font-size: 13px; }
+.stage-num { padding: 5px 20px; border-radius: 999px; background: rgba(255,250,240,.9); color: #6a4a30; font-size: 14px; font-weight: 900; box-shadow: 0 1px 0 rgba(150,110,70,.3); }
+.stage-links { display: flex; justify-content: space-between; gap: 10px; padding: 0 10px; margin-top: 2px; }
+.pill-link {
+  flex: 0 0 auto; width: 46%; display: flex; align-items: center; gap: 10px; padding: 6px 14px; border: 0; border-radius: 999px; cursor: pointer; font: inherit; font-weight: 900; font-size: 16px; color: #6a4a30;
+  background: rgba(255,250,240,.95); box-shadow: 0 2px 0 rgba(150,110,70,.35), 0 4px 8px rgba(90,50,20,.12); -webkit-tap-highlight-color: transparent;
+}
+.pill-link svg { width: 28px; height: 28px; flex: none; }
+.pill-link span { flex: 1; text-align: left; }
+.pill-link i { width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 8px solid #b99a78; }
+.pill-link:active { translate: 0 2px; box-shadow: none; }
+@media (max-height: 900px) {
+  .stage-pack-wrap { width: 206px; height: 297px; }
+  .stage-nb { height: 52px; width: 52px; }
+  .stage-row { margin-top: 6px; }
+  .stage-btns { gap: 5px; padding-top: 2px; }
+  .stage-links { margin-top: 0; }
+  .pill-link { padding: 4px 14px; }
+  .plq-text b { font-size: 26px; }
+}

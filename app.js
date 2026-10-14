@@ -18,7 +18,7 @@
   const els = {
     moneyNum: $('moneyNum'), tree: $('tree'), plaza: $('plaza'), ground: $('ground'), tapHint: $('tapHint'),
     upLv: $('upLv'), upSub: $('upSub'), btnUp: $('btnUp'), btnUpLabel: $('btnUpLabel'),
-    shopPack: $('shopPack'), shopName: $('shopName'), stage: $('packStage'), stageRow: $('stageRow'), stageDesc: $('stageDesc'), stageMark: $('stageMark'), stageDots: $('stageDots'), nbPrev: $('nbPrev'), nbNext: $('nbNext'), btnPrev: $('btnPrev'), btnNext: $('btnNext'), btnFree: $('btnFree'), btnFreeLabel: $('btnFreeLabel'),
+    shopPack: $('shopPack'), shopName: $('shopName'), stage: $('packStage'), stageRow: $('stageRow'), stageDesc: $('stageDesc'), stageMark: $('stageMark'), stageDots: $('stageDots'), btnPrev: $('btnPrev'), btnNext: $('btnNext'), btnFree: $('btnFree'), btnFreeLabel: $('btnFreeLabel'),
     btnBuy: $('btnBuy'), btnBuyLabel: $('btnBuyLabel'), btnBox: $('btnBox'), btnBoxLabel: $('btnBoxLabel'),
     boxArt: $('boxArt'), btnOpenAll: $('btnOpenAll'), btnOpenAllLabel: $('btnOpenAllLabel'), myBox: $('myBox'), myBoxLeft: $('myBoxLeft'), myBoxSr: $('myBoxSr'), btnOpenBox: $('btnOpenBox'), boxLeft: $('boxLeft'), rates: $('rates'), packDot: $('packDot'), btnBoxBar: $('btnBoxBar'), boxBarSub: $('boxBarSub'), boxSheet: $('boxSheet'), bxClose: $('bxClose'),
     packSheet: $('packSheet'), pshBody: $('pshBody'), pshTitle: $('pshTitle'), pshClose: $('pshClose'), zkPick: $('zkPick'), zkTitle: $('zkTitle'),
@@ -550,6 +550,8 @@
   function openBoxSheet() { els.boxSheet.hidden = false; els.boxSheet.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160 }); }
   function closeBoxSheet() { els.boxSheet.hidden = true; }
   els.btnBoxBar.addEventListener('click', openBoxSheet);
+  $('btnMine').addEventListener('click', openBoxSheet);
+  $('btnToZukan').addEventListener('click', function () { showTab('Zukan'); });
   els.bxClose.addEventListener('click', closeBoxSheet);
   els.boxSheet.addEventListener('click', function (e) { if (e.target === els.boxSheet) closeBoxSheet(); });
   els.btnOpenBox.addEventListener('click', function () { closeBoxSheet(); openPack('box'); });
@@ -600,6 +602,7 @@
       els.stageDots.innerHTML = C.SETS.map(function (st) { return '<button type="button" data-set="' + st.id + '" aria-label="' + st.name + '"><i></i></button>'; }).join('');
     }
     Array.prototype.forEach.call(els.stageDots.children, function (d, i) { d.classList.toggle('on', i === idx); });
+    $('stageNum').textContent = (idx + 1) + '/' + C.SETS.length;
   }
 
   function renderPacks() {
@@ -617,8 +620,6 @@
     els.shopPack.innerHTML = V.packHTML(curSet);
     // 左右に となりの パックが 少し見える (タップでも めくれる)
     const ci = C.SETS.findIndex(function (st) { return st.id === curSet; }), n = C.SETS.length;
-    els.nbPrev.innerHTML = V.packHTML(C.SETS[(ci - 1 + n) % n].id);
-    els.nbNext.innerHTML = V.packHTML(C.SETS[(ci + 1) % n].id);
     els.boxArt.style.cssText = '--pk1:' + set.colors[0] + ';--pk2:' + set.colors[1] + ';--pk3:' + set.colors[2];
     els.boxArt.innerHTML = V.boxHTML(set.id);
     els.shopName.textContent = set.name;
@@ -806,6 +807,7 @@
     if (name === 'Packs') renderPacks();
     if (name === 'Zukan') renderZukan();
     if (name === 'Home') renderWalkers();
+    $('app').classList.toggle('bg-packs', name === 'Packs');   // パック画面は 画像の背景を うしろ ぜんたいに
     $('crewBtn').hidden = name !== 'Home';   // 「なかま」は ひろばだけ
   }
 

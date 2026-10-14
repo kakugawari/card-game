@@ -67,23 +67,34 @@
     <section class="screen" id="scPacks" hidden>
       <!-- パックをえらぶ台: 大きいパックを ◀ ▶ (スワイプ) でめくる -->
       <div class="stage" id="packStage">
-        <div class="stage-plaque"><i class="stage-paw" id="stageMark">🐾</i><b id="shopName">どうぶつパック</b></div>
-        <p class="stage-desc" id="stageDesc"></p>
+        <div class="stage-plaque">
+          <svg class="plq-leaf l" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21C3 10 10 3 21 3c0 11-7 18-18 18z" fill="#7fbf5a" stroke="#4f8f3a" stroke-width="1.5"/></svg>
+          <i class="stage-paw" id="stageMark">🐾</i>
+          <span class="plq-text"><b id="shopName">どうぶつパック</b><small class="stage-desc" id="stageDesc"></small></span>
+          <svg class="plq-leaf r" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 21C21 10 14 3 3 3c0 11 7 18 18 18z" fill="#7fbf5a" stroke="#4f8f3a" stroke-width="1.5"/></svg>
+        </div>
         <div class="stage-row" id="stageRow">
-          <button type="button" class="stage-nb prev" id="btnPrev" aria-label="まえの パック"><span class="nb-pack" id="nbPrev"></span><span class="nb-hint"><svg viewBox="0 0 32 20" aria-hidden="true"><path d="M28 14C22 4 12 4 5 10M5 10l7-1.5M5 10l2 7" fill="none" stroke="#6f8cf0" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>スワイプで<br>きりかえ</span></button>
+          <button type="button" class="stage-nb prev" id="btnPrev" aria-label="まえの パック"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 4L6 12l10 8z" fill="#ee5f94" stroke="#ee5f94" stroke-width="2" stroke-linejoin="round"/></svg></button>
           <div class="stage-pack-wrap"><div class="shop-pack" id="shopPack"></div><i class="stage-shadow"></i></div>
-          <button type="button" class="stage-nb next" id="btnNext" aria-label="つぎの パック"><span class="nb-pack" id="nbNext"></span><span class="nb-hint"><svg viewBox="0 0 32 20" aria-hidden="true"><path d="M4 14C10 4 20 4 27 10M27 10l-7-1.5M27 10l-2 7" fill="none" stroke="#6f8cf0" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>スワイプで<br>きりかえ</span></button>
+          <button type="button" class="stage-nb next" id="btnNext" aria-label="つぎの パック"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4l10 8-10 8z" fill="#ee5f94" stroke="#ee5f94" stroke-width="2" stroke-linejoin="round"/></svg></button>
         </div>
         <div class="stage-dots" id="stageDots"></div>
+        <div class="stage-meta">
+          <button type="button" class="btn btn-open" id="btnFree"><span class="btn-label" id="btnFreeLabel">きょうの むりょうパック！</span></button>
+          <span class="stage-num" id="stageNum">1/11</span>
+        </div>
       </div>
       <div class="stage-btns">
-        <button type="button" class="btn btn-big btn-open" id="btnFree"><span class="btn-label" id="btnFreeLabel">きょうの むりょうパック！</span></button>
         <button type="button" class="btn btn-hero" id="btnBuy"><span class="hero-spark l" aria-hidden="true">✦</span><span class="btn-label"><i class="hero-coin" aria-hidden="true"></i><span class="hero-text"><b id="btnBuyLabel">500 コインで ひく</b><small id="btnBuySub">1パック・5まい入り</small></span></span><span class="hero-spark r" aria-hidden="true">✦</span></button>
         <button type="button" class="boxbar" id="btnBoxBar" aria-label="BOX で ひく">
           <svg class="boxbar-ico" viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="16" width="30" height="20" rx="4" fill="#8e7cf0" stroke="#4a3a8a" stroke-width="2"/><rect x="3" y="11" width="34" height="9" rx="3" fill="#a08cf5" stroke="#4a3a8a" stroke-width="2"/><path d="M20 11v25" stroke="#e9e2ff" stroke-width="4"/><path d="M20 11c-3-7-10-7-9-2.5C12 12 18 11 20 11zM20 11c3-7 10-7 9-2.5C28 12 22 11 20 11z" fill="#c9bcff" stroke="#4a3a8a" stroke-width="2" stroke-linejoin="round"/><path d="M20 22l1.4 2.9 3.2.4-2.3 2.2.6 3.2-2.9-1.5-2.9 1.5.6-3.2-2.3-2.2 3.2-.4z" fill="#fff"/></svg>
           <span class="boxbar-text"><b>BOX で ひく</b><small id="boxBarSub">30パック入り・SR 以上 1まい確定！</small></span>
           <i class="boxbar-go" aria-hidden="true"></i>
         </button>
+        <div class="stage-links">
+          <button type="button" class="pill-link" id="btnMine"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="8" width="16" height="13" rx="3" fill="#6fa8f5" stroke="#3f6fbf" stroke-width="1.6"/><path d="M8 8V6a4 4 0 018 0v2" fill="none" stroke="#3f6fbf" stroke-width="1.8"/></svg><span>てもち</span><i></i></button>
+          <button type="button" class="pill-link" id="btnToZukan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5c4-1 7 0 9 2 2-2 5-3 9-2v14c-4-1-7 0-9 2-2-2-5-3-9-2z" fill="#9fd0ff" stroke="#3f6fbf" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 7v14" stroke="#3f6fbf" stroke-width="1.6"/></svg><span>ずかん</span><i></i></button>
+        </div>
       </div>
     </section>
 
