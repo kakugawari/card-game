@@ -115,8 +115,12 @@
       return '<div class="pk-m pk-m' + i + '">' + A.svg(id, { walk: false }) + '</div>';
     }).join('');
     const big = set.name.replace(/パック$/, '');
+    // 「みらいの どうぶつ」のように前置きがある名前は、前置きを小さく上の行へ (1 行だと パックの外へ はみ出す)
+    const sp = big.lastIndexOf(' ');
+    const pre = sp > 0 ? big.slice(0, sp) : '', main = sp > 0 ? big.slice(sp + 1) : big;
     const body = '<div class="pk-shine"></div><div class="pk-logo"><span class="pk-small">' + set.mark + ' ' + set.code + '</span>' +
-      '<span class="pk-big' + (big.length > 5 ? ' long' : '') + '">' + esc(big) + '<small>パック</small></span><span class="pk-sub">' + esc(set.title) + '</span></div>' +
+      (pre ? '<span class="pk-pre">' + esc(pre) + '</span>' : '') +
+      '<span class="pk-big' + (main.length > 5 ? ' long' : '') + '">' + esc(main) + '<small>パック</small></span><span class="pk-sub">' + esc(set.title) + '</span></div>' +
       '<div class="pk-mascots">' + mascots + '</div><div class="pk-count">1パック 5まい入り</div>';
     const bg = '--pk1:' + set.colors[0] + ';--pk2:' + set.colors[1] + ';--pk3:' + set.colors[2];
     return '<div class="pk pk-' + set.id + '" style="' + bg + '"><div class="pk-body" style="clip-path:' + PACK_CLIP.body + '">' + body + '<i class="pk-real"></i></div>' +

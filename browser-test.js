@@ -548,7 +548,10 @@ async function run() {
         const el = document.getElementById('opPack');
         return { hidden: el.hidden, op: getComputedStyle(el).opacity, tf: getComputedStyle(el).transform };
       });
-      ok(!vis.hidden && vis.op === '1' && vis.tf === 'none', `新しいパックが見えている (hidden ${vis.hidden} / 濃さ ${vis.op} / ${vis.tf})`);
+      // 当たりの パックは 揺れ (予兆) で すこし かたむくので、ずれ・縮みが 小さければ よい (前の演出の 名残は 沈んで 小さくなる)
+      const m = vis.tf === 'none' ? [1, 0, 0, 1, 0, 0] : vis.tf.match(/-?[\d.e-]+/g).map(Number);
+      const still = Math.abs(Math.hypot(m[0], m[1]) - 1) < 0.02 && Math.hypot(m[4], m[5]) < 4;
+      ok(!vis.hidden && vis.op === '1' && still, `新しいパックが見えている (hidden ${vis.hidden} / 濃さ ${vis.op} / ${vis.tf})`);
       await context.close();
 
     }
@@ -1029,6 +1032,19 @@ async function run() {
         return { w: r.width, h: r.height, name: document.getElementById('shopName').textContent, idx: document.getElementById('stageIndex').textContent };
       });
       ok(bar.w >= 205 && bar.h >= 295 && bar.name === 'どうぶつパック' && bar.idx === '1 / 11', `大きいパック (${Math.round(bar.w)}x${Math.round(bar.h)}) と名前・番号が出る (${bar.idx})`);
+      // パックの名前 (いちばん長い「みらいの どうぶつ」も) が パックの外へ はみ出さない
+      const nameOver = await page.evaluate(() => Cards.SETS.map((s) => {
+        const d = document.createElement('div');
+        d.style.cssText = 'position:fixed;left:0;top:0;width:200px;height:288px';
+        d.innerHTML = CardView.packHTML(s.id); document.body.appendChild(d);
+        const pk = d.querySelector('.pk-body').getBoundingClientRect();
+        const over = Math.max(...[...d.querySelectorAll('.pk-big, .pk-pre, .pk-sub')].map((e) => {
+          const t = e.getBoundingClientRect(); return Math.max(pk.left - t.left, t.right - pk.right);
+        }));
+        d.remove();
+        return { code: s.code, over: Math.round(over) };
+      }).filter((x) => x.over > -4));
+      ok(nameOver.length === 0, `どのパックも 名前が パックの中におさまる (${JSON.stringify(nameOver)})`);
       await page.tap('.set-pick .sp-bar');
       await page.waitForSelector('#packSheet:not([hidden])');
       const grp = await page.evaluate(() => [...document.querySelectorAll('#pshBody .psh-cat')].map((h) => h.textContent.split(' ')[0] + ' ' + h.textContent.split(' ')[1] + ':' +
