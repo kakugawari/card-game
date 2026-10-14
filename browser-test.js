@@ -686,6 +686,25 @@ async function run() {
           name: a.querySelector('.bxb-big').textContent, inside: fr.left >= r.left - 1 && fr.right <= r.right + 1 && fr.bottom <= r.bottom + 1, w: r.width };
       });
       ok(art.faces && art.mascots === 3 && art.name === 'どうぶつ' && art.inside && art.w >= 140, `BOX の絵は 3 つの面の箱で、前の面に パックの絵 (名前「${art.name}」・なかま ${art.mascots} 人) が はまる`);
+      // 箱の 3 人は、パックの表紙と 同じ子で 同じ並び (スターの子が まん中)
+      const same = await page.evaluate(() => Cards.SETS.map((s) => {
+        const d = document.createElement('div');
+        d.style.cssText = 'position:fixed;left:0;top:0;width:150px;height:114px';
+        d.innerHTML = CardView.boxHTML(s.id) + '<div style="position:fixed;left:200px;top:0;width:100px;height:144px">' + CardView.packHTML(s.id) + '</div>';
+        document.body.appendChild(d);
+        const ids = (sel) => [...d.querySelectorAll(sel + ' svg')].map((e) => e.innerHTML.length);
+        const bx = [...d.querySelectorAll('.bxb-m')].map((e) => e.querySelector('svg').innerHTML);
+        const pk = [...d.querySelectorAll('.pk-m')].map((e) => e.querySelector('svg').innerHTML);
+        const mid = (parts, a) => { const r = parts.map((e) => e.getBoundingClientRect()); return r.map((q) => (q.left + q.right) / 2); };
+        const bc = mid([...d.querySelectorAll('.bxb-m')]), pc = mid([...d.querySelectorAll('.pk-m')]);
+        const b0 = d.querySelector('.bxb').getBoundingClientRect().left, b1 = d.querySelector('.bxb').getBoundingClientRect().right;
+        d.remove();
+        const sameKids = bx.length === 3 && pk.length === 3 && bx.every((h, i) => h === pk[i]);
+        // まん中の子 (mascots[2]) が、左 (mascots[0]) と右 (mascots[1]) の あいだに いる
+        const midOk = bc[2] > bc[0] && bc[2] < bc[1] && pc[2] > pc[0] && pc[2] < pc[1];
+        return { code: s.code, ok: sameKids && midOk };
+      }).filter((x) => !x.ok));
+      ok(same.length === 0, `どのパックも、箱の 3 人は 表紙と 同じ子・同じ並び (ちがい: ${JSON.stringify(same)})`);
       await scrollToBtn(page, 'btnOpenBox');
       const ob = await page.evaluate(() => {
         const b = document.getElementById('btnOpenBox').getBoundingClientRect();
@@ -1120,6 +1139,12 @@ async function run() {
         [...h.nextElementSibling.querySelectorAll('.sp-btn')].map((x) => x.dataset.set).join(',')));
       ok(grp.length === 2 && grp[0] === 'いきもの パック:animal,sea,bird,dino,ghost,future' && grp[1] === 'せかい パック:okashi,tabemono,kisetsu,machi,mahou',
         `パックの一覧は「いきもの」と「せかい」の 見出しで わかれる (${grp.join(' / ')})`);
+      // 一覧の札は パックの絵そのもの (名前・3 人そろい)。どの札も 画面の中で 押せる大きさ
+      const art = await page.evaluate(() => [...document.querySelectorAll('#pshBody .sp-btn')].map((b) => {
+        const pk = b.querySelector('.sp-pack .pk'), r = pk && pk.getBoundingClientRect();
+        return { set: b.dataset.set, big: !!b.querySelector('.pk-big'), people: b.querySelectorAll('.pk-m').length, w: r ? Math.round(r.width) : 0, h: r ? Math.round(r.height) : 0 };
+      }));
+      ok(art.length === 11 && art.every((a) => a.big && a.people === 3 && a.w >= 100 && a.h >= 140), `一覧の札は パックの絵そのもの (名前・3 人そろい。${art.map((a) => a.w + 'x' + a.h)[0]})`);
       await page.tap('#pshClose');
       await page.waitForSelector('#packSheet', { state: 'hidden' });
       await page.tap('#btnNext');

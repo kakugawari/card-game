@@ -477,12 +477,13 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   margin-top: .8cqw; padding: .6cqw 3.2cqw; border-radius: 99px; font-size: 5.6cqw; font-weight: 900; letter-spacing: .1em; color: #fff;
   background: rgba(70,30,100,.55); border: .5cqw solid rgba(255,255,255,.8);
 }
-.bxb-mascots { position: absolute; right: 0; bottom: 5.4cqw; width: 46cqw; height: 40cqw; }
-.bxb-m { position: absolute; bottom: 0; width: 22cqw; height: 24cqw; }
+.bxb-mascots { position: absolute; right: 2cqw; bottom: 5.4cqw; width: 50cqw; height: 40cqw; }
+.bxb-m { position: absolute; bottom: 0; width: 25cqw; height: 25cqw; }
 .bxb-m svg { width: 100%; height: 100%; display: block; }
-.bxb-m0 { left: 0; bottom: 1cqw; }
-.bxb-m1 { left: 12cqw; bottom: 6cqw; width: 26cqw; height: 28cqw; z-index: 1; }
-.bxb-m2 { left: 26cqw; bottom: 0; }
+/* パックの表紙と同じ並び: 左右に 2 人、まん中の うしろに スターの子 (mascots[2]) を 大きく 前に */
+.bxb-m0 { left: 0; bottom: 0; }
+.bxb-m1 { right: 0; bottom: 0; }
+.bxb-m2 { left: 12cqw; bottom: 7cqw; width: 29cqw; height: 29cqw; z-index: 1; }
 .bxb-count { position: absolute; left: 4.5cqw; bottom: 2.2cqw; font-size: 4.4cqw; font-weight: 900; color: #fff; paint-order: stroke fill; -webkit-text-stroke: 1.2cqw rgba(80,40,90,.55); }
 .boxart.drop { animation: none; }
 
@@ -869,7 +870,9 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .psh-cat { margin: 14px 6px 8px; font-size: 15px; }
 .psh-cat small { color: var(--muted); font-size: 11px; }
 .psh-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 8px; margin-top: 6px; }
-.psh-grid .sp-mini { width: 76px; height: 106px; }
+/* 一覧は パックの絵そのもの (パック画面の 大きいパックと 同じ絵。名前・説明・3 人そろい)。押せるのは ボタンぜんたい */
+.psh-grid .sp-pack { display: block; position: relative; width: 112px; height: 161px; pointer-events: none; }
+.psh-grid .sp-pack .pk-guide, .psh-grid .sp-pack .pk-leak { display: none; }
 .psh-grid .sp-name { font-size: 13px; }
 .sp-btn {
   position: relative;

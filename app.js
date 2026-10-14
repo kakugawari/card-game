@@ -440,7 +440,7 @@
     els.pshBody.innerHTML = groups.map(function (g) {
       const sets = C.SETS.filter(function (st) { const cat = C.CATS.find(function (c) { return c.id === st.cat; }); return cat && cat.group === g[0]; });
       return '<h3 class="psh-cat" data-group="' + g[0] + '">' + g[1] + ' <small>' + g[2] + '</small></h3><div class="psh-grid">' + sets.map(function (st) {
-        return '<button type="button" class="sp-btn" data-set="' + st.id + '">' + miniPack(st) +
+        return '<button type="button" class="sp-btn" data-set="' + st.id + '"><span class="sp-pack">' + V.packHTML(st.id) + '</span>' +
           '<span class="sp-name">' + shortName(st) + '</span><i class="sp-badge" hidden></i></button>';
       }).join('') + '</div>';
     }).join('');
