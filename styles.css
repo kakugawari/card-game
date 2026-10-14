@@ -371,7 +371,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .stage-plaque b { font-size: 23px; letter-spacing: .04em; color: #5a3a2a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stage-desc { margin: 6px 0 14px; font-size: 12.5px; color: #7a5a40; text-align: center; }
 .stage-row { width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px; touch-action: pan-y; }
-.stage-pack-wrap { position: relative; flex: none; width: 236px; height: 340px; }
+.stage-pack-wrap { position: relative; z-index: 2; flex: none; width: 236px; height: 340px; }
 .shop-pack { position: absolute; inset: 0; filter: drop-shadow(0 14px 12px rgba(70,35,10,.35)) drop-shadow(0 2px 2px rgba(70,35,10,.3)); }
 .shop-pack.ready { animation: float-pack 2.6s ease-in-out infinite; }
 @keyframes float-pack { 0%, 100% { translate: 0 0; rotate: -1.2deg; } 50% { translate: 0 -8px; rotate: 1.2deg; } }
@@ -390,9 +390,9 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 /* となりの パック: 左右に すこし 見える (パックの うしろ)。タップでも めくれる */
 .stage-nb {
   position: absolute;
-  top: 34px;
-  width: 104px;
-  height: 250px;
+  top: 0;
+  width: 92px;
+  height: 360px;
   padding: 0;
   border: 0;
   background: none;
@@ -400,12 +400,13 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   -webkit-tap-highlight-color: transparent;
   z-index: 1;
 }
-.stage-nb.prev { left: 6px; }
-.stage-nb.next { right: 6px; }
-.nb-pack { position: absolute; top: 30px; width: 130px; height: 187px; opacity: .92; filter: brightness(.93) saturate(.95) drop-shadow(0 8px 8px rgba(70,35,10,.3)); pointer-events: none; }
+.stage-nb.prev { left: 0; }
+.stage-nb.next { right: 0; }
+/* となりの パックは まん中の パックの うしろに かくれて、半分くらい 見える */
+.nb-pack { position: absolute; top: 96px; width: 170px; height: 245px; opacity: .94; filter: brightness(.92) saturate(.95) drop-shadow(0 8px 8px rgba(70,35,10,.3)); pointer-events: none; }
 .nb-pack .pk-guide, .nb-pack .pk-leak { display: none; }
-.stage-nb.prev .nb-pack { left: 2px; transform: rotate(-7deg); transform-origin: 50% 100%; }
-.stage-nb.next .nb-pack { right: 2px; transform: rotate(7deg); transform-origin: 50% 100%; }
+.stage-nb.prev .nb-pack { left: 5px; transform: rotate(-6deg); transform-origin: 50% 100%; }
+.stage-nb.next .nb-pack { right: 5px; transform: rotate(6deg); transform-origin: 50% 100%; }
 .nb-hint {
   position: absolute; bottom: -8px; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 1px;
   font-size: 10.5px; line-height: 1.25; font-weight: 900; color: #fff; text-shadow: 0 1px 3px rgba(40,20,80,.8), 0 0 6px rgba(40,20,80,.6); pointer-events: none;
@@ -415,21 +416,10 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .stage-nb.next .nb-hint { right: 2px; }
 .stage-nb:active .nb-pack { filter: brightness(1) drop-shadow(0 8px 8px rgba(70,35,10,.3)); }
 .stage-dots { display: flex; gap: 7px; margin-top: 12px; }
+.stage-dots { gap: 0; margin-top: 4px; }
+.stage-dots button { width: 22px; height: 26px; padding: 0; border: 0; background: none; display: grid; place-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .stage-dots i { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,248,236,.6); box-shadow: 0 1px 2px rgba(80,40,10,.3); }
-.stage-dots i.on { background: var(--pk1, #ff9fc6); box-shadow: 0 0 0 2px #fff, 0 1px 3px rgba(80,40,10,.4); }
-.stage-meta { margin-top: 22px; display: flex; align-items: center; gap: 8px; width: 100%; padding: 0 16px; box-sizing: border-box; }
-.stage-meta .stage-have, .stage-meta .set-pick { flex: 1 1 0; }
-.stage-meta .stage-index { flex: none; }
-.stage-have, .stage-index {
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: rgba(255,248,236,.92);
-  color: #6a4a30;
-  font-size: 13px;
-  box-shadow: 0 2px 0 rgba(80,40,10,.25);
-}
-.stage-have { border: 0; font: inherit; font-size: 13px; cursor: pointer; text-align: center; }
-.stage-have.some { background: #fff; color: #e0476b; }
+.stage-dots .on i { width: 10px; height: 10px; background: var(--pk1, #ff9fc6); box-shadow: 0 0 0 2px #fff, 0 1px 3px rgba(80,40,10,.4); }
 .set-pick { margin: 0; }
 .sp-bar.sp-list {
   width: 100%;
@@ -1091,9 +1081,8 @@ html.on-title, html.on-title body { background: linear-gradient(90deg, #82e6f6, 
 #scPacks { overflow: hidden; padding-bottom: 2px; }
 .stage { padding: 8px 0 10px; }
 .stage-desc { margin: 4px 0 8px; }
-.stage-pack-wrap { width: 212px; height: 305px; }
-.stage::before { top: 305px; }
-.stage-meta { margin-top: 14px; }
+.stage-pack-wrap { width: 250px; height: 360px; }
+.stage::before { top: 356px; }
 .stage-btns { gap: 8px; padding-top: 10px; }
 .boxbar {
   display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 14px 8px 10px; box-sizing: border-box;
@@ -1216,13 +1205,12 @@ html.on-title, html.on-title body { background: linear-gradient(90deg, #82e6f6, 
 
 /* ホーム画面から開いた 低い画面 (873) では、パックを少し小さくして 下のボタンまで 1 画面に おさめる */
 @media (max-height: 900px) {
-  .stage-pack-wrap { width: 184px; height: 265px; }
-  .stage::before { top: 262px; }
-  .stage-nb { top: 26px; height: 220px; }
-  .nb-pack { top: 22px; width: 112px; height: 161px; }
+  .stage-pack-wrap { width: 214px; height: 308px; }
+  .stage::before { top: 304px; }
+  .stage-nb { height: 308px; }
+  .nb-pack { top: 82px; width: 146px; height: 210px; }
   .stage-desc { margin: 2px 0 6px; }
   .stage-dots { margin-top: 8px; }
-  .stage-meta { margin-top: 8px; }
   .stage-btns { gap: 6px; padding-top: 8px; }
   .btn-big .btn-label { padding: 9px 16px; }
   .btn-hero .btn-label { padding: 6px 20px; }
