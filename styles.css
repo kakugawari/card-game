@@ -1298,3 +1298,14 @@ html.on-title, html.on-title body { background: linear-gradient(90deg, #82e6f6, 
 .plq-text .stage-desc { font-size: 10.5px; }
 #btnFree { padding: 0 10px 0 0; font-size: 12px; }
 #btnFree .btn-label { padding: 0 0 0 26px; }
+/* 高さ 873 (ホーム画面から開いたとき): 余った高さは パックを大きくして使い、下の札は タブの近くまで 下げる */
+#scPacks { display: flex; flex-direction: column; }
+.stage-btns { margin-top: auto; padding-bottom: 6px; }
+@media (max-height: 900px) {
+  .stage-pack-wrap { width: 222px; height: 320px; }
+  .stage-nb { width: 58px; height: 58px; }
+}
+.hero-text b { font-size: 21px; letter-spacing: 0; }
+.btn-hero .btn-label { left: 112px; }
+#btnFree .btn-label { padding-left: 30px; }
+#btnFree .btn-label { padding-left: 40px; }
