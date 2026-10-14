@@ -1,4 +1,4 @@
-// ミニゲーム (どうぶつ めくり / おやつキャッチ)。ひろばの左上のボタンから開く。
+// ミニゲーム (どうぶつ めくり / おやつキャッチ / どうぶつ つみあげ)。ひろばの左上のボタンから開く。
 // ごほうびの決め方・1 日の回数・ならべ方は core.js (miniFinish など)。ここは画面と指の操作だけ
 (function () {
   'use strict';
@@ -19,7 +19,7 @@
 
   function fmt(n) { return C.formatMoney(n); }
   function show(pane) {
-    ['gmMenu', 'gmMemory', 'gmCatch'].forEach(function (id) { $(id).hidden = id !== pane; });
+    ['gmMenu', 'gmMemory', 'gmCatch', 'gmStack'].forEach(function (id) { $(id).hidden = id !== pane; });
     $('gmResult').hidden = true;
   }
   function stop() { if (running) { const f = running; running = null; f(); } }
@@ -37,13 +37,14 @@
     if (!el.root.hidden) { $('gmMoney').textContent = fmt(getState().money); if (!$('gmMenu').hidden) renderMenu(); }
   }
 
-  function bestOf(game) { return game === 'memory' ? { turns: 4 } : { score: 40 }; }
+  function bestOf(game) { return game === 'memory' ? { turns: 4 } : game === 'stack' ? { floors: C.MINI_GAMES.stack.floors } : { score: 40 }; }
 
   function renderMenu() {
     const st = getState(), now = Date.now();
     const info = {
       memory: { rule: 'おなじ どうぶつを 2 まいずつ さがそう。すくない かいすうで ぜんぶ そろうと コインが おおい', art: '<div class="gm-art mm"><i></i><i></i></div>' },
-      catch: { rule: 'おちてくる おやつを ゆびで うごいて キャッチ！ くりに あたると へるよ', art: '<div class="gm-art ct">' + ITEM_SVG.apple + ITEM_SVG.cookie + '</div>' }
+      catch: { rule: 'おちてくる おやつを ゆびで うごいて キャッチ！ くりに あたると へるよ', art: '<div class="gm-art ct">' + ITEM_SVG.apple + ITEM_SVG.cookie + '</div>' },
+      stack: { rule: 'ゆれる ブロックを タップで おとして、ぴったり かさねよう。たかく つむほど コインが おおい', art: '<div class="gm-art st"><i></i><i></i><i></i></div>' }
     };
     $('gmList').innerHTML = Object.keys(C.MINI_GAMES).map(function (g) {
       const left = C.miniLeft(st, g, now);
@@ -158,7 +159,7 @@
     player.innerHTML = A.svg(chara, { walk: false });
     field.querySelectorAll('.ct-item, .ct-pop').forEach(function (n) { n.remove(); });
     const W = field.clientWidth || 430, H = field.clientHeight || 600;
-    const PW = 84, FOOT = 18;      // 遊ぶ子の幅・下からの高さ
+    const PW = 84, FOOT = 96;      // 遊ぶ子の幅・下からの高さ (指でかくれないよう、下から 96。styles.css の .ct-player の bottom と同じ)
     const total = opts.catchSeconds || C.MINI_GAMES.catch.seconds;
     let px = W / 2, score = 0, time = total, spawnIn = 0.6, items = [], last = 0, raf = 0, dead = false, ready = 0.9, over = false;
     const rng = Math.random;
@@ -250,6 +251,144 @@
     api.moveTo = function (x) { px = Math.max(PW / 2, Math.min(W - PW / 2, x)); place(); };
   }
 
+  // ---------------------------------------------------------------- どうぶつ つみあげ
+  const SLAB_COLORS = ['#ff9fc6', '#ffc17a', '#ffe27a', '#9fe3a0', '#8fd3ff', '#b9a6ff', '#ffa9a9', '#7fe0d0'];
+  const GROUND = 44;     // 草のぶんの高さ
+  function startStack() {
+    stop();
+    show('gmStack');
+    $('gmTitle').textContent = C.MINI_GAMES.stack.name;
+    const st = getState();
+    const field = $('stField'), world = $('stWorld'), say = $('stSay');
+    const MAX = C.MINI_GAMES.stack.floors, SH = C.STACK.slabH;
+    const pool = C.stackPool(st, Math.random);
+    const animal = function (floor) { return A.svg(pool[floor % pool.length], { walk: false }); };
+    world.innerHTML = '<div class="st-ground"></div>';
+    world.style.transition = 'none';
+    world.style.transform = 'translateY(0px)';
+    const W = field.clientWidth || 424, Hf = field.clientHeight || 560;
+    const slabEl = function (x, w, floor, cls) {
+      const d = document.createElement('div');
+      d.className = 'st-slab' + (cls ? ' ' + cls : '');
+      d.style.background = floor === 0 ? '#c8935a' : SLAB_COLORS[(floor - 1) % SLAB_COLORS.length];
+      d.style.left = x.toFixed(1) + 'px';
+      d.style.width = w.toFixed(1) + 'px';
+      d.style.bottom = (GROUND + floor * SH) + 'px';
+      if (floor > 0) d.innerHTML = animal(floor);
+      world.appendChild(d);
+      return d;
+    };
+    let top = { x: (W - C.STACK.baseW) / 2, w: C.STACK.baseW };
+    slabEl(top.x, top.w, 0);
+    let floors = 0, streak = 0, ready = 0.9, over = false, dead = false, last = 0, raf = 0, lockUntil = 0;
+    let block = null, blockEl = null;
+    const timers = [];
+    const later = function (f, ms) { timers.push(window.setTimeout(function () { if (!dead) f(); }, ms)); };
+    const hud = function () { $('stFloors').textContent = String(floors); $('stMax').textContent = String(MAX); $('stStreak').textContent = String(streak); };
+    hud();
+    say.hidden = false; say.textContent = 'よーい…';
+    const camera = function () {
+      // 上へ つむほど 世界を 下へ ずらして、いちばん上の ブロックと 動く ブロックが 見えるようにする
+      const need = GROUND + (floors + 3) * SH + 20;
+      world.style.transition = '';
+      world.style.transform = 'translateY(' + Math.max(0, need - Hf).toFixed(0) + 'px)';
+    };
+    const newBlock = function () {
+      const f = floors + 1;
+      const w = top.w;
+      const fromLeft = floors % 2 === 0;
+      block = { x: fromLeft ? 0 : W - w, w: w, dir: fromLeft ? 1 : -1, v: C.stackSpeed(floors) };
+      blockEl = slabEl(block.x, block.w, f, 'moving');
+    };
+    const popText = function (txt, floor) {
+      const p = document.createElement('div');
+      p.className = 'st-pop';
+      p.textContent = txt;
+      p.style.bottom = (GROUND + (floor + 1) * SH + 6) + 'px';
+      world.appendChild(p);
+      p.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(-46px)', opacity: 0 }], { duration: 700, easing: 'ease-out' }).onfinish = function () { p.remove(); };
+    };
+    const fall = function (el, dx) {
+      el.animate([{ transform: 'translate(0,0) rotate(0deg)', opacity: 1 }, { transform: 'translate(' + dx + 'px,' + (Hf + 200) + 'px) rotate(' + (dx > 0 ? 40 : -40) + 'deg)', opacity: 1 }],
+        { duration: 800, easing: 'cubic-bezier(.4,0,1,1)' }).onfinish = function () { el.remove(); };
+    };
+    const finishUp = function (summary) {
+      if (over) return;
+      over = true;
+      cancelAnimationFrame(raf);
+      finish('stack', { floors: floors }, summary);
+    };
+    const drop = function () {
+      if (over || ready > 0 || !block || performance.now() < lockUntil) return;
+      lockUntil = performance.now() + 120;
+      const r = C.stackDrop(top, { x: block.x, w: block.w }, streak);
+      const f = floors + 1;
+      if (r.kind === 'miss') {
+        Sfx.play('flip');
+        block = null;
+        fall(blockEl, 60);
+        later(function () { finishUp(floors + ' だん つんだよ！'); }, 900);
+        say.hidden = false; say.textContent = 'あっ！';
+        return;
+      }
+      streak = r.streak;
+      blockEl.classList.remove('moving');
+      blockEl.style.left = r.x.toFixed(1) + 'px';
+      blockEl.style.width = r.w.toFixed(1) + 'px';
+      if (r.kind === 'perfect') {
+        Sfx.play('shine');
+        popText(streak >= 3 ? 'ぴったり ×' + streak : 'ぴったり！', f);
+        blockEl.animate([{ filter: 'brightness(1.5)' }, { filter: 'none' }], { duration: 350 });
+      } else {
+        Sfx.play('pop');
+        const piece = slabEl(r.cut.x, r.cut.w, f);
+        piece.innerHTML = '';
+        fall(piece, r.cut.x < r.x ? -50 : 50);
+      }
+      top = { x: r.x, w: r.w };
+      floors = f;
+      hud();
+      camera();
+      if (floors >= MAX) {
+        block = null;
+        say.hidden = false; say.textContent = 'まんてん！';
+        Sfx.play('fanfareRR');
+        later(function () { finishUp(MAX + ' だん ぜんぶ つんだよ！'); }, 1000);
+        return;
+      }
+      newBlock();
+    };
+    field.onpointerdown = function (e) { e.preventDefault(); drop(); };
+    const frame = function (now) {
+      if (dead) return;
+      let dt = last ? (now - last) / 1000 : 0;
+      last = now;
+      if (!(dt > 0)) dt = 0;          // コマの間隔は 上も下も止める
+      if (dt > 0.05) dt = 0.05;
+      if (ready > 0) {
+        ready -= dt;
+        if (ready <= 0) { say.textContent = 'スタート！'; later(function () { say.hidden = true; }, 600); newBlock(); }
+      } else if (block && !over) {
+        block.x += block.dir * block.v * dt;
+        if (block.x <= 0) { block.x = 0; block.dir = 1; }
+        if (block.x + block.w >= W) { block.x = W - block.w; block.dir = -1; }
+        blockEl.style.left = block.x.toFixed(1) + 'px';
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    running = function () {
+      dead = true; cancelAnimationFrame(raf); timers.forEach(window.clearTimeout);
+      field.onpointerdown = null;
+      world.innerHTML = '';
+      say.hidden = true;
+    };
+    api.stackState = function () { return { floors: floors, streak: streak, top: { x: top.x, w: top.w }, block: block ? { x: block.x, w: block.w } : null, W: W, over: over }; };
+    api.stackSetX = function (x) { if (block) { block.x = x; block.v = 0; blockEl.style.left = x + 'px'; } };   // テスト用: 置いて、止める
+  }
+
+  function startGame(g) { if (g === 'memory') startMemory(); else if (g === 'stack') startStack(); else startCatch(); }
+
   // ---------------------------------------------------------------- つなぐ
   const api = {
     opts: opts,
@@ -266,11 +405,11 @@
         const b = e.target.closest('.gm-go');
         if (!b || b.disabled) return;
         Sfx.unlock();
-        if (b.dataset.game === 'memory') startMemory(); else startCatch();
+        startGame(b.dataset.game);
       });
       $('gmAgain').addEventListener('click', function () {
         if ($('gmAgain').disabled) return;
-        if ($('gmResult').dataset.game === 'memory') startMemory(); else startCatch();
+        startGame($('gmResult').dataset.game);
       });
       $('gmBack').addEventListener('click', openMenu);
       refresh();

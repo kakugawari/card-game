@@ -307,6 +307,20 @@ async function run() {
         ok(r.barBottom <= 932.5 && r.worst <= r.barTop + 0.5 && r.right <= 430.5 && r.top >= 59,
           `${tab}: タブ・ボタンが画面に収まり、重ならない (ボタンの下 ${Math.round(r.worst)} / タブの上 ${Math.round(r.barTop)})`);
       }
+      // ひろば: 「ゆびのちから」の札 (草原の上のひだり) が、「なかま」のボタン・木・タブと重ならず、押せる大きさ
+      for (const h of [932, 873]) {
+        await page.setViewportSize({ width: 430, height: h });
+        await goTab(page, 'Home');
+        await page.waitForTimeout(150);
+        const q = await page.evaluate(() => {
+          const r = (s) => document.querySelector(s).getBoundingClientRect();
+          const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+          const up = r('#upgrade'), cr = r('#crewBtn'), tr = r('#tree'), bt = r('#btnUp'), g = r('#ground'), tab = r('#tabbar');
+          return { overCrew: hit(up, cr), overTree: hit(up, tr), tab: up.bottom <= g.top + 0.5 && g.bottom <= tab.top + 0.5, left: up.left, right: up.right, btnW: bt.width, btnH: bt.height };
+        });
+        ok(!q.overCrew && !q.overTree && q.tab && q.left >= 0 && q.right <= 430 && q.btnW >= 44 && q.btnH >= 40,
+          `ひろば (高さ ${h}): 「ゆびのちから」の札は 草原の上に ちいさく置かれ、なかま・木と重ならず、ボタンは押せる大きさ (${Math.round(q.btnW)}x${Math.round(q.btnH)})`);
+      }
       await context.close();
     }
 
@@ -796,7 +810,7 @@ async function run() {
 
     // ------------------------------------------------ ミニゲーム
     if (want('ミニゲーム')) {
-      section('ミニゲーム: どうぶつ めくり・おやつキャッチ (1 日 3 回ずつ・さいだい 5,000 コイン)');
+      section('ミニゲーム: どうぶつ めくり・おやつキャッチ・どうぶつ つみあげ (1 日 3 回ずつ・さいだい 5,000 コイン)');
       ({ context, page } = await newGame(browser, errors));
       await page.evaluate(() => {
         document.documentElement.style.setProperty('--safe-top', '59px');
@@ -808,12 +822,12 @@ async function run() {
         return { gR: g.right, gL: g.left, mL: m.left, mR: m.right, uL: u.left, w: g.width, badge: document.getElementById('gmBadge').textContent, bh: document.getElementById('gmBadge').hidden };
       });
       ok(tb.gR <= tb.mL && tb.mR <= tb.uL && tb.gL >= 0 && tb.w >= 44, `ひろばの左上に ミニゲームのボタン (コインの表示・音のボタンと重ならない)`);
-      ok(tb.badge === '6' && !tb.bh, `ボタンの数字は きょうの のこり回数 (${tb.badge})`);
+      ok(tb.badge === '9' && !tb.bh, `ボタンの数字は きょうの のこり回数 (${tb.badge})`);
       await page.tap('#btnGames');
       const mn = await page.evaluate(() => ({ cards: document.querySelectorAll('.gm-card').length, txt: document.getElementById('gmList').textContent,
         inside: [...document.querySelectorAll('.gm-card, .gm-go')].every((e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= 430 && r.bottom <= 932 - 34; }) }));
-      ok(mn.cards === 2 && /どうぶつ めくり/.test(mn.txt) && /おやつキャッチ/.test(mn.txt) && /さいだい 5,000 コイン/.test(mn.txt) && /あと 3 かい/.test(mn.txt) && mn.inside,
-        'メニューに 2 つのゲーム・さいだいのコイン (5,000)・のこり 3 かい。画面の中に収まる');
+      ok(mn.cards === 3 && /どうぶつ めくり/.test(mn.txt) && /おやつキャッチ/.test(mn.txt) && /どうぶつ つみあげ/.test(mn.txt) && /さいだい 5,000 コイン/.test(mn.txt) && /あと 3 かい/.test(mn.txt) && mn.inside,
+        'メニューに 3 つのゲーム・さいだいのコイン (5,000)・のこり 3 かい。画面の中に収まる');
 
       // --- どうぶつ めくり
       const memStart = async () => { await page.tap('.gm-go[data-game=memory]'); await page.waitForSelector('.mm-card'); };
@@ -863,6 +877,9 @@ async function run() {
       await page.evaluate(() => { window.__app.mini.opts.catchSeconds = 7; });
       await page.tap('.gm-go[data-game=catch]');
       await page.waitForSelector('.ct-player svg');
+      // 遊ぶ子は 指でかくれない高さ (下から 80 以上) にいて、うけとめる場所も その高さ
+      const pl = await page.evaluate(() => { const f = document.getElementById('ctField').getBoundingClientRect(), p = document.getElementById('ctPlayer').getBoundingClientRect(); return { gap: f.bottom - p.bottom, h: p.height }; });
+      ok(pl.gap >= 80, `おやつキャッチ: 遊ぶ子は 下から ${Math.round(pl.gap)} の高さ (指でかくれない)`);
       // ゆびで うごかす: 画面の左はしへ → 右はしへ
       const fb = await box(page, '#ctField');
       await page.mouse.move(fb.x + 60, fb.y + 300); await page.mouse.down(); await page.mouse.move(fb.x + 70, fb.y + 300, { steps: 3 });
@@ -893,19 +910,66 @@ async function run() {
       // ✕ は ひろばに もどる。ボタンの数字が へる
       await page.tap('#gmBack');
       await page.tap('#gmClose');
-      ok(await page.locator('#games').isHidden() && (await page.textContent('#gmBadge')) === '3', 'ミニゲームを閉じると ひろばに もどる (数字は 3 = めくり 1 + キャッチ 2)');
+      ok(await page.locator('#games').isHidden() && (await page.textContent('#gmBadge')) === '6', 'ミニゲームを閉じると ひろばに もどる (数字は 6 = めくり 1 + キャッチ 2 + つみあげ 3)');
+
+      // --- どうぶつ つみあげ: 落として かさねる・切り落とし・はずれで おわり・12 だんで まんてん
+      await page.evaluate(() => { const s = window.__app.state(); s.mini.plays = {}; s.mini.day = ''; window.__app.mini.open(); });
+      const stGo = async () => { await page.tap('.gm-go[data-game=stack]'); await page.waitForFunction(() => { const q = window.MiniGames.stackState && window.MiniGames.stackState(); return q && q.block; }, null, { timeout: 5000 }); };
+      const stDrop = async (dx) => {
+        const before = await page.evaluate(() => window.MiniGames.stackState().floors);
+        await page.evaluate((dx) => { const q = window.MiniGames.stackState(); window.MiniGames.stackSetX(q.top.x + dx); }, dx);
+        const fb = await page.locator('#stField').boundingBox();
+        await page.mouse.click(fb.x + fb.width / 2, fb.y + fb.height / 2);
+        await page.waitForTimeout(170);
+        return before;
+      };
+      await stGo();
+      ok((await page.evaluate(() => window.MiniGames.stackState())).floors === 0 && (await page.textContent('#stMax')) === '12', 'つみあげ: 0 だんから はじまる (まんてんは 12 だん)');
+      let q0 = await page.evaluate(() => window.MiniGames.stackState());
+      await stDrop(2);
+      let q1 = await page.evaluate(() => window.MiniGames.stackState());
+      ok(q1.floors === 1 && q1.streak === 1 && Math.abs(q1.top.w - q0.top.w) < 0.01 && Math.abs(q1.top.x - q0.top.x) < 0.01, `ぴったり (2 ずれ) は きらずに 1 だん (はば ${Math.round(q1.top.w)}・れんぞく ${q1.streak})`);
+      await stDrop(40);
+      let q2 = await page.evaluate(() => window.MiniGames.stackState());
+      ok(q2.floors === 2 && q2.streak === 0 && Math.abs(q2.top.w - (q1.top.w - 40)) < 0.01, `40 ずれると 40 きれて ほそくなる (はば ${Math.round(q1.top.w)} → ${Math.round(q2.top.w)})`);
+      ok((await page.evaluate(() => document.querySelectorAll('#stWorld .st-slab').length)) >= 4, 'ブロックと きりおとした かけらが 画面に出る');
+      const mStack = await money(page);
+      // かさならない所へ置く (画面の中に おさまる がわを えらぶ。はみ出すと 動くとき 内がわへ もどされて かさなってしまう)
+      const qm = await page.evaluate(() => window.MiniGames.stackState());
+      await stDrop(qm.top.x + qm.top.w + 6 + qm.top.w <= qm.W ? qm.top.w + 6 : -(qm.top.w + 6));
+      await page.waitForSelector('#gmResult:not([hidden])', { timeout: 4000 });
+      const gotMiss = (await money(page)) - mStack;
+      ok(gotMiss === 2083 && (await page.textContent('#gmResCoins')) === '+2,083', `はずれると おわり。2 だんぶんの コイン +${gotMiss}`);
+      ok((await page.textContent('#gmResSub')).includes('2 だん'), 'けっかに「2 だん」と出る');
+      // もういちど → とちゅうで ✕ → 1 回に数えない
+      const leftBefore = await page.evaluate(() => window.__app.core.miniLeft(window.__app.state(), 'stack', Date.now()));
+      await page.tap('#gmAgain');
+      await page.waitForFunction(() => { const q = window.MiniGames.stackState(); return q && q.block && !q.over; });
+      await stDrop(1);
+      await page.tap('#gmClose');
+      await page.tap('#gmClose');
+      ok((await page.evaluate(() => window.__app.core.miniLeft(window.__app.state(), 'stack', Date.now()))) === leftBefore, 'つみあげ: とちゅうで ✕ すると 1 回に数えない');
+      // 12 だんぜんぶ ぴったり → 5,000 コイン
+      await page.evaluate(() => window.__app.mini.open());
+      await stGo();
+      const mFull = await money(page);
+      for (let k = 0; k < 12; k++) await stDrop(1);
+      await page.waitForSelector('#gmResult:not([hidden])', { timeout: 5000 });
+      ok((await money(page)) - mFull === 5000 && (await page.textContent('#gmResCoins')) === '+5,000', `12 だん ぜんぶ つむと まんてん +5,000 コイン (+${(await money(page)) - mFull})`);
+      await page.tap('#gmBack');
+      await page.tap('#gmClose');
 
       // --- 1 日 3 回まで・保存
-      await page.evaluate(() => { const s = window.__app.state(); s.mini.plays = { memory: 3, catch: 3 }; window.__app.flush(); window.__app.mini.refresh(); });
+      await page.evaluate(() => { const s = window.__app.state(); s.mini.plays = { memory: 3, catch: 3, stack: 3 }; window.__app.flush(); window.__app.mini.refresh(); });
       await page.tap('#btnGames');
       const lim = await page.evaluate(() => [...document.querySelectorAll('.gm-go')].map((b) => b.disabled + ':' + b.textContent));
-      ok(lim.length === 2 && lim.every((t) => t.startsWith('true:') && t.includes('また あした')), `3 回あそぶと「また あした」で 押せない (${lim.join(' ')})`);
+      ok(lim.length === 3 && lim.every((t) => t.startsWith('true:') && t.includes('また あした')), `3 回あそぶと「また あした」で 押せない (${lim.join(' ')})`);
       ok(await page.locator('#gmBadge').isHidden(), 'のこり 0 のとき ボタンの数字は消える');
       await page.reload();
       await page.waitForFunction(() => window.__app);
-      ok(await page.evaluate(() => window.__app.core.miniLeft(window.__app.state(), 'memory', Date.now()) === 0 && window.__app.core.miniLeft(window.__app.state(), 'catch', Date.now()) === 0), '開き直しても きょうの回数は のこる');
+      ok(await page.evaluate(() => window.__app.core.miniLeft(window.__app.state(), 'memory', Date.now()) === 0 && window.__app.core.miniLeft(window.__app.state(), 'catch', Date.now()) === 0 && window.__app.core.miniLeft(window.__app.state(), 'stack', Date.now()) === 0), '開き直しても きょうの回数は のこる');
       await page.evaluate(() => { const s = window.__app.state(); s.mini.day = '2000-01-01'; window.__app.mini.refresh(); });
-      ok((await page.textContent('#gmBadge')) === '6', '日が かわると また 3 かいずつ (6)');
+      ok((await page.textContent('#gmBadge')) === '9', '日が かわると また 3 かいずつ (9)');
       // ゆびのちからに関係なく、さいだい 5,000 コイン
       await page.evaluate(() => { const s = window.__app.state(); s.tapLevel = 12; s.mini.day = ''; window.__app.mini.open(); });
       ok(/さいだい 5,000 コイン/.test(await page.textContent('#gmList')), 'ゆびのちから Lv.13 でも さいだい 5,000 コイン (かわらない)');
@@ -943,7 +1007,6 @@ async function run() {
       ok(await page.locator('.wk-hint').isVisible(), 'まだ おやつを あげたことが無いときは、案内が出る');
       const field = await page.evaluate(() => {
         const g = document.getElementById('ground').getBoundingClientRect();
-        const up = document.getElementById('upgrade').getBoundingClientRect();
         const ws = [...document.querySelectorAll('.walker')];
         // 歩く範囲ぜんぶ (left から left + dist まで) が草原の中か
         const inside = ws.every((w) => {
@@ -951,11 +1014,11 @@ async function run() {
           return l >= 0 && l + d + w.offsetWidth <= g.width + 0.5;
         });
         const rs = ws.map((w) => w.getBoundingClientRect());
-        return { n: ws.length, inside, bottom: Math.max(...rs.map((r) => r.bottom)), upTop: up.top, gTop: g.top, top: Math.min(...rs.map((r) => r.top)),
+        return { n: ws.length, inside, bottom: Math.max(...rs.map((r) => r.bottom)), gBottom: g.bottom, gTop: g.top, top: Math.min(...rs.map((r) => r.top)),
           tags: ws.map((w) => w.tagName) };
       });
       ok(field.n === 7 && field.tags.every((t) => t === 'BUTTON'), `持っている子が 7 人まで歩き、どの子も押せる (${field.n})`);
-      ok(field.inside && field.bottom <= field.upTop + 0.5 && field.top >= field.gTop - 30, `歩く範囲が草原の中に収まる (下 ${Math.round(field.bottom)} / 強化の上 ${Math.round(field.upTop)})`);
+      ok(field.inside && field.bottom <= field.gBottom + 0.5 && field.top >= field.gTop - 30, `歩く範囲が草原の中に収まる (下 ${Math.round(field.bottom)} / 草原の下 ${Math.round(field.gBottom)})`);
 
       // 歩いている子を そのまま タップ (止まらない)
       // 7 人いると重なることがある。指の下でいちばん手前にいる子をタップする (指で押したときと同じ)

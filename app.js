@@ -81,11 +81,11 @@
     const cost = C.upgradeCost(state.tapLevel);
     els.upLv.textContent = 'Lv.' + (state.tapLevel + 1);
     if (cost === null) {
-      els.upSub.textContent = '1かいで ' + C.tapPower(state) + 'コイン (いちばんつよい！)';
+      els.upSub.textContent = C.tapPower(state) + 'コイン (いちばん！)';
       els.btnUpLabel.textContent = 'MAX';
       els.btnUp.classList.add('max');
     } else {
-      els.upSub.textContent = '1かいで ' + C.tapPower(state) + 'コイン → ' + C.tapPowerAt(state.tapLevel + 1) + 'コイン';
+      els.upSub.textContent = C.tapPower(state) + ' → ' + C.tapPowerAt(state.tapLevel + 1) + 'コイン';
       els.btnUpLabel.textContent = C.formatMoney(cost);
       els.btnUp.classList.remove('max');
     }
@@ -176,7 +176,7 @@
       const dist = Math.min(150, Math.max(40, lane + 40)) * (0.7 + Math.random() * 0.3);
       const dur = dist / (13 + Math.random() * 6);
       const left = Math.max(0, Math.min(width - 84 - dist, order[i] * lane + lane / 2 - dist / 2));
-      return { id: id, dist: dist, dur: dur, left: left, bottom: 8 + (i % 3) * 30 };
+      return { id: id, dist: dist, dur: dur, left: left, bottom: 8 + (i % 4) * 40 };
     }).sort(function (x, y) { return y.bottom - x.bottom; });   // 奥 (上) の子から描き、手前の子が前に出る
     let html = walkers.map(function (w) {
       const info = C.petInfo(state, w.id, now);
