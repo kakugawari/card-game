@@ -134,19 +134,16 @@
    */
   function boxHTML(setId) {
     const set = C.setById(setId) || C.SET;
-    const big = set.name.replace(/パック$/, '').replace('みらいの どうぶつ', 'みらい');
-    const mascots = set.mascots.map(function (id, i) {
-      return '<div class="bxb-m bxb-m' + i + '">' + A.svg(id, { walk: false }) + '</div>';
-    }).join('');
     const bg = '--pk1:' + set.colors[0] + ';--pk2:' + set.colors[1] + ';--pk3:' + set.colors[2];
+    // 前の面には そのパックの絵そのもの (packHTML) を 3 つ、うしろの 2 つをかたむけて 扇のようにならべる
+    const pack = packHTML(set.id);
     return '<div class="bxb" style="' + bg + '">' +
       '<div class="bxb-top"><span>' + set.mark + ' ' + set.code + ' BOX</span></div>' +
       '<div class="bxb-front"><div class="bxb-art">' +
         '<div class="bxb-logo"><span class="bxb-small">' + set.mark + ' ' + set.code + '</span>' +
-        '<span class="bxb-big' + (big.length > 4 ? ' long' : '') + '">' + esc(big) + '</span>' +
-        '<span class="bxb-tag">BOX</span></div>' +
-        '<div class="bxb-mascots">' + mascots + '</div>' +
-        '<div class="bxb-count">30パック入り</div></div></div>' +
+        '<span class="bxb-tag">BOX</span><span class="bxb-count">30パック<br>入り</span></div>' +
+        '<div class="bxb-packs"><div class="bxb-pk bxb-pk0">' + pack + '</div><div class="bxb-pk bxb-pk2">' + pack + '</div><div class="bxb-pk bxb-pk1">' + pack + '</div></div>' +
+        '</div></div>' +
       '<div class="bxb-side"><span>BOX</span></div></div>';
   }
 

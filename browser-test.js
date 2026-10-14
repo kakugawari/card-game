@@ -682,10 +682,11 @@ async function run() {
       const art = await page.evaluate(() => {
         const a = document.getElementById('boxArt'), r = a.getBoundingClientRect(), f = a.querySelector('.bxb-art');
         const fr = f.getBoundingClientRect();
-        return { faces: ['.bxb-top', '.bxb-front', '.bxb-side'].every((s) => !!a.querySelector(s)), mascots: a.querySelectorAll('.bxb-m svg').length,
-          name: a.querySelector('.bxb-big').textContent, inside: fr.left >= r.left - 1 && fr.right <= r.right + 1 && fr.bottom <= r.bottom + 1, w: r.width };
+        return { faces: ['.bxb-top', '.bxb-front', '.bxb-side'].every((s) => !!a.querySelector(s)), mascots: a.querySelectorAll('.bxb-pk0 .pk-m svg').length, packs: a.querySelectorAll('.bxb-pk .pk').length,
+          packsIn: [...a.querySelectorAll('.bxb-pk')].every((e) => { const q = e.getBoundingClientRect(); return q.left >= fr.left - 1 && q.right <= fr.right + 1 && q.top >= fr.top - 1 && q.bottom <= fr.bottom + 1; }),
+          name: a.querySelector('.bxb-pk0 .pk-big').textContent.replace('パック', ''), inside: fr.left >= r.left - 1 && fr.right <= r.right + 1 && fr.bottom <= r.bottom + 1, w: r.width };
       });
-      ok(art.faces && art.mascots === 3 && art.name === 'どうぶつ' && art.inside && art.w >= 140, `BOX の絵は 3 つの面の箱で、前の面に パックの絵 (名前「${art.name}」・なかま ${art.mascots} 人) が はまる`);
+      ok(art.faces && art.mascots === 3 && art.packs === 3 && art.packsIn && art.name === 'どうぶつ' && art.inside && art.w >= 140, `BOX の絵は 3 つの面の箱で、前の面に パックの絵そのものが 扇に はまる (名前「${art.name}」・パック ${art.packs} つ・なかま ${art.mascots} 人)`);
       await scrollToBtn(page, 'btnOpenBox');
       const ob = await page.evaluate(() => {
         const b = document.getElementById('btnOpenBox').getBoundingClientRect();
