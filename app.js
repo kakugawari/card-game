@@ -64,6 +64,10 @@
 
   function renderMoney() {
     els.moneyNum.textContent = C.formatMoney(state.money);
+    // 桁が多いときは 字を小さくして、両はしのボタン (★・なかま・おんぷ) と 重ならないようにする
+    const len = els.moneyNum.textContent.length;
+    const fs = len > 9 ? '17px' : len > 7 ? '20px' : '';
+    if (els.moneyNum.parentNode.style.fontSize !== fs) els.moneyNum.parentNode.style.fontSize = fs;
     const cost = C.upgradeCost(state.tapLevel);
     const canUp = cost !== null && state.money >= cost;
     if (canUp !== canUpCache) {
@@ -176,7 +180,7 @@
       const dist = Math.min(150, Math.max(40, lane + 40)) * (0.7 + Math.random() * 0.3);
       const dur = dist / (13 + Math.random() * 6);
       const left = Math.max(0, Math.min(width - 84 - dist, order[i] * lane + lane / 2 - dist / 2));
-      return { id: id, dist: dist, dur: dur, left: left, bottom: 8 + (i % 4) * 40 };
+      return { id: id, dist: dist, dur: dur, left: left, bottom: 72 + (i % 4) * 30 };
     }).sort(function (x, y) { return y.bottom - x.bottom; });   // 奥 (上) の子から描き、手前の子が前に出る
     let html = walkers.map(function (w) {
       const info = C.petInfo(state, w.id, now);
@@ -791,6 +795,7 @@
     if (name === 'Packs') renderPacks();
     if (name === 'Zukan') renderZukan();
     if (name === 'Home') renderWalkers();
+    $('crewBtn').hidden = name !== 'Home';   // 「なかま」は ひろばだけ
   }
 
   document.querySelectorAll('.tab').forEach(function (t) {
