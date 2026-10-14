@@ -182,7 +182,8 @@
       const info = C.petInfo(state, w.id, now);
       return '<button type="button" class="walker lv' + info.level + (info.canPet ? '' : ' petted') + '" data-ch="' + w.id + '" aria-label="おやつ" style="left:' + w.left.toFixed(0) +
         'px;bottom:' + w.bottom + 'px;--dist:' + w.dist.toFixed(0) + 'px;--dur:' + w.dur.toFixed(1) + 's;--del:-' + (Math.random() * w.dur).toFixed(1) + 's">' +
-        (info.level >= 2 ? '<span class="wk-lv">♥' + info.level + '</span>' : '') + (info.level >= 5 ? '<span class="wk-crown">👑</span>' : '') +
+        (info.level >= 2 ? '<span class="wk-lv">♥' + info.level + '</span>' : '') +
+        (info.level >= 2 && info.canPet ? '<span class="wk-fh">♥</span>' : '')   /* ふわふわのハート: 今日まだ なでていない子だけ */ + (info.level >= 5 ? '<span class="wk-crown">👑</span>' : '') +
         '<span class="wk-body">' + A.svg(w.id, { delay: randomDelay() }).replace('<svg ', '<svg width="100%" height="100%" ') + '</span></button>';
     }).join('');
     const fedEver = Object.keys(state.pets).length > 0;
@@ -353,7 +354,7 @@
     hearts(4, false);
     // 今日のなでなでが 済んだ子は、ひろばで ハートを出さない (まだの子だけ ハートが ふわふわ出る)
     const wk = els.ground.querySelector('.walker[data-ch="' + petCh + '"]');
-    if (wk) wk.classList.add('petted');
+    if (wk) { wk.classList.add('petted'); const fh = wk.querySelector('.wk-fh'); if (fh) fh.remove(); }   // ハートの部品ごと取りのぞく
     renderPet();
     if (r.levelUp) levelUp(r.level);
   });
