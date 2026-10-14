@@ -192,6 +192,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   animation: wk-heart 2.4s ease-out infinite;
   pointer-events: none;
 }
+.walker.petted::after { content: none; }
 @keyframes wk-heart { 0% { translate: 0 0; opacity: 0; } 20% { opacity: 1; } 100% { translate: -6px -40px; opacity: 0; } }
 .wk-hint {
   position: absolute;

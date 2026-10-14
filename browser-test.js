@@ -996,6 +996,19 @@ async function run() {
           hint: !!document.querySelector('.wk-hint') };
       }, ch);
       ok(after.badge.includes('2') && !after.hint, `歩いている子に ♥ のレベルが付き、案内は消える (${after.badge})`);
+      // 今日なでた子からは ふわふわの ハートが出ない (なでていない子だけ出るので、済んだかどうか 見分けられる)
+      const floatHeart = (c) => page.evaluate((id) => {
+        const w = document.querySelector('.walker[data-ch="' + id + '"]');
+        return { cls: w.className, content: getComputedStyle(w, '::after').content };
+      }, c);
+      let fh = await floatHeart(ch);
+      ok(fh.cls.includes('petted') && fh.content === 'none', `今日なでた子は ハートが出ない (${fh.cls} / ${fh.content})`);
+      await page.evaluate((c) => { window.__app.state().pets[c].pettedDay = ''; }, ch);
+      await goTab(page, 'Zukan');
+      await goTab(page, 'Home');
+      await page.waitForTimeout(300);
+      fh = await floatHeart(ch);
+      ok(!fh.cls.includes('petted') && fh.content.includes('♥'), `まだなでていない子は ハートが出る (${fh.cls} / ${fh.content})`);
 
       // ずかんからも おやつを あげられる (歩いていない子にも)
       await goTab(page, 'Zukan');

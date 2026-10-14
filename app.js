@@ -189,7 +189,7 @@
     }).sort(function (x, y) { return y.bottom - x.bottom; });   // 奥 (上) の子から描き、手前の子が前に出る
     let html = walkers.map(function (w) {
       const info = C.petInfo(state, w.id, now);
-      return '<button type="button" class="walker lv' + info.level + '" data-ch="' + w.id + '" aria-label="おやつ" style="left:' + w.left.toFixed(0) +
+      return '<button type="button" class="walker lv' + info.level + (info.canPet ? '' : ' petted') + '" data-ch="' + w.id + '" aria-label="おやつ" style="left:' + w.left.toFixed(0) +
         'px;bottom:' + w.bottom + 'px;--dist:' + w.dist.toFixed(0) + 'px;--dur:' + w.dur.toFixed(1) + 's;--del:-' + (Math.random() * w.dur).toFixed(1) + 's">' +
         (info.level >= 2 ? '<span class="wk-lv">♥' + info.level + '</span>' : '') + (info.level >= 5 ? '<span class="wk-crown">👑</span>' : '') +
         '<span class="wk-body">' + A.svg(w.id, { delay: randomDelay() }).replace('<svg ', '<svg width="100%" height="100%" ') + '</span></button>';
@@ -298,6 +298,9 @@
     Sfx.play('shine');
     happy('jump');
     hearts(4, false);
+    // 今日のなでなでが 済んだ子は、ひろばで ハートを出さない (まだの子だけ ハートが ふわふわ出る)
+    const wk = els.ground.querySelector('.walker[data-ch="' + petCh + '"]');
+    if (wk) wk.classList.add('petted');
     renderPet();
     if (r.levelUp) levelUp(r.level);
   });
