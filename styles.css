@@ -1017,6 +1017,11 @@ html.on-title, html.on-title body { background: linear-gradient(90deg, #82e6f6, 
 .gm-art.mm i { width: 26px; height: 36px; border-radius: 7px; background: linear-gradient(#ff9fc6, #f0668e); }
 .gm-art.mm i:nth-child(2) { background: #fff; border: 2px solid #f0668e; margin-left: -4px; transform: rotate(8deg); }
 .gm-art.ct svg { width: 32px; height: 32px; }
+.gm-art.st { flex-direction: column-reverse; gap: 3px; }
+.gm-art.st i { display: block; height: 12px; border-radius: 5px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.14); }
+.gm-art.st i:nth-child(1) { width: 46px; background: #ff9fc6; }
+.gm-art.st i:nth-child(2) { width: 38px; background: #ffc17a; margin-left: 6px; }
+.gm-art.st i:nth-child(3) { width: 28px; background: #9fe3a0; margin-left: -4px; }
 .gm-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .gm-info > b { font-size: 18px; }
 .gm-info > span { font-size: 12px; line-height: 1.45; color: var(--muted); font-weight: 400; }
@@ -1140,3 +1145,19 @@ html.on-title, html.on-title body { background: linear-gradient(90deg, #82e6f6, 
 .crew-foot { flex: none; padding: 8px 16px calc(14px + var(--safe-bottom)); }
 .crew-foot .btn-all { opacity: .55; }
 .crew-foot .btn-all.on { opacity: 1; }
+
+/* どうぶつ つみあげ */
+.st-field {
+  position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; border-radius: 22px; border: 3px solid var(--line);
+  background: linear-gradient(#bfe9ff 0, #e9f8d6 100%);
+  cursor: pointer;
+}
+.st-world { position: absolute; inset: 0; transition: transform .3s ease-out; will-change: transform; pointer-events: none; }
+.st-ground { position: absolute; left: 0; right: 0; bottom: -400px; height: 444px; background: linear-gradient(#a6dd7f 0 8px, #84c85f 8px); }
+.st-slab {
+  position: absolute; height: 38px; box-sizing: border-box; border-radius: 10px;
+  border: 3px solid rgba(255,255,255,.75); box-shadow: inset 0 -5px 0 rgba(0,0,0,.13), 0 2px 0 rgba(0,0,0,.1);
+  display: flex; align-items: center; justify-content: center; will-change: transform;
+}
+.st-slab svg { width: 30px; height: 30px; flex: none; display: block; }
+.st-pop { position: absolute; left: 0; right: 0; text-align: center; font-size: 22px; color: #b5680a; text-shadow: 0 0 4px #fff, 0 0 4px #fff; pointer-events: none; }

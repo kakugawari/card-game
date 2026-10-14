@@ -230,7 +230,7 @@
     <div class="money gm-money"><svg class="coin-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#ffc933" stroke="#c98a0b" stroke-width="1.6"/><circle cx="12" cy="12" r="7" fill="none" stroke="#e9a512" stroke-width="1.6"/><path d="M12 7.5v9M9.6 10h3.6a1.6 1.6 0 010 3.2H9.6" fill="none" stroke="#c98a0b" stroke-width="1.5" stroke-linecap="round"/></svg><span id="gmMoney">0</span></div>
   </div>
   <section class="gm-pane" id="gmMenu">
-    <p class="gm-lead">あそんで コインを ゲット！<br><small>どちらも 1 にち 3 かいまで</small></p>
+    <p class="gm-lead">あそんで コインを ゲット！<br><small>どれも 1 にち 3 かいまで</small></p>
     <div class="gm-list" id="gmList"></div>
   </section>
   <section class="gm-pane" id="gmMemory" hidden>
@@ -244,6 +244,14 @@
       <div class="ct-say" id="ctSay" hidden>よーい…</div>
       <div class="ct-player" id="ctPlayer"></div>
     </div>
+  </section>
+  <section class="gm-pane" id="gmStack" hidden>
+    <div class="gm-stat"><span>つんだ だん <b id="stFloors">0</b> / <span id="stMax">12</span></span><span>ぴったり <b id="stStreak">0</b> れんぞく</span></div>
+    <div class="st-field" id="stField">
+      <div class="ct-say" id="stSay" hidden>よーい…</div>
+      <div class="st-world" id="stWorld"></div>
+    </div>
+    <p class="gm-note">タップで おとす！ ぴったり かさねると ほそく ならないよ</p>
   </section>
   <div class="gm-result" id="gmResult" hidden>
     <div class="gm-res-card">

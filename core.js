@@ -579,7 +579,8 @@
   // (「タップだと 20 コインのゆびで 30 回ぶん = 2 秒で終わる量では あそばない」と言われて、はっきり多くした)
   const MINI_GAMES = {
     memory: { name: 'どうぶつ めくり', daily: 3, pairs: 4 },
-    catch: { name: 'おやつキャッチ', daily: 3, seconds: 25 }
+    catch: { name: 'おやつキャッチ', daily: 3, seconds: 25 },
+    stack: { name: 'どうぶつ つみあげ', daily: 3, floors: 12 }
   };
   const MINI_MAX = 5000;
 
@@ -602,6 +603,10 @@
       const sc = Math.max(0, Math.floor(Number(result.score)) || 0);
       return 1500 + Math.min(3500, Math.round(sc * 87.5));   // 40 点で 5,000
     }
+    if (game === 'stack') {
+      const fl = Math.max(0, Math.floor(Number(result.floors)) || 0);
+      return 1500 + Math.min(3500, Math.round(fl * 3500 / MINI_GAMES.stack.floors));   // 12 だんで 5,000
+    }
     return 0;
   }
 
@@ -617,8 +622,36 @@
     return { ok: true, coins: coins, left: miniLeft(state, game, now) };
   }
 
+  /**
+   * どうぶつ つみあげ: 左右に うごく ブロックを タップで 落として、下の ブロックに かさねる。
+   * ずれた ぶんは きりおとされて 細くなる。ぴったり (tol 以内) なら 切らずに そのまま。ぴったりが 3 回 つづくと 少し 太くなる。
+   * 12 だん つめたら まんてん。むずかしさは シミュレーションで 決めた (上手な子は 12 だん・ふつうは 9 だんくらい・にがては 5 だん)
+   */
+  const STACK = { baseW: 170, tol: 8, grow: 10, slabH: 38 };
+  function stackSpeed(floor) { return 170 + 12 * floor; }   // 画面 430 の とき 1 びょうに すすむ点
+
+  /** top = いま いちばん上の ブロック {x, w}、block = 落とす ブロック {x, w}、streak = ぴったりの れんぞく数。
+   *  miss (かさならない) / perfect (ぴったり) / cut (ずれた ぶんを きる) を かえす */
+  function stackDrop(top, block, streak) {
+    const l = Math.max(top.x, block.x), r = Math.min(top.x + top.w, block.x + block.w);
+    if (r - l <= 0) return { kind: 'miss', streak: 0 };
+    if (Math.abs(block.x - top.x) <= STACK.tol) {
+      const s = (streak || 0) + 1;
+      let w = top.w;
+      if (s >= 3 && w < STACK.baseW) w = Math.min(STACK.baseW, w + STACK.grow);
+      return { kind: 'perfect', x: top.x - (w - top.w) / 2, w: w, streak: s, cut: null };
+    }
+    const cut = block.x < top.x ? { x: block.x, w: top.x - block.x } : { x: top.x + top.w, w: block.x + block.w - (top.x + top.w) };
+    return { kind: 'cut', x: l, w: r - l, streak: 0, cut: cut };
+  }
+
+  /** つみあげに のる どうぶつ: もっている子を さきに、そのあと ぜんぶ (かさならないように 1 まわりずつ) */
+  function stackPool(state, rng) {
+    return memoryDeal(state, rng, 99).filter(function (x, i, a) { return a.indexOf(x) === i; });
+  }
+
   /** どうぶつ めくり: ペアの絵 (どうぶつ) を えらんで ならべる。もっている子を先に使う */
-  function memoryDeal(state, rng) {
+  function memoryDeal(state, rng, count) {
     const have = Object.keys(ownedCharas(state));
     const all = Object.keys(CHARAS);
     const pool = [];
@@ -629,7 +662,8 @@
     };
     add(have);
     add(all);
-    const pick = pool.slice(0, MINI_GAMES.memory.pairs);
+    const pick = pool.slice(0, count || MINI_GAMES.memory.pairs);
+    if (count) return pick;   // つみあげ: ならべ方は そのまま (ペアにしない)
     const cards = pick.concat(pick);
     for (let i = cards.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = cards[i]; cards[i] = cards[j]; cards[j] = t; }
     return cards;
@@ -714,6 +748,10 @@
     MINI_MAX: MINI_MAX,
     miniReward: miniReward,
     miniFinish: miniFinish,
+    STACK: STACK,
+    stackSpeed: stackSpeed,
+    stackDrop: stackDrop,
+    stackPool: stackPool,
     memoryDeal: memoryDeal,
     CATCH_ITEMS: CATCH_ITEMS,
     catchPick: catchPick

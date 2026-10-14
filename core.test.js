@@ -671,12 +671,12 @@ test('画面の高さ: 根っこ (html, body) の高さに vh を使わない (�
 // ------------------------------------------------------------ ミニゲーム
 test('ミニゲーム: 1 日 3 回まで。日が変わると戻り、回数が残っていないと何も変わらない', () => {
   const s = Core.newState();
-  ['memory', 'catch'].forEach((g) => {
+  ['memory', 'catch', 'stack'].forEach((g) => {
     assert.strictEqual(Core.miniLeft(s, g, NOON), 3);
-    for (let i = 0; i < 3; i++) assert.ok(Core.miniFinish(s, g, g === 'memory' ? { turns: 4 } : { score: 40 }, NOON).ok);
+    for (let i = 0; i < 3; i++) assert.ok(Core.miniFinish(s, g, g === 'memory' ? { turns: 4 } : g === 'stack' ? { floors: 12 } : { score: 40 }, NOON).ok);
     assert.strictEqual(Core.miniLeft(s, g, NOON), 0);
     const m = s.money;
-    assert.strictEqual(Core.miniFinish(s, g, { turns: 4, score: 40 }, NOON).ok, false);
+    assert.strictEqual(Core.miniFinish(s, g, { turns: 4, score: 40, floors: 12 }, NOON).ok, false);
     assert.strictEqual(s.money, m);
     assert.strictEqual(Core.miniLeft(s, g, NOON + DAY), 3);
   });
@@ -699,10 +699,59 @@ test('ミニゲーム: ごほうびは 満点で 5,000 コイン (ゆびのち�
   for (let sc = 0; sc <= 60; sc++) { const r = Core.miniReward('catch', { score: sc }); assert.ok(r >= prev && r <= 5000); prev = r; }
 });
 
-test('ミニゲーム: 1 日の上限は 満点 x 6 回 = 30,000 コイン (60 パックぶん)', () => {
-  const day = 3 * Core.miniReward('memory', { turns: 4 }) + 3 * Core.miniReward('catch', { score: 40 });
-  assert.strictEqual(day, 30000);
-  assert.strictEqual(day / Core.PACK_PRICE, 60);
+test('ミニゲーム: 1 日の上限は 満点 x 9 回 = 45,000 コイン (90 パックぶん)', () => {
+  const day = 3 * Core.miniReward('memory', { turns: 4 }) + 3 * Core.miniReward('catch', { score: 40 }) + 3 * Core.miniReward('stack', { floors: 12 });
+  assert.strictEqual(day, 45000);
+  assert.strictEqual(day / Core.PACK_PRICE, 90);
+});
+
+test('つみあげ: ごほうびは 12 だんで 5,000 コイン・だんが ふえるほど 増える (0 だんでも 1,500)', () => {
+  assert.strictEqual(Core.miniReward('stack', { floors: 0 }), 1500);
+  assert.strictEqual(Core.miniReward('stack', { floors: 12 }), 5000);
+  assert.strictEqual(Core.miniReward('stack', { floors: 99 }), 5000);
+  assert.strictEqual(Core.miniReward('stack', { floors: -3 }), 1500);
+  let prev = 0;
+  for (let f = 0; f <= 14; f++) { const r = Core.miniReward('stack', { floors: f }); assert.ok(r >= prev && r <= 5000); prev = r; }
+});
+
+test('つみあげ: かさなる・ぴったり・きりおとし・はずれ の 判定', () => {
+  const top = { x: 100, w: 170 };
+  assert.strictEqual(Core.stackDrop(top, { x: 300, w: 170 }, 0).kind, 'miss', 'かさならない');
+  assert.strictEqual(Core.stackDrop(top, { x: 270, w: 170 }, 0).kind, 'miss', 'ふちが ふれるだけ');
+  const p = Core.stackDrop(top, { x: 100 + Core.STACK.tol, w: 170 }, 0);
+  assert.ok(p.kind === 'perfect' && p.x === 100 && p.w === 170 && p.cut === null, 'tol 以内は ぴったり (きらない)');
+  const c = Core.stackDrop(top, { x: 130, w: 170 }, 5);
+  assert.ok(c.kind === 'cut' && c.x === 130 && c.w === 140 && c.cut.x === 270 && c.cut.w === 30 && c.streak === 0, '右へ 30 ずれると 30 きる');
+  const c2 = Core.stackDrop(top, { x: 70, w: 170 }, 0);
+  assert.ok(c2.kind === 'cut' && c2.x === 100 && c2.w === 140 && c2.cut.x === 70 && c2.cut.w === 30, '左へ 30 ずれると 30 きる');
+  // ぴったりが 3 回つづくと 少し 太くなる (もとの 太さ以上には ならない)
+  let t = { x: 100, w: 140 }, streak = 0;
+  for (let i = 0; i < 3; i++) { const r = Core.stackDrop(t, { x: t.x, w: t.w }, streak); streak = r.streak; t = { x: r.x, w: r.w }; }
+  assert.strictEqual(t.w, 150, '3 回ぴったりで +10');
+  for (let i = 0; i < 20; i++) { const r = Core.stackDrop(t, { x: t.x, w: t.w }, streak); streak = r.streak; t = { x: r.x, w: r.w }; }
+  assert.strictEqual(t.w, Core.STACK.baseW, 'もとの 太さまで');
+});
+
+test('つみあげ: 上手な子は 12 だんで まんてん・ふつうは そこそこ・にがては すくない (自動で 何千回も あそばせて 測る)', () => {
+  const rng = (() => { let a = 12345; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();
+  const gauss = () => { let u = 0; while (!u) u = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rng()); };
+  // 「おそさ」jitter (びょう) ぶんだけ ずれて タップする子。ずれは 速さに 比例する
+  const play = (jitter) => {
+    let top = { x: 120, w: Core.STACK.baseW }, streak = 0, floors = 0;
+    for (let f = 0; f < Core.MINI_GAMES.stack.floors; f++) {
+      const r = Core.stackDrop(top, { x: top.x + Core.stackSpeed(f) * jitter * gauss(), w: top.w }, streak);
+      if (r.kind === 'miss') break;
+      streak = r.streak; top = { x: r.x, w: r.w }; floors++;
+    }
+    return floors;
+  };
+  const avg = (j) => { let s = 0; const n = 3000; for (let i = 0; i < n; i++) s += play(j); return s / n; };
+  const full = (j) => { let k = 0; const n = 3000; for (let i = 0; i < n; i++) if (play(j) >= 12) k++; return k / n; };
+  const good = full(0.06), mid = avg(0.1), poor = avg(0.2);
+  assert.ok(good >= 0.8, '上手な子は たいてい まんてんになる (' + good + ')');
+  assert.ok(mid >= 7 && mid <= 11, 'ふつうの子は 7〜11 だん (' + mid + ')');
+  assert.ok(poor >= 3 && poor <= 6.5, 'にがてな子は 3〜6 だん (' + poor + ')');
+  assert.ok(good > 0 && full(0.2) < 0.02, 'にがてな子が まぐれで まんてんは ほとんど無い');
 });
 
 test('めくり: 4 組 (8 まい)。同じ絵が 2 まいずつ。もっている子を先に使う', () => {
