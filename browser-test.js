@@ -1081,16 +1081,19 @@ async function run() {
       // 今日なでた子からは ふわふわの ハートが出ない (なでていない子だけ出るので、済んだかどうか 見分けられる)
       const floatHeart = (c) => page.evaluate((id) => {
         const w = document.querySelector('.walker[data-ch="' + id + '"]');
-        return { cls: w.className, content: getComputedStyle(w, '::after').content };
+        return { cls: w.className, n: w.querySelectorAll('.wk-fh').length };
       }, c);
       let fh = await floatHeart(ch);
-      ok(fh.cls.includes('petted') && fh.content === 'none', `今日なでた子は ハートが出ない (${fh.cls} / ${fh.content})`);
+      ok(fh.cls.includes('petted') && fh.n === 0, `今日なでた子は ハートが出ない (${fh.cls} / ハート ${fh.n})`);
       await page.evaluate((c) => { window.__app.state().pets[c].pettedDay = ''; }, ch);
       await goTab(page, 'Zukan');
       await goTab(page, 'Home');
       await page.waitForTimeout(300);
       fh = await floatHeart(ch);
-      ok(!fh.cls.includes('petted') && fh.content.includes('♥'), `まだなでていない子は ハートが出る (${fh.cls} / ${fh.content})`);
+      ok(!fh.cls.includes('petted') && fh.n === 1, `まだなでていない子は ハートが出る (${fh.cls} / ハート ${fh.n})`);
+      // どの子も「なでた ⇔ ハートの部品が無い」(Lv2 以上の子)。7 人ぜんぶで そろっている
+      const allHearts = await page.evaluate(() => [...document.querySelectorAll('.walker')].filter((w) => !/\blv1\b/.test(w.className)).map((w) => ({ ch: w.dataset.ch, petted: w.classList.contains('petted'), n: w.querySelectorAll('.wk-fh').length })).filter((x) => x.petted !== (x.n === 0)));
+      ok(allHearts.length === 0, `どの子も なでた ⇔ ハートが無い (ちがい: ${JSON.stringify(allHearts)})`);
 
       // ずかんからも おやつを あげられる (歩いていない子にも)
       await goTab(page, 'Zukan');

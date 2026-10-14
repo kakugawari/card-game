@@ -183,8 +183,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .walker.lv4 .wk-body, .walker.lv5 .wk-body { animation: wk-hop 3.2s ease-in-out infinite, wk-spin 6.4s ease-in-out infinite; }
 @keyframes wk-hop { 0%, 78%, 100% { translate: 0 0; } 86% { translate: 0 -16px; } 92% { translate: 0 0; } }
 @keyframes wk-spin { 0%, 80%, 100% { rotate: 0deg; } 92% { rotate: 360deg; } }
-.walker.lv2::after, .walker.lv3::after, .walker.lv4::after, .walker.lv5::after {
-  content: "♥";
+.wk-fh {
   position: absolute;
   left: 14px;
   top: 24px;
@@ -193,7 +192,6 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   animation: wk-heart 2.4s ease-out infinite;
   pointer-events: none;
 }
-.walker.petted::after { content: none; }
 @keyframes wk-heart { 0% { translate: 0 0; opacity: 0; } 20% { opacity: 1; } 100% { translate: -6px -40px; opacity: 0; } }
 .wk-hint {
   position: absolute;
