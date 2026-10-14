@@ -70,22 +70,23 @@
         <div class="stage-plaque"><i class="stage-paw" id="stageMark">🐾</i><b id="shopName">どうぶつパック</b></div>
         <p class="stage-desc" id="stageDesc"></p>
         <div class="stage-row" id="stageRow">
-          <button type="button" class="stage-arrow prev" id="btnPrev" aria-label="まえの パック"></button>
+          <button type="button" class="stage-nb prev" id="btnPrev" aria-label="まえの パック"><span class="nb-pack" id="nbPrev"></span><span class="nb-hint"><svg viewBox="0 0 32 20" aria-hidden="true"><path d="M28 14C22 4 12 4 5 10M5 10l7-1.5M5 10l2 7" fill="none" stroke="#6f8cf0" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>スワイプで<br>きりかえ</span></button>
           <div class="stage-pack-wrap"><div class="shop-pack" id="shopPack"></div><i class="stage-shadow"></i></div>
-          <button type="button" class="stage-arrow next" id="btnNext" aria-label="つぎの パック"></button>
+          <button type="button" class="stage-nb next" id="btnNext" aria-label="つぎの パック"><span class="nb-pack" id="nbNext"></span><span class="nb-hint"><svg viewBox="0 0 32 20" aria-hidden="true"><path d="M4 14C10 4 20 4 27 10M27 10l-7-1.5M27 10l-2 7" fill="none" stroke="#6f8cf0" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>スワイプで<br>きりかえ</span></button>
         </div>
+        <div class="stage-dots" id="stageDots" aria-hidden="true"></div>
         <div class="stage-meta">
-          <span class="stage-have" id="stageHave">てもと 0</span>
+          <button type="button" class="stage-have" id="stageHave">てもと 0</button>
           <span class="stage-index" id="stageIndex">1 / 100</span>
           <div class="set-pick" id="setPick"></div>
         </div>
       </div>
       <div class="stage-btns">
         <button type="button" class="btn btn-big btn-open" id="btnFree"><span class="btn-label" id="btnFreeLabel">きょうの むりょうパック！</span></button>
-        <button type="button" class="btn btn-mid btn-coin" id="btnBuy"><span class="btn-label" id="btnBuyLabel">500</span></button>
-        <button type="button" class="boxbar" id="btnBoxBar" aria-label="BOX で かう">
-          <i class="boxbar-ico" aria-hidden="true"></i>
-          <span class="boxbar-text"><b>BOX で かう</b><small id="boxBarSub">30パック入り・SR いじょう 1まい かくてい！</small></span>
+        <button type="button" class="btn btn-hero" id="btnBuy"><span class="hero-spark l" aria-hidden="true">✦</span><span class="btn-label"><i class="hero-coin" aria-hidden="true"></i><span class="hero-text"><b id="btnBuyLabel">500 コインで ひく</b><small id="btnBuySub">1パック・5まい入り</small></span></span><span class="hero-spark r" aria-hidden="true">✦</span></button>
+        <button type="button" class="boxbar" id="btnBoxBar" aria-label="BOX で ひく">
+          <svg class="boxbar-ico" viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="16" width="30" height="20" rx="4" fill="#8e7cf0" stroke="#4a3a8a" stroke-width="2"/><rect x="3" y="11" width="34" height="9" rx="3" fill="#a08cf5" stroke="#4a3a8a" stroke-width="2"/><path d="M20 11v25" stroke="#e9e2ff" stroke-width="4"/><path d="M20 11c-3-7-10-7-9-2.5C12 12 18 11 20 11zM20 11c3-7 10-7 9-2.5C28 12 22 11 20 11z" fill="#c9bcff" stroke="#4a3a8a" stroke-width="2" stroke-linejoin="round"/><path d="M20 22l1.4 2.9 3.2.4-2.3 2.2.6 3.2-2.9-1.5-2.9 1.5.6-3.2-2.3-2.2 3.2-.4z" fill="#fff"/></svg>
+          <span class="boxbar-text"><b>BOX で ひく</b><small id="boxBarSub">30パック入り・SR 以上 1まい確定！</small></span>
           <i class="boxbar-go" aria-hidden="true"></i>
         </button>
       </div>

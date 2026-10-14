@@ -18,7 +18,7 @@
   const els = {
     moneyNum: $('moneyNum'), tree: $('tree'), plaza: $('plaza'), ground: $('ground'), tapHint: $('tapHint'),
     upLv: $('upLv'), upSub: $('upSub'), btnUp: $('btnUp'), btnUpLabel: $('btnUpLabel'),
-    shopPack: $('shopPack'), shopName: $('shopName'), stage: $('packStage'), stageRow: $('stageRow'), stageDesc: $('stageDesc'), stageMark: $('stageMark'), stageHave: $('stageHave'), stageIndex: $('stageIndex'), btnPrev: $('btnPrev'), btnNext: $('btnNext'), btnFree: $('btnFree'), btnFreeLabel: $('btnFreeLabel'),
+    shopPack: $('shopPack'), shopName: $('shopName'), stage: $('packStage'), stageRow: $('stageRow'), stageDesc: $('stageDesc'), stageMark: $('stageMark'), stageHave: $('stageHave'), stageIndex: $('stageIndex'), stageDots: $('stageDots'), nbPrev: $('nbPrev'), nbNext: $('nbNext'), btnPrev: $('btnPrev'), btnNext: $('btnNext'), btnFree: $('btnFree'), btnFreeLabel: $('btnFreeLabel'),
     btnBuy: $('btnBuy'), btnBuyLabel: $('btnBuyLabel'), btnBox: $('btnBox'), btnBoxLabel: $('btnBoxLabel'),
     boxArt: $('boxArt'), btnOpenAll: $('btnOpenAll'), btnOpenAllLabel: $('btnOpenAllLabel'), myBox: $('myBox'), myBoxLeft: $('myBoxLeft'), myBoxSr: $('myBoxSr'), btnOpenBox: $('btnOpenBox'), boxLeft: $('boxLeft'), rates: $('rates'), packDot: $('packDot'), btnBoxBar: $('btnBoxBar'), boxBarSub: $('boxBarSub'), boxSheet: $('boxSheet'), bxClose: $('bxClose'),
     setPick: $('setPick'), packSheet: $('packSheet'), pshBody: $('pshBody'), pshTitle: $('pshTitle'), pshClose: $('pshClose'), zkPick: $('zkPick'), zkTitle: $('zkTitle'),
@@ -410,7 +410,7 @@
   // ---------------------------------------------------------------- パック画面
   function renderBuy() {
     const enough = state.money >= C.PACK_PRICE;
-    const text = enough ? C.formatMoney(C.PACK_PRICE) + ' コインで かう' : 'あと ' + C.formatMoney(C.PACK_PRICE - state.money) + ' コイン';
+    const text = enough ? C.formatMoney(C.PACK_PRICE) + ' コインで ひく' : 'あと ' + C.formatMoney(C.PACK_PRICE - state.money) + ' コイン';
     if (els.btnBuyLabel.textContent !== text) els.btnBuyLabel.textContent = text;
     els.btnBuy.disabled = !enough;
     renderBoxShop();
@@ -513,7 +513,7 @@
     const inHand = C.packsInHand(state, curSet);
     els.myBox.hidden = inHand === 0;
     els.btnBoxBar.classList.toggle('has', inHand > 0);
-    els.boxBarSub.textContent = inHand ? 'てもとの BOX: のこり ' + inHand + 'パック ▸ ひらく' : '30パック入り・SR いじょう 1まい かくてい！';
+    els.boxBarSub.textContent = inHand ? 'てもとの BOX: のこり ' + inHand + 'パック ▸ ひらく' : '30パック入り・SR 以上 1まい確定！';
     if (inHand) {
       const st = C.boxStatus(C.boxInHand(state, curSet));
       const more = state.boxes.filter(function (b) { return b.set === curSet; }).length - 1;
@@ -550,6 +550,7 @@
   function openBoxSheet() { els.boxSheet.hidden = false; els.boxSheet.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160 }); }
   function closeBoxSheet() { els.boxSheet.hidden = true; }
   els.btnBoxBar.addEventListener('click', openBoxSheet);
+  els.stageHave.addEventListener('click', openBoxSheet);   // 「てもと」: てもとの BOX の札を ひらく
   els.bxClose.addEventListener('click', closeBoxSheet);
   els.boxSheet.addEventListener('click', function (e) { if (e.target === els.boxSheet) closeBoxSheet(); });
   els.btnOpenBox.addEventListener('click', function () { closeBoxSheet(); openPack('box'); });
@@ -586,8 +587,9 @@
     const now = Date.now();
     const ready = C.canOpenFree(state, now);
     els.btnFree.disabled = !ready;
+    els.btnFree.classList.toggle('wait', !ready);   // もう ひいた日は 小さな タイマー札にして、500 コインの ボタンを 主役にする
     els.shopPack.classList.toggle('ready', ready);
-    const text = ready ? 'きょうの むりょうパック！' : 'むりょうは また あした (' + C.formatWait(C.msUntilNextDay(now)) + ')';
+    const text = ready ? 'きょうの むりょうパック！' : 'むりょう ' + C.formatWait(C.msUntilNextDay(now));
     if (els.btnFreeLabel.textContent !== text) els.btnFreeLabel.textContent = text;
     els.packDot.hidden = !ready && C.packsInHand(state) === 0;
   }
@@ -595,9 +597,12 @@
   function renderPicker() {
     els.setPick.innerHTML = '<button type="button" class="sp-bar sp-list" data-open="1">📚 いちらん</button>';
     const n = C.packsInHand(state, curSet);
-    els.stageHave.textContent = 'てもと 🎁' + n;
+    els.stageHave.textContent = 'てもと 🎁' + n + ' ›';
     els.stageHave.classList.toggle('some', n > 0);
-    els.stageIndex.textContent = (C.SETS.findIndex(function (st) { return st.id === curSet; }) + 1) + ' / ' + C.SETS.length;
+    const idx = C.SETS.findIndex(function (st) { return st.id === curSet; });
+    els.stageIndex.textContent = (idx + 1) + ' / ' + C.SETS.length;
+    if (els.stageDots.children.length !== C.SETS.length) els.stageDots.innerHTML = C.SETS.map(function () { return '<i></i>'; }).join('');
+    Array.prototype.forEach.call(els.stageDots.children, function (d, i) { d.classList.toggle('on', i === idx); });
   }
 
   function renderPacks() {
@@ -613,6 +618,10 @@
   function buildShop() {
     const set = C.setById(curSet);
     els.shopPack.innerHTML = V.packHTML(curSet);
+    // 左右に となりの パックが 少し見える (タップでも めくれる)
+    const ci = C.SETS.findIndex(function (st) { return st.id === curSet; }), n = C.SETS.length;
+    els.nbPrev.innerHTML = V.packHTML(C.SETS[(ci - 1 + n) % n].id);
+    els.nbNext.innerHTML = V.packHTML(C.SETS[(ci + 1) % n].id);
     els.boxArt.style.cssText = '--pk1:' + set.colors[0] + ';--pk2:' + set.colors[1] + ';--pk3:' + set.colors[2];
     els.boxArt.innerHTML = V.boxHTML(set.id);
     els.shopName.textContent = set.name;
@@ -665,7 +674,7 @@
   (function () {
     let x0 = null, y0 = 0, id = null;
     els.stageRow.addEventListener('pointerdown', function (e) {
-      if (e.target.closest('.stage-arrow')) return;
+      if (e.target.closest('.stage-nb')) return;
       x0 = e.clientX; y0 = e.clientY; id = e.pointerId;
     });
     els.stageRow.addEventListener('pointerup', function (e) {
