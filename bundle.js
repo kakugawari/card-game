@@ -35,5 +35,8 @@ if (artifact) {
 }
 // タイトルの絵は 1 枚の HTML の中へ埋め込む
 html = html.replace(/\.\/title\.jpg/g, () => 'data:image/jpeg;base64,' + fs.readFileSync(path.join(__dirname, 'title.jpg')).toString('base64'));
+html = html.replace(/\.\/(ui-[a-z]+)\.png/g, (m, n) => 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, n + '.png')).toString('base64'));
+html = html.replace(/\.\/packs-bg\.jpg/g, () => 'data:image/jpeg;base64,' + fs.readFileSync(path.join(__dirname, 'packs-bg.jpg')).toString('base64'));
+// artifact 版は css が <style> の中なので、同じ置き換えが効く
 fs.writeFileSync(out, html);
 console.log(out + ' (' + Math.round(html.length / 1024) + 'KB)');

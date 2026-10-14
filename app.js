@@ -18,10 +18,10 @@
   const els = {
     moneyNum: $('moneyNum'), tree: $('tree'), plaza: $('plaza'), ground: $('ground'), tapHint: $('tapHint'),
     upLv: $('upLv'), upSub: $('upSub'), btnUp: $('btnUp'), btnUpLabel: $('btnUpLabel'),
-    shopPack: $('shopPack'), shopName: $('shopName'), stage: $('packStage'), stageRow: $('stageRow'), stageDesc: $('stageDesc'), stageMark: $('stageMark'), stageHave: $('stageHave'), stageIndex: $('stageIndex'), stageDots: $('stageDots'), nbPrev: $('nbPrev'), nbNext: $('nbNext'), btnPrev: $('btnPrev'), btnNext: $('btnNext'), btnFree: $('btnFree'), btnFreeLabel: $('btnFreeLabel'),
+    shopPack: $('shopPack'), shopName: $('shopName'), stage: $('packStage'), stageRow: $('stageRow'), stageDesc: $('stageDesc'), stageMark: $('stageMark'), stageDots: $('stageDots'), btnPrev: $('btnPrev'), btnNext: $('btnNext'), btnFree: $('btnFree'), btnFreeLabel: $('btnFreeLabel'),
     btnBuy: $('btnBuy'), btnBuyLabel: $('btnBuyLabel'), btnBox: $('btnBox'), btnBoxLabel: $('btnBoxLabel'),
     boxArt: $('boxArt'), btnOpenAll: $('btnOpenAll'), btnOpenAllLabel: $('btnOpenAllLabel'), myBox: $('myBox'), myBoxLeft: $('myBoxLeft'), myBoxSr: $('myBoxSr'), btnOpenBox: $('btnOpenBox'), boxLeft: $('boxLeft'), rates: $('rates'), packDot: $('packDot'), btnBoxBar: $('btnBoxBar'), boxBarSub: $('boxBarSub'), boxSheet: $('boxSheet'), bxClose: $('bxClose'),
-    setPick: $('setPick'), packSheet: $('packSheet'), pshBody: $('pshBody'), pshTitle: $('pshTitle'), pshClose: $('pshClose'), zkPick: $('zkPick'), zkTitle: $('zkTitle'),
+    packSheet: $('packSheet'), pshBody: $('pshBody'), pshTitle: $('pshTitle'), pshClose: $('pshClose'), zkPick: $('zkPick'), zkTitle: $('zkTitle'),
     zkCount: $('zkCount'), zkSub: $('zkSub'), zkGrid: $('zkGrid'),
     detail: $('detail'), dtBox: $('dtBox'),
     petSheet: $('petSheet'), psClose: $('psClose'), psAnimal: $('psAnimal'), psFx: $('psFx'), psName: $('psName'), psLv: $('psLv'),
@@ -550,7 +550,8 @@
   function openBoxSheet() { els.boxSheet.hidden = false; els.boxSheet.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160 }); }
   function closeBoxSheet() { els.boxSheet.hidden = true; }
   els.btnBoxBar.addEventListener('click', openBoxSheet);
-  els.stageHave.addEventListener('click', openBoxSheet);   // 「てもと」: てもとの BOX の札を ひらく
+  $('btnMine').addEventListener('click', openBoxSheet);
+  $('btnToZukan').addEventListener('click', function () { showTab('Zukan'); });
   els.bxClose.addEventListener('click', closeBoxSheet);
   els.boxSheet.addEventListener('click', function (e) { if (e.target === els.boxSheet) closeBoxSheet(); });
   els.btnOpenBox.addEventListener('click', function () { closeBoxSheet(); openPack('box'); });
@@ -595,14 +596,13 @@
   }
 
   function renderPicker() {
-    els.setPick.innerHTML = '<button type="button" class="sp-bar sp-list" data-open="1">📚 いちらん</button>';
-    const n = C.packsInHand(state, curSet);
-    els.stageHave.textContent = 'てもと 🎁' + n + ' ›';
-    els.stageHave.classList.toggle('some', n > 0);
+    // 点: いま 何番目か。点を タップすると そのパックへ とぶ
     const idx = C.SETS.findIndex(function (st) { return st.id === curSet; });
-    els.stageIndex.textContent = (idx + 1) + ' / ' + C.SETS.length;
-    if (els.stageDots.children.length !== C.SETS.length) els.stageDots.innerHTML = C.SETS.map(function () { return '<i></i>'; }).join('');
+    if (els.stageDots.children.length !== C.SETS.length) {
+      els.stageDots.innerHTML = C.SETS.map(function (st) { return '<button type="button" data-set="' + st.id + '" aria-label="' + st.name + '"><i></i></button>'; }).join('');
+    }
     Array.prototype.forEach.call(els.stageDots.children, function (d, i) { d.classList.toggle('on', i === idx); });
+    $('stageNum').textContent = (idx + 1) + '/' + C.SETS.length;
   }
 
   function renderPacks() {
@@ -620,8 +620,6 @@
     els.shopPack.innerHTML = V.packHTML(curSet);
     // 左右に となりの パックが 少し見える (タップでも めくれる)
     const ci = C.SETS.findIndex(function (st) { return st.id === curSet; }), n = C.SETS.length;
-    els.nbPrev.innerHTML = V.packHTML(C.SETS[(ci - 1 + n) % n].id);
-    els.nbNext.innerHTML = V.packHTML(C.SETS[(ci + 1) % n].id);
     els.boxArt.style.cssText = '--pk1:' + set.colors[0] + ';--pk2:' + set.colors[1] + ';--pk3:' + set.colors[2];
     els.boxArt.innerHTML = V.boxHTML(set.id);
     els.shopName.textContent = set.name;
@@ -642,8 +640,13 @@
       'BOX ごと かうと、じぶんだけの あたらしい BOX が もらえて、SR いじょうが かならず 1まい はいっている。</p>';
   }
 
-  els.setPick.addEventListener('click', function (e) {
-    if (e.target.closest('.sp-bar')) openSheet('packs');
+  els.stageDots.addEventListener('click', function (e) {
+    const b = e.target.closest('button[data-set]');
+    if (!b || b.dataset.set === curSet) return;
+    const to = C.SETS.findIndex(function (st) { return st.id === b.dataset.set; });
+    const from = C.SETS.findIndex(function (st) { return st.id === curSet; });
+    pickPackSet(b.dataset.set, to > from ? 1 : -1);
+    Sfx.play('whoosh');
   });
 
   /** dir: 1 = つぎ (右から入る) / -1 = まえ / 0 = 一覧から (上から落ちる) */
@@ -804,6 +807,7 @@
     if (name === 'Packs') renderPacks();
     if (name === 'Zukan') renderZukan();
     if (name === 'Home') renderWalkers();
+    $('app').classList.toggle('bg-packs', name === 'Packs');   // パック画面は 画像の背景を うしろ ぜんたいに
     $('crewBtn').hidden = name !== 'Home';   // 「なかま」は ひろばだけ
   }
 
