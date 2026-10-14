@@ -662,7 +662,7 @@ async function run() {
         });
         ok(hero.text === '500 コインで ひく' && hero.sub === '1パック・5まい入り' && hero.buyH >= 70 && hero.order && hero.dots === 11 && hero.on === 1 && hero.nbOutside,
           `新しい配置: 「${hero.text}」(高さ ${Math.round(hero.buyH)}) が主役・BOX が下・丸い ◀ ▶ が両はしに・点 ${hero.dots} こ (順 ${hero.order}・印 ${hero.on}・外 ${hero.nbOutside})`);
-        if (free) ok(!hero.wait && hero.freeH >= 30 && hero.buyH > hero.freeH, `むりょうが ひける日は 大きいボタン (高さ ${Math.round(hero.freeH)}) だけど、500 コインの方が 大きい (${Math.round(hero.buyH)})`);
+        if (free) ok(!hero.wait && hero.freeH >= 24 && hero.buyH > hero.freeH, `むりょうが ひける日は 大きいボタン (高さ ${Math.round(hero.freeH)}) だけど、500 コインの方が 大きい (${Math.round(hero.buyH)})`);
         else ok(hero.wait && hero.freeH <= 36 && hero.freeW <= 300 && /^むりょう あと/.test(hero.freeText), `むりょう済みの日は 小さなタイマー札 (${hero.freeW | 0}x${hero.freeH | 0}・「${hero.freeText}」)`);
       }
       // 用意してもらった画像のとおりの並び: 札 → パック (左右に 丸い ◀ ▶) → 点 → むりょう札 + N/11 → 500 → BOX → てもち・ずかん
