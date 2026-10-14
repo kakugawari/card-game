@@ -296,7 +296,7 @@ async function run() {
         const r = await page.evaluate((t) => {
           const bar = document.getElementById('tabbar').getBoundingClientRect();
           const scr = document.getElementById('sc' + t);
-          const inner = [...scr.querySelectorAll(t === 'Zukan' ? '.zk-head' : t === 'Packs' ? '.stage-arrow, .shop-pack, .sp-list, #btnFree' : '.btn, .upgrade, .tree-btn')];
+          const inner = [...scr.querySelectorAll(t === 'Zukan' ? '.zk-head' : t === 'Packs' ? '.stage-nb, .shop-pack, .sp-list, #btnFree' : '.btn, .upgrade, .tree-btn')];
           return {
             barBottom: bar.bottom, barTop: bar.top,
             worst: inner.reduce((m, e) => Math.max(m, e.getBoundingClientRect().bottom), 0),
@@ -634,6 +634,37 @@ async function run() {
         ok(lay.packSeen && lay.packBottom <= lay.freeTop && lay.packTop >= lay.topbar, `高さ ${h}: パックが見えたまま (パックの下 ${Math.round(lay.packBottom)} / むりょうボタンの上 ${Math.round(lay.freeTop)})`);
       }
       await page.setViewportSize({ width: 430, height: 932 });
+      // 新しい配置: 「500 コインで ひく」が 画面の主役 (むりょうより 大きく、いちばん目立つ)。むりょう済みの日は 小さなタイマー札
+      for (const free of [true, false]) {
+        await page.evaluate((free) => {
+          const st = window.__app.state(), d = new Date(), pad = (n) => String(n).padStart(2, '0');
+          st.money = 12334; st.lastFreeDay = free ? '' : d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+          window.__app.mini.refresh(); document.querySelector('[data-tab=Home]').click(); document.querySelector('[data-tab=Packs]').click();
+        }, free);
+        await page.waitForTimeout(200);
+        const hero = await page.evaluate(() => {
+          const r = (id) => document.getElementById(id).getBoundingClientRect();
+          const b = r('btnBuy'), f = r('btnFree'), x = r('btnBoxBar'), dots = document.querySelectorAll('#stageDots i'), on = document.querySelectorAll('#stageDots i.on');
+          const pk = r('shopPack'), pv = r('btnPrev'), nx = r('btnNext');
+          return { buyH: b.height, freeH: f.height, boxH: x.height, order: b.top > f.top && x.top > b.top, dots: dots.length, on: on.length,
+            text: document.getElementById('btnBuyLabel').textContent, sub: document.getElementById('btnBuySub').textContent, freeText: document.getElementById('btnFreeLabel').textContent,
+            wait: document.getElementById('btnFree').classList.contains('wait'), freeW: f.width, nbOutside: pv.right <= pk.left + 8 && nx.left >= pk.right - 8,
+            nbPacks: document.querySelectorAll('#nbPrev .pk, #nbNext .pk').length, nbDiff: document.querySelector('#nbPrev .pk').className !== document.querySelector('#nbNext .pk').className };
+        });
+        ok(hero.text === '500 コインで ひく' && hero.sub === '1パック・5まい入り' && hero.buyH >= 70 && hero.order && hero.dots === 11 && hero.on === 1 && hero.nbPacks === 2 && hero.nbOutside && hero.nbDiff,
+          `新しい配置: 「${hero.text}」(高さ ${Math.round(hero.buyH)}) が主役・BOX が下・となりのパックが両はしに・点 ${hero.dots} こ (順 ${hero.order}・印 ${hero.on}・外 ${hero.nbOutside}・パック ${hero.nbPacks}・ちがい ${hero.nbDiff})`);
+        if (free) ok(!hero.wait && hero.freeH > 40 && hero.buyH > hero.freeH, `むりょうが ひける日は 大きいボタン (高さ ${Math.round(hero.freeH)}) だけど、500 コインの方が 大きい (${Math.round(hero.buyH)})`);
+        else ok(hero.wait && hero.freeH <= 36 && hero.freeW <= 300 && /^むりょう あと/.test(hero.freeText), `むりょう済みの日は 小さなタイマー札 (${hero.freeW | 0}x${hero.freeH | 0}・「${hero.freeText}」)`);
+      }
+      // 「てもと」は てもとの BOX の札を ひらく・となりのパックを タップしても めくれる
+      await page.tap('#stageHave');
+      await page.waitForSelector('#boxSheet:not([hidden])');
+      await page.tap('#bxClose');
+      await page.waitForSelector('#boxSheet', { state: 'hidden' });
+      const idx0 = await page.textContent('#stageIndex');
+      await page.tap('#btnNext');
+      ok((await page.textContent('#stageIndex')) !== idx0, 'となりのパック (右) を タップしても つぎへ めくれる');
+      await page.tap('#btnPrev');
       // BOX の札: ひらく・とじる (× / 外をタップ)。BOX の買い方・かくりつは中に ある
       await page.tap('#btnBoxBar');
       await page.waitForSelector('#boxSheet:not([hidden])');
