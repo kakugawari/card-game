@@ -996,6 +996,19 @@ async function run() {
           hint: !!document.querySelector('.wk-hint') };
       }, ch);
       ok(after.badge.includes('2') && !after.hint, `歩いている子に ♥ のレベルが付き、案内は消える (${after.badge})`);
+      // 今日なでた子からは ふわふわの ハートが出ない (なでていない子だけ出るので、済んだかどうか 見分けられる)
+      const floatHeart = (c) => page.evaluate((id) => {
+        const w = document.querySelector('.walker[data-ch="' + id + '"]');
+        return { cls: w.className, content: getComputedStyle(w, '::after').content };
+      }, c);
+      let fh = await floatHeart(ch);
+      ok(fh.cls.includes('petted') && fh.content === 'none', `今日なでた子は ハートが出ない (${fh.cls} / ${fh.content})`);
+      await page.evaluate((c) => { window.__app.state().pets[c].pettedDay = ''; }, ch);
+      await goTab(page, 'Zukan');
+      await goTab(page, 'Home');
+      await page.waitForTimeout(300);
+      fh = await floatHeart(ch);
+      ok(!fh.cls.includes('petted') && fh.content.includes('♥'), `まだなでていない子は ハートが出る (${fh.cls} / ${fh.content})`);
 
       // ずかんからも おやつを あげられる (歩いていない子にも)
       await goTab(page, 'Zukan');
@@ -1023,6 +1036,62 @@ async function run() {
     }
 
     // ------------------------------------------------ パックの種類
+    // ------------------------------------------------ ひろばの なかま (持っている子から えらぶ)
+    if (want('なかま')) {
+      section('なかま: ひろばを歩く子を 持っている子から えらぶ (えらんだ人数のまま・1 人でもよい)');
+      ({ context, page } = await newGame(browser, errors));
+      await page.evaluate(() => {
+        const st = window.__app.state();
+        window.Cards.CARDS.forEach((c, i) => { if (i % 4 === 0) st.owned[c.no] = 1; });
+      });
+      await goTab(page, 'Zukan');
+      await goTab(page, 'Home');
+      await page.waitForTimeout(300);
+      const walkers = () => page.evaluate(() => [...document.querySelectorAll('.walker')].map((w) => w.dataset.ch));
+      ok((await walkers()).length === 7, `はじめは おまかせで 7 人 (${(await walkers()).length})`);
+      await page.tap('#crewBtn');
+      await page.waitForSelector('#crewSheet:not([hidden])');
+      const cells = await page.evaluate(() => ({ n: document.querySelectorAll('.crew-cell').length, on: document.querySelectorAll('.crew-cell.on').length,
+        count: document.getElementById('crewCount').textContent, auto: document.getElementById('crewAuto').classList.contains('on') }));
+      ok(cells.n > 7 && cells.on === 7 && cells.count === '7 / 7' && cells.auto, `持っている子が ならび、おまかせの 7 人に ✓ (${cells.n} 人中 ${cells.on} / ${cells.count})`);
+      const tapCell = (i) => page.locator('.crew-cell').nth(i).tap();
+      const sel = () => page.evaluate(() => [...document.querySelectorAll('.crew-cell.on')].map((c) => c.dataset.ch));
+      // 8 人目は えらべない
+      const off = await page.evaluate(() => [...document.querySelectorAll('.crew-cell')].findIndex((c) => !c.classList.contains('on')));
+      await tapCell(off);
+      ok((await sel()).length === 7 && (await page.textContent('#crewSub')).includes('7'), '8 人目は えらべず、わけを出す');
+      // 6 人はずして 1 人だけにする
+      for (let k = 0; k < 6; k++) { const on = await page.evaluate(() => [...document.querySelectorAll('.crew-cell')].findIndex((c) => c.classList.contains('on'))); await tapCell(on); }
+      const one = await sel();
+      ok(one.length === 1 && (await page.textContent('#crewCount')) === '1 / 7', `1 人だけ えらべる (${one.length})`);
+      await tapCell(await page.evaluate(() => [...document.querySelectorAll('.crew-cell')].findIndex((c) => c.classList.contains('on'))));
+      ok((await sel()).length === 1, 'さいごの 1 人は はずせない');
+      await page.tap('#crewClose');
+      await page.waitForSelector('#crewSheet', { state: 'hidden' });
+      await page.waitForTimeout(300);
+      const w1 = await walkers();
+      ok(w1.length === 1 && w1[0] === one[0], `ひろばを歩くのは えらんだ 1 人だけ (${w1.length}人 ${w1[0]})`);
+      // 開き直しても (保存) 同じ。2 人にふやす
+      await page.reload();
+      await page.waitForFunction(() => window.__app);
+      await page.waitForTimeout(300);
+      ok((await walkers()).length === 1 && (await walkers())[0] === one[0], '開き直しても えらんだ子のまま');
+      await page.tap('#crewBtn');
+      await page.waitForSelector('#crewSheet:not([hidden])');
+      await tapCell(await page.evaluate(() => [...document.querySelectorAll('.crew-cell')].findIndex((c) => !c.classList.contains('on'))));
+      await page.tap('#crewClose');
+      await page.waitForTimeout(300);
+      ok((await walkers()).length === 2, `2 人にふやすと 2 人歩く (${(await walkers()).length})`);
+      // おまかせに戻す
+      await page.tap('#crewBtn');
+      await page.waitForSelector('#crewSheet:not([hidden])');
+      await page.tap('#crewAuto');
+      await page.tap('#crewClose');
+      await page.waitForTimeout(300);
+      ok((await walkers()).length === 7 && (await page.evaluate(() => window.__app.state().crew)) === null, '「おまかせ」で 7 人に もどる');
+      await context.close();
+    }
+
     if (want('しゅるい')) {
       section('しゅるい: パックの種類を えらんで、その種類のパックを開ける');
       ({ context, page } = await newGame(browser, errors));

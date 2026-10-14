@@ -188,7 +188,7 @@
   function newState() {
     return {
       v: SAVE_VERSION, money: 0, tapLevel: 0, totalTaps: 0, owned: {}, lastFreeDay: '',
-      packsOpened: 0, shop: {}, boxes: [], muted: false, pets: {}, mini: { day: '', plays: {} }
+      packsOpened: 0, shop: {}, boxes: [], muted: false, pets: {}, crew: null, mini: { day: '', plays: {} }
     };
   }
 
@@ -247,6 +247,12 @@
         const day = function (d) { return typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : ''; };
         s.pets[ch] = { aff: toCount(p.aff, 1e6), fedDay: day(p.fedDay), fed: Math.min(toCount(p.fed, 99), DAILY_SNACKS), pettedDay: day(p.pettedDay) };
       });
+    }
+    // ひろばを歩く子の えらび (null = おまかせ)。持っていない子・重なり・8 人目からは捨てる。空なら おまかせ
+    if (Array.isArray(raw.crew)) {
+      const seen = {};
+      const ids = raw.crew.filter(function (ch) { if (typeof ch !== 'string' || !CHARAS[ch] || seen[ch]) return false; seen[ch] = true; return true; }).slice(0, CREW_MAX);
+      s.crew = ids.length ? ids : null;
     }
     let owned = raw.owned && typeof raw.owned === 'object' ? raw.owned : {};
     if (!(raw.v >= 2)) owned = migrateOwnedV1(owned);
@@ -448,6 +454,7 @@
     cookie: { name: 'クッキー', icon: '🍪', price: 80, aff: 3 },
     fav: { name: 'だいこうぶつ', icon: '', price: 150, aff: 6 }   // 名前と絵はキャラごと (CHARAS)
   };
+  const CREW_MAX = 7;   // ひろばを歩ける子の数
   const PET_LEVELS = [0, 5, 15, 30, 55];   // なかよしレベル 1〜5 になる なかよし度
 
   function ownedCharas(state) {
@@ -513,6 +520,44 @@
     if (p.pettedDay === today) return { ok: false, reason: 'already' };
     p.pettedDay = today;
     return Object.assign({ ok: true }, addAff(state, chara, 1));
+  }
+
+  /** 持っている子 (キャラ) を、なかよし度 → レア度 の順に並べる (ひろばの おまかせ・えらぶ札の並び) */
+  function crewCandidates(state) {
+    const best = {};
+    const charas = [];
+    CARDS.forEach(function (c) {
+      if (!(state.owned[c.no] > 0)) return;
+      if (best[c.chara] === undefined) charas.push(c.chara);
+      best[c.chara] = Math.max(best[c.chara] || 0, rank(c.rarity));
+    });
+    const aff = function (ch) { return state.pets[ch] ? state.pets[ch].aff : 0; };
+    return charas.sort(function (a, b) { return aff(b) - aff(a) || best[b] - best[a]; });
+  }
+
+  /** ひろばを歩く子。えらんでいれば その人数ぶんだけ (1 人でもよい)。おまかせ (crew が null) は 7 人まで */
+  function crewList(state) {
+    const all = crewCandidates(state);
+    if (!state.crew) return all.slice(0, CREW_MAX);
+    const own = {};
+    all.forEach(function (ch) { own[ch] = true; });
+    const ids = state.crew.filter(function (ch) { return own[ch]; }).slice(0, CREW_MAX);
+    return ids.length ? ids : all.slice(0, CREW_MAX);
+  }
+
+  /** ひろばの なかまを えらぶ。持っている子だけ・7 人まで・重ならない。空は おまかせに戻す。失敗は何も変えない */
+  function setCrew(state, ids) {
+    if (!Array.isArray(ids)) return { ok: false, reason: 'bad' };
+    const own = ownedCharas(state);
+    const seen = {};
+    for (let i = 0; i < ids.length; i++) {
+      if (!own[ids[i]]) return { ok: false, reason: 'notOwned' };
+      if (seen[ids[i]]) return { ok: false, reason: 'dup' };
+      seen[ids[i]] = true;
+    }
+    if (ids.length > CREW_MAX) return { ok: false, reason: 'tooMany' };
+    state.crew = ids.length ? ids.slice() : null;
+    return { ok: true };
   }
 
   // ---------------------------------------------------------------- 表示用
@@ -656,6 +701,10 @@
     SNACKS: SNACKS,
     PET_LEVELS: PET_LEVELS,
     ownedCharas: ownedCharas,
+    CREW_MAX: CREW_MAX,
+    crewCandidates: crewCandidates,
+    crewList: crewList,
+    setCrew: setCrew,
     petLevel: petLevel,
     petInfo: petInfo,
     feed: feed,

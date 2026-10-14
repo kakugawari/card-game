@@ -165,18 +165,9 @@
    * 歩いている子をタップすると、おやつの画面が出る。なかよしレベルが上がると、歩きながら はねたり まわったりする
    */
   function renderWalkers() {
-    const charas = [];
-    const best = {};
-    C.CARDS.forEach(function (c) {
-      if (!state.owned[c.no]) return;
-      if (best[c.chara] === undefined) charas.push(c.chara);
-      best[c.chara] = Math.max(best[c.chara] || 0, C.rank(c.rarity));
-    });
     const now = Date.now();
-    const aff = function (ch) { return state.pets[ch] ? state.pets[ch].aff : 0; };
-    // なかよしの子 → レアな子 の順に、草原に出てくる
-    charas.sort(function (a, b) { return aff(b) - aff(a) || best[b] - best[a]; });
-    const shown = charas.slice(0, 7);
+    const shown = C.crewList(state);   // えらんだ子 (えらんでいなければ おまかせの 7 人まで)
+
     const width = els.ground.clientWidth || 430;
     // 草原を人数ぶんの区画に分け、それぞれの区画の中を行ったり来たりする (かたまらない)
     const lane = (width - 84) / Math.max(1, shown.length);
@@ -189,7 +180,7 @@
     }).sort(function (x, y) { return y.bottom - x.bottom; });   // 奥 (上) の子から描き、手前の子が前に出る
     let html = walkers.map(function (w) {
       const info = C.petInfo(state, w.id, now);
-      return '<button type="button" class="walker lv' + info.level + '" data-ch="' + w.id + '" aria-label="おやつ" style="left:' + w.left.toFixed(0) +
+      return '<button type="button" class="walker lv' + info.level + (info.canPet ? '' : ' petted') + '" data-ch="' + w.id + '" aria-label="おやつ" style="left:' + w.left.toFixed(0) +
         'px;bottom:' + w.bottom + 'px;--dist:' + w.dist.toFixed(0) + 'px;--dur:' + w.dur.toFixed(1) + 's;--del:-' + (Math.random() * w.dur).toFixed(1) + 's">' +
         (info.level >= 2 ? '<span class="wk-lv">♥' + info.level + '</span>' : '') + (info.level >= 5 ? '<span class="wk-crown">👑</span>' : '') +
         '<span class="wk-body">' + A.svg(w.id, { delay: randomDelay() }).replace('<svg ', '<svg width="100%" height="100%" ') + '</span></button>';
@@ -198,6 +189,68 @@
     if (shown.length && !fedEver) html += '<p class="wk-hint">あるいている こを タップすると、おやつを あげられるよ</p>';
     els.ground.innerHTML = html;
   }
+
+  // ---------------------------------------------------------------- ひろばの なかまを えらぶ
+  const crewSheet = $('crewSheet'), crewGrid = $('crewGrid'), crewCount = $('crewCount'), crewSub = $('crewSub'), crewAuto = $('crewAuto');
+  let crewMsgTimer = 0;
+
+  function crewMsg(text) {
+    crewSub.textContent = text;
+    crewSub.classList.add('warn');
+    clearTimeout(crewMsgTimer);
+    crewMsgTimer = setTimeout(function () { renderCrew(); }, 1800);
+  }
+
+  function renderCrew() {
+    const all = C.crewCandidates(state);
+    const on = {};
+    C.crewList(state).forEach(function (ch) { on[ch] = true; });
+    const n = Object.keys(on).length;
+    crewCount.textContent = n + ' / ' + C.CREW_MAX;
+    crewSub.classList.remove('warn');
+    crewSub.textContent = state.crew ? 'えらんだ ' + n + ' ひきが ひろばを あるくよ' : 'おまかせ: なかよしの子から ' + n + ' ひき あるくよ';
+    crewAuto.classList.toggle('on', !state.crew);
+    crewGrid.innerHTML = all.map(function (ch) {
+      const info = C.petInfo(state, ch, Date.now());
+      const card = C.CARDS.find(function (c) { return c.chara === ch; });
+      return '<button type="button" class="crew-cell' + (on[ch] ? ' on' : '') + '" data-ch="' + ch + '" aria-pressed="' + (on[ch] ? 'true' : 'false') + '">' +
+        '<span class="crew-pic">' + A.svg(ch, { walk: false }).replace('<svg ', '<svg width="100%" height="100%" ') + '</span>' +
+        '<span class="crew-name">' + card.name + '</span><span class="crew-lv">♥' + info.level + '</span>' +
+        (on[ch] ? '<i class="crew-chk">✓</i>' : '') + '</button>';
+    }).join('');
+  }
+
+  function openCrew() {
+    Sfx.unlock();
+    renderCrew();
+    crewSheet.hidden = false;
+    crewSheet.querySelector('.psh-panel').animate([{ transform: 'translateY(100%)' }, { transform: 'none' }], { duration: 220, easing: 'ease-out' });
+  }
+  function closeCrew() {
+    crewSheet.hidden = true;
+    renderWalkers();
+  }
+
+  crewGrid.addEventListener('click', function (e) {
+    const b = e.target.closest('.crew-cell');
+    if (!b) return;
+    const cur = C.crewList(state).slice();   // おまかせのときは、いま出ている子から はじめる
+    const i = cur.indexOf(b.dataset.ch);
+    if (i >= 0) {
+      if (cur.length <= 1) { crewMsg('1 ひきは ひろばに いてね'); return; }
+      cur.splice(i, 1);
+    } else {
+      if (cur.length >= C.CREW_MAX) { crewMsg(C.CREW_MAX + ' ひきまで！ どれかを はずしてね'); return; }
+      cur.push(b.dataset.ch);
+    }
+    if (!C.setCrew(state, cur).ok) return;
+    saveNow();
+    renderCrew();
+  });
+  crewAuto.addEventListener('click', function () { C.setCrew(state, []); saveNow(); renderCrew(); });
+  $('crewBtn').addEventListener('click', openCrew);
+  $('crewClose').addEventListener('click', closeCrew);
+  crewSheet.addEventListener('click', function (e) { if (e.target === crewSheet) closeCrew(); });
 
   els.ground.addEventListener('click', function (e) {
     const w = e.target.closest('.walker');
@@ -298,6 +351,9 @@
     Sfx.play('shine');
     happy('jump');
     hearts(4, false);
+    // 今日のなでなでが 済んだ子は、ひろばで ハートを出さない (まだの子だけ ハートが ふわふわ出る)
+    const wk = els.ground.querySelector('.walker[data-ch="' + petCh + '"]');
+    if (wk) wk.classList.add('petted');
     renderPet();
     if (r.levelUp) levelUp(r.level);
   });
