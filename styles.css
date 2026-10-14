@@ -105,6 +105,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 
 /* ------------------------------------------------ ひろば */
 .plaza {
+  --gh: min(270px, calc(100% - 360px));   /* 草原の高さ (ゆびのちからの札を草原の上へ移して、広くなったぶん) */
   flex: 1 1 auto;
   min-height: 0;
   position: relative;
@@ -140,7 +141,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   left: -16px;
   right: -16px;
   bottom: 0;
-  height: 190px;
+  height: var(--gh);
   background: linear-gradient(#bfe99a, #9ad676);
   border-top: 4px solid #86c764;
   border-radius: 50% 50% 0 0 / 22px 22px 0 0;
@@ -229,23 +230,28 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 }
 
 .upgrade {
-  flex: none;
+  /* 草原の上のひだり (「なかま」のボタンと同じ段) に ちいさく置く */
+  position: absolute;
+  left: 16px;
+  bottom: calc(var(--gh) + 10px);
+  z-index: 3;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 12px 12px 16px;
-  margin-top: 10px;
+  gap: 8px;
+  padding: 5px 5px 5px 12px;
   background: var(--panel);
   border: 3px solid var(--line);
-  border-radius: 22px;
-  box-shadow: 0 4px 0 var(--line);
-  position: relative;
-  z-index: 2;
+  border-radius: 20px;
+  box-shadow: 0 3px 0 var(--line);
 }
-.up-info { flex: 1 1 auto; min-width: 0; }
-.up-name { font-size: 17px; }
+.up-info { min-width: 0; white-space: nowrap; }
+.up-name { font-size: 12px; }
 .up-name b { color: #e07a1f; }
-.up-sub { margin-top: 2px; font-size: 13px; color: var(--muted); }
+.up-sub { margin-top: 1px; font-size: 11px; color: var(--muted); }
+.upgrade .btn-up { min-width: 0; font-size: 14px; border-radius: 14px; box-shadow: 0 3px 0 #d9a114; }
+.upgrade .btn-up:disabled { box-shadow: 0 3px 0 #c9b998; }
+.upgrade .btn-label { padding: 12px 11px; }
+.upgrade .btn-up .btn-label::before { width: 13px; height: 13px; border-width: 2px; }
 
 /* ------------------------------------------------ ボタン */
 .btn {
@@ -1087,7 +1093,7 @@ html.on-title, html.on-title body { background: linear-gradient(90deg, #82e6f6, 
 .crew-btn {
   position: absolute;
   right: 16px;
-  bottom: 200px;
+  bottom: calc(var(--gh) + 10px);
   z-index: 3;
   display: flex;
   align-items: center;

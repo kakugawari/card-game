@@ -307,6 +307,20 @@ async function run() {
         ok(r.barBottom <= 932.5 && r.worst <= r.barTop + 0.5 && r.right <= 430.5 && r.top >= 59,
           `${tab}: タブ・ボタンが画面に収まり、重ならない (ボタンの下 ${Math.round(r.worst)} / タブの上 ${Math.round(r.barTop)})`);
       }
+      // ひろば: 「ゆびのちから」の札 (草原の上のひだり) が、「なかま」のボタン・木・タブと重ならず、押せる大きさ
+      for (const h of [932, 873]) {
+        await page.setViewportSize({ width: 430, height: h });
+        await goTab(page, 'Home');
+        await page.waitForTimeout(150);
+        const q = await page.evaluate(() => {
+          const r = (s) => document.querySelector(s).getBoundingClientRect();
+          const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+          const up = r('#upgrade'), cr = r('#crewBtn'), tr = r('#tree'), bt = r('#btnUp'), g = r('#ground'), tab = r('#tabbar');
+          return { overCrew: hit(up, cr), overTree: hit(up, tr), tab: up.bottom <= g.top + 0.5 && g.bottom <= tab.top + 0.5, left: up.left, right: up.right, btnW: bt.width, btnH: bt.height };
+        });
+        ok(!q.overCrew && !q.overTree && q.tab && q.left >= 0 && q.right <= 430 && q.btnW >= 44 && q.btnH >= 40,
+          `ひろば (高さ ${h}): 「ゆびのちから」の札は 草原の上に ちいさく置かれ、なかま・木と重ならず、ボタンは押せる大きさ (${Math.round(q.btnW)}x${Math.round(q.btnH)})`);
+      }
       await context.close();
     }
 
@@ -943,7 +957,6 @@ async function run() {
       ok(await page.locator('.wk-hint').isVisible(), 'まだ おやつを あげたことが無いときは、案内が出る');
       const field = await page.evaluate(() => {
         const g = document.getElementById('ground').getBoundingClientRect();
-        const up = document.getElementById('upgrade').getBoundingClientRect();
         const ws = [...document.querySelectorAll('.walker')];
         // 歩く範囲ぜんぶ (left から left + dist まで) が草原の中か
         const inside = ws.every((w) => {
@@ -951,11 +964,11 @@ async function run() {
           return l >= 0 && l + d + w.offsetWidth <= g.width + 0.5;
         });
         const rs = ws.map((w) => w.getBoundingClientRect());
-        return { n: ws.length, inside, bottom: Math.max(...rs.map((r) => r.bottom)), upTop: up.top, gTop: g.top, top: Math.min(...rs.map((r) => r.top)),
+        return { n: ws.length, inside, bottom: Math.max(...rs.map((r) => r.bottom)), gBottom: g.bottom, gTop: g.top, top: Math.min(...rs.map((r) => r.top)),
           tags: ws.map((w) => w.tagName) };
       });
       ok(field.n === 7 && field.tags.every((t) => t === 'BUTTON'), `持っている子が 7 人まで歩き、どの子も押せる (${field.n})`);
-      ok(field.inside && field.bottom <= field.upTop + 0.5 && field.top >= field.gTop - 30, `歩く範囲が草原の中に収まる (下 ${Math.round(field.bottom)} / 強化の上 ${Math.round(field.upTop)})`);
+      ok(field.inside && field.bottom <= field.gBottom + 0.5 && field.top >= field.gTop - 30, `歩く範囲が草原の中に収まる (下 ${Math.round(field.bottom)} / 草原の下 ${Math.round(field.gBottom)})`);
 
       // 歩いている子を そのまま タップ (止まらない)
       // 7 人いると重なることがある。指の下でいちばん手前にいる子をタップする (指で押したときと同じ)
